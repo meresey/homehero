@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Home Hero",
+    "slug": "home-hero",
+    "scheme": "homehero",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true },
+    "web": { "bundler": "metro" },
+    "ios": { "supportsTablet": true },
+    "android": { "adaptiveIcon": { "backgroundColor": "#F7F3E8" } }
+  }
+}

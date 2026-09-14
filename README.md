@@ -1,0 +1,80 @@
+# Home Hero
+
+A gamified family habit and chore app for children aged 10–13. This repository contains an Expo/React Native product prototype and a transaction-safe Supabase/PostgreSQL backend.
+
+## What is implemented
+
+- Child Today, Week, Star Store, and Hero screens
+- Parent Dashboard, Quest Manager, Approval Inbox, and Rewards screens
+- Functional Party Leader quest administration with daily, weekly, and Guild filters, create/edit forms, schedules, timers, rewards, and archive-safe removal
+- Timer, direct-completion, Guild Quest approval, and reward-redemption interactions
+- PostgreSQL schema for households, quests, instances, ledger, levels, streaks, weekly goals, rewards, and redemptions
+- Row Level Security policies
+- Atomic RPCs for completing quests, starting timers, reviewing Guild Quests, and redeeming rewards
+- Idempotent star/XP ledger
+- Bedtime expiration and Monday–Sunday streak functions
+- Optional Edge Function wrapper for expiration
+
+The app initially uses local demo data so the full interface works without cloud credentials. Connect the queries in `src/lib/supabase.ts` to the included RPCs when a Supabase project is available.
+
+## Run the app
+
+Prerequisites: Node.js 20+ and pnpm or npm.
+
+```bash
+npm install
+cp .env.example .env
+npm run start
+```
+
+Press `i` for iOS, `a` for Android, or `w` for the browser. Leave the Supabase values unset while reviewing the demo UI.
+
+## Provision Supabase
+
+1. Create a Supabase project.
+2. Install the Supabase CLI and link the project.
+3. Apply migrations with `supabase db push`.
+4. Enable the `pg_cron` extension in the dashboard.
+5. Schedule `expire_overdue_quests()` every five minutes.
+6. Add the project URL and publishable/anon key to `.env`.
+7. Never put the service-role key in the Expo application.
+
+Example cron setup is included at the bottom of `202609140002_game_functions.sql`.
+
+## Server command mapping
+
+| User action | RPC |
+| --- | --- |
+| Complete daily/bedtime quest | `complete_quest(instance_id)` |
+| Start a timed quest | `start_timer(instance_id)` |
+| Finish timed quest | `finish_timer(instance_id)` |
+| Submit family quest | `submit_guild_quest(instance_id)` |
+| Approve/reject Guild Quest | `review_guild_quest(instance_id, approve, note)` |
+| Spend stars | `redeem_reward(reward_id, idempotency_key)` |
+| Create or edit a quest | `upsert_quest_admin(...)` |
+| Remove a quest from future schedules | `archive_quest_admin(template_id)` |
+
+`award_quest` is intentionally private. `finish_timer` verifies ownership, while `award_quest` verifies the server-recorded end time before writing either currency.
+
+## Important production follow-ups
+
+- Add onboarding and real authentication.
+- Connect the included timezone-aware `generate_daily_quest_instances()` job to Supabase Cron.
+- Replace the local UI mutations with TanStack Query calls to the RPC layer.
+- Register Expo push tokens and send Guild approval notifications from an Edge Function.
+- Add signed evidence uploads.
+- Test RLS with multiple households.
+- Add clock, timezone, DST, concurrency, offline-sync, and double-tap integration tests.
+- Add notification, audio, haptic, and reduced-motion preferences.
+
+## Directory map
+
+```text
+app/                         Expo Router entry points
+src/HomeHeroApp.tsx          Child and parent product surfaces
+src/components.tsx           Shared UI primitives
+src/data.ts                  Local demo fixtures
+src/lib/supabase.ts          Optional backend client
+supabase/migrations/         Schema, RLS, and game functions
+supabase/functions/          Privileged serverless functions
+```

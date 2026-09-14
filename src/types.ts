@@ -3,6 +3,8 @@ export type QuestStatus = 'available' | 'in_progress' | 'pending_approval' | 're
 
 export type Quest = {
   id: string;
+  templateId?: string;
+  instanceId?: string;
   title: string;
   description: string;
   emoji: string;

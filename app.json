@@ -7,10 +7,32 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": true },
-    "web": { "bundler": "metro" },
-    "ios": { "supportsTablet": true },
-    "android": { "adaptiveIcon": { "backgroundColor": "#F7F3E8" } }
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.meresey.homehero"
+    },
+    "android": {
+      "package": "com.meresey.homehero",
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F3E8"
+      }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6fd232d4-42d6-4e39-ae94-4f784389d800"
+      }
+    },
+    "owner": "meresey"
   }
 }

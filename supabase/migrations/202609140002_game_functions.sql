@@ -4,10 +4,9 @@ language plpgsql security definer set search_path = public
 as $$
 declare q public.quest_instances; kind public.quest_kind; old_status public.quest_status;
 begin
-  select qi, qt.kind into q, kind
-  from quest_instances qi join quest_templates qt on qt.id = qi.quest_template_id
-  where qi.id = p_instance_id for update of qi;
+  select * into q from quest_instances where id = p_instance_id for update;
   if q.id is null then raise exception 'Quest not found'; end if;
+  select qt.kind into kind from quest_templates qt where qt.id = q.quest_template_id;
   if q.rewarded_at is not null then return q; end if;
   if now() >= coalesce(q.cutoff_at, q.expires_at) then raise exception 'Quest deadline has passed'; end if;
   if kind = 'timer' and (q.timer_expected_end_at is null or now() < q.timer_expected_end_at) then raise exception 'Timer is still running'; end if;
@@ -28,7 +27,8 @@ create or replace function public.complete_quest(p_instance_id uuid)
 returns public.quest_instances language plpgsql security definer set search_path = public
 as $$ declare q public.quest_instances; kind public.quest_kind;
 begin
-  select qi, qt.kind into q, kind from quest_instances qi join quest_templates qt on qt.id=qi.quest_template_id where qi.id=p_instance_id;
+  select * into q from quest_instances where id=p_instance_id;
+  select qt.kind into kind from quest_templates qt where qt.id=q.quest_template_id;
   if q.child_id <> auth.uid() then raise exception 'Forbidden'; end if;
   if kind in ('guild','timer') then raise exception 'Use the guild or timer command'; end if;
   return public.award_quest(p_instance_id);
@@ -38,7 +38,8 @@ create or replace function public.start_timer(p_instance_id uuid)
 returns public.quest_instances language plpgsql security definer set search_path = public
 as $$ declare q public.quest_instances; seconds integer;
 begin
-  select qi, qt.timer_seconds into q, seconds from quest_instances qi join quest_templates qt on qt.id=qi.quest_template_id where qi.id=p_instance_id for update of qi;
+  select * into q from quest_instances where id=p_instance_id for update;
+  select qt.timer_seconds into seconds from quest_templates qt where qt.id=q.quest_template_id;
   if q.child_id <> auth.uid() or seconds is null then raise exception 'Forbidden or not a timer quest'; end if;
   if now() >= coalesce(q.cutoff_at,q.expires_at) then raise exception 'Quest deadline has passed'; end if;
   if q.status = 'available' then
@@ -60,7 +61,8 @@ create or replace function public.submit_guild_quest(p_instance_id uuid)
 returns public.quest_instances language plpgsql security definer set search_path = public
 as $$ declare q public.quest_instances; kind public.quest_kind;
 begin
-  select qi, qt.kind into q, kind from quest_instances qi join quest_templates qt on qt.id=qi.quest_template_id where qi.id=p_instance_id for update of qi;
+  select * into q from quest_instances where id=p_instance_id for update;
+  select qt.kind into kind from quest_templates qt where qt.id=q.quest_template_id;
   if q.child_id <> auth.uid() or kind <> 'guild' then raise exception 'Forbidden or not a guild quest'; end if;
   if now() >= coalesce(q.cutoff_at,q.expires_at) then raise exception 'Quest deadline has passed'; end if;
   update quest_instances set status='pending_approval', submitted_at=now(), version=version+1 where id=q.id and status='available' returning * into q;

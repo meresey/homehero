@@ -233,6 +233,7 @@ alter table public.quest_instances enable row level security;
 alter table public.quest_approvals enable row level security;
 alter table public.quest_events enable row level security;
 alter table public.point_ledger enable row level security;
+alter table public.level_definitions enable row level security;
 alter table public.streak_awards enable row level security;
 alter table public.rewards enable row level security;
 alter table public.weekly_goals enable row level security;
@@ -250,6 +251,7 @@ create policy instances_read on public.quest_instances for select using (child_i
 create policy approvals_read on public.quest_approvals for select using (exists(select 1 from public.quest_instances q where q.id = quest_instance_id and (q.child_id = (select auth.uid()) or public.is_household_parent(q.household_id))));
 create policy events_read on public.quest_events for select using (exists(select 1 from public.quest_instances q where q.id = quest_instance_id and (q.child_id = (select auth.uid()) or public.is_household_parent(q.household_id))));
 create policy ledger_read on public.point_ledger for select using (child_id = (select auth.uid()) or public.is_household_parent(household_id));
+create policy levels_read on public.level_definitions for select to authenticated using (true);
 create policy streak_read on public.streak_awards for select using (child_id = (select auth.uid()) or public.is_household_parent(household_id));
 create policy rewards_read on public.rewards for select using (public.is_household_member(household_id));
 create policy rewards_parent_write on public.rewards for all using (public.is_household_parent(household_id)) with check (public.is_household_parent(household_id));

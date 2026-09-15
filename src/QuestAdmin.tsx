@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Panel, Pill } from './components';
 import { colors } from './theme';
 import { Quest } from './types';
+import { EmojiPickerField } from './EmojiPicker';
 
 type Category = 'all' | 'daily' | 'weekly' | 'guild';
 type Draft = { title: string; description: string; emoji: string; cadence: Exclude<Category, 'all'>; scheduleLabel: string; stars: string; xp: string; timerMinutes: string };
@@ -71,7 +72,8 @@ function QuestEditor({ value, onClose, onSave }: { value: Quest | null | 'new'; 
       <Field label="Quest name"><TextInput value={draft.title} onChangeText={text => set('title', text)} placeholder="e.g. Tidy your room" style={styles.input} /></Field>
       <Field label="Description"><TextInput value={draft.description} onChangeText={text => set('description', text)} placeholder="What should the hero do?" multiline style={[styles.input, styles.multiline]} /></Field>
       <Field label="Quest type"><View style={styles.segment}>{(['daily','weekly','guild'] as const).map(key => <Pressable key={key} onPress={() => set('cadence', key)} style={[styles.segmentItem, draft.cadence === key && styles.segmentActive]}><Text style={[styles.segmentText, draft.cadence === key && styles.segmentTextActive]}>{key[0].toUpperCase()+key.slice(1)}</Text></Pressable>)}</View></Field>
-      <View style={styles.twoColumns}><Field label="Icon" style={styles.smallField}><TextInput value={draft.emoji} onChangeText={text => set('emoji', text)} style={styles.input} maxLength={3} /></Field><Field label="Schedule" style={styles.wideField}><TextInput value={draft.scheduleLabel} onChangeText={text => set('scheduleLabel', text)} placeholder="Mon–Fri" style={styles.input} /></Field></View>
+      <Field label="Icon"><EmojiPickerField value={draft.emoji} onSelect={emoji => set('emoji', emoji)} /></Field>
+      <Field label="Schedule"><TextInput value={draft.scheduleLabel} onChangeText={text => set('scheduleLabel', text)} placeholder="Mon–Fri" style={styles.input} /></Field>
       <View style={styles.twoColumns}><Field label="Stars" style={styles.half}><TextInput value={draft.stars} onChangeText={text => set('stars', text)} keyboardType="number-pad" style={styles.input} /></Field><Field label="XP" style={styles.half}><TextInput value={draft.xp} onChangeText={text => set('xp', text)} keyboardType="number-pad" style={styles.input} /></Field></View>
       <Field label="Timer minutes (optional)"><TextInput value={draft.timerMinutes} onChangeText={text => set('timerMinutes', text)} keyboardType="number-pad" placeholder="20" style={styles.input} /></Field>
       {draft.cadence === 'guild' && <View style={styles.notice}><Ionicons name="shield-checkmark-outline" size={22} color={colors.purple} /><Text style={styles.noticeText}>Guild Quests always require Party Leader approval before stars and XP are awarded.</Text></View>}

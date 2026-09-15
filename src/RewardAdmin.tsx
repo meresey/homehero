@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Panel } from './components';
 import { colors } from './theme';
 import { Reward } from './types';
+import { EmojiPickerField } from './EmojiPicker';
 
 type Draft = { title: string; subtitle: string; emoji: string; cost: string };
 const emptyDraft: Draft = { title: '', subtitle: '', emoji: '🎁', cost: '25' };
@@ -57,7 +58,8 @@ function RewardEditor({ value, onClose, onSave }: { value: Reward | 'new' | null
     <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
       <Field label="Reward name"><TextInput value={draft.title} onChangeText={text => update('title', text)} placeholder="e.g. Choose movie night" style={styles.input} /></Field>
       <Field label="Description"><TextInput value={draft.subtitle} onChangeText={text => update('subtitle', text)} placeholder="What does the Hero receive?" multiline style={[styles.input, styles.multiline]} /></Field>
-      <View style={styles.row}><Field label="Icon" style={styles.iconField}><TextInput value={draft.emoji} onChangeText={text => update('emoji', text)} maxLength={3} style={styles.input} /></Field><Field label="Star cost" style={styles.costField}><TextInput value={draft.cost} onChangeText={text => update('cost', text)} keyboardType="number-pad" style={styles.input} /></Field></View>
+      <Field label="Icon"><EmojiPickerField value={draft.emoji} onSelect={emoji => update('emoji', emoji)} /></Field>
+      <Field label="Star cost"><TextInput value={draft.cost} onChangeText={text => update('cost', text)} keyboardType="number-pad" style={styles.input} /></Field>
       <View style={styles.notice}><Ionicons name="star-outline" size={22} color={colors.green} /><Text style={styles.noticeText}>Heroes see this reward and its updated price immediately in the Star Store.</Text></View>
       <Pressable style={styles.primary} onPress={submit}><Text style={styles.primaryText}>{value === 'new' ? 'Add reward' : 'Save changes'}</Text></Pressable>
     </ScrollView>

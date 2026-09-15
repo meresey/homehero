@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, SafeAreaView, ScrollView, S
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Panel, Pill, ProgressBar, QuestCard } from './components';
-import { rewards, week } from './data';
+import { heroBadges, rewards, week } from './data';
 import { colors } from './theme';
 import { Quest, Reward } from './types';
 import { QuestAdmin } from './QuestAdmin';
@@ -30,6 +30,8 @@ export function HomeHeroApp() {
   const [levelDefinitions, setLevelDefinitions] = useState<HeroLevel[]>(heroLevels);
   const { quests, stars, xp } = data;
   const activeRole = data.backendEnabled && data.family ? data.family.role : role;
+  const currentHeroLevel = getHeroLevelProgress(xp, levelDefinitions).current;
+  const earnedBadgeCount = heroBadges.filter(badge => badge.earned).length;
 
   const complete = async (quest: Quest) => {
     if (['rewarded', 'pending_approval', 'expired'].includes(quest.status)) return;
@@ -118,10 +120,13 @@ export function HomeHeroApp() {
 
       {activeRole === 'child' ? (
         <>
-          {childTab === 'today' && <ChildToday quests={quests} stars={stars} xp={xp} levels={levelDefinitions} onQuest={complete} />}
-          {childTab === 'week' && <WeeklyBoard />}
-          {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : localRewards} stars={stars} onRedeem={redeem} />}
-          {childTab === 'hero' && <HeroProfile stars={stars} xp={xp} levels={levelDefinitions} />}
+          <HeroHeader level={currentHeroLevel} stars={stars} xp={xp} badges={earnedBadgeCount} />
+          <View style={styles.screen}>
+            {childTab === 'today' && <ChildToday quests={quests} xp={xp} levels={levelDefinitions} onQuest={complete} />}
+            {childTab === 'week' && <WeeklyBoard />}
+            {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : localRewards} stars={stars} onRedeem={redeem} />}
+            {childTab === 'hero' && <HeroProfile stars={stars} xp={xp} levels={levelDefinitions} />}
+          </View>
           <BottomNav value={childTab} onChange={value => setChildTab(value as ChildTab)} items={[
             ['today', 'map-outline', 'Today'], ['week', 'calendar-outline', 'Week'], ['store', 'star-outline', 'Store'], ['hero', 'shield-outline', 'Hero'],
           ]} />
@@ -143,16 +148,24 @@ export function HomeHeroApp() {
   );
 }
 
-function ChildToday({ quests, stars, xp, levels, onQuest }: { quests: Quest[]; stars: number; xp: number; levels: HeroLevel[]; onQuest: (q: Quest) => void }) {
+function HeroHeader({ level, stars, xp, badges }: { level: HeroLevel; stars: number; xp: number; badges: number }) {
+  const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()).toUpperCase();
+  return <LinearGradient colors={[colors.navy, '#284A7D']} style={styles.sharedHeroHeader}>
+    <View style={styles.levelShield}><Text style={styles.levelSmall}>LEVEL</Text><Text style={styles.levelNumber}>{level.level}</Text></View>
+    <View style={styles.heroHeaderCopy}><Text style={styles.eyebrow}>{weekday} · HERO DASHBOARD</Text><Text style={styles.greeting}>Ready, Alex?</Text><Text style={styles.heroSub}>{level.title} · Every small win builds a hero.</Text></View>
+    <View style={styles.heroStats}>
+      <View style={styles.heroStat}><Text style={styles.heroStatIcon}>⭐</Text><View><Text style={styles.heroStatValue}>{stars}</Text><Text style={styles.heroStatLabel}>STARS</Text></View></View>
+      <View style={styles.heroStat}><Text style={styles.heroStatIcon}>✦</Text><View><Text style={styles.heroStatValue}>{xp}</Text><Text style={styles.heroStatLabel}>XP</Text></View></View>
+      <View style={styles.heroStat}><Text style={styles.heroStatIcon}>🏅</Text><View><Text style={styles.heroStatValue}>{badges}</Text><Text style={styles.heroStatLabel}>BADGES</Text></View></View>
+    </View>
+  </LinearGradient>;
+}
+
+function ChildToday({ quests, xp, levels, onQuest }: { quests: Quest[]; xp: number; levels: HeroLevel[]; onQuest: (q: Quest) => void }) {
   const earned = quests.filter(q => q.status === 'rewarded').length;
   const level = getHeroLevelProgress(xp, levels);
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <LinearGradient colors={[colors.navy, '#284A7D']} style={styles.heroBanner}>
-        <View style={styles.levelShield}><Text style={styles.levelSmall}>LEVEL</Text><Text style={styles.levelNumber}>{level.current.level}</Text></View>
-        <View style={{ flex: 1 }}><Text style={styles.eyebrow}>FRIDAY · QUEST DAY 5</Text><Text style={styles.greeting}>Ready, Alex?</Text><Text style={styles.heroSub}>Every small win builds a hero.</Text></View>
-        <View style={styles.wallet}><Text style={styles.walletText}>⭐ {stars}</Text></View>
-      </LinearGradient>
       <Panel>
         <View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Level {level.current.level} · {level.current.title}</Text><Text style={styles.muted}>{level.lifetimeXp} lifetime XP{level.next ? ` · ${level.earnedThisLevel} of ${level.levelRange} this level` : ''}</Text></View><Pill tone="gold">{level.next ? `${level.remainingXp} XP TO LEVEL ${level.next.level}` : 'MAX LEVEL'}</Pill></View>
         <ProgressBar value={level.earnedThisLevel} max={level.levelRange} color={colors.gold} />
@@ -185,7 +198,7 @@ function HeroProfile({ stars, xp, levels }: { stars: number; xp: number; levels:
   return <ScrollView contentContainerStyle={styles.content}><LinearGradient colors={['#EAF3DD','#F7F3E8']} style={styles.profile}><View style={styles.profileShield}><Text style={styles.profileLevel}>{level.current.level}</Text></View><View style={styles.profileHeading}><Text style={styles.profileTitle}>Alex the {level.current.title}</Text><Text style={styles.profileLead}>{level.current.characteristics.join(' · ')}</Text><Text style={styles.qualitiesLabel}>QUALITIES YOU’RE BUILDING</Text></View></LinearGradient>
     <View style={styles.metricGrid}><Panel style={styles.metric}><Text style={styles.metricValue}>{xp}</Text><Text style={styles.muted}>Lifetime XP</Text></Panel><Panel style={styles.metric}><Text style={styles.metricValue}>{stars}</Text><Text style={styles.muted}>Stars to spend</Text></Panel></View>
     <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Level {level.current.level} progress</Text><Text style={styles.muted}>{level.next ? `${level.remainingXp} XP until ${level.next.title}` : 'Highest level reached'}</Text></View><Pill tone="gold">{level.next ? `${level.earnedThisLevel}/${level.levelRange} XP` : 'MAX LEVEL'}</Pill></View><ProgressBar value={level.earnedThisLevel} max={level.levelRange} color={colors.gold} /></Panel>
-    <Panel><Text style={styles.cardTitle}>Hero badges</Text><View style={styles.badges}>{[['🔥','On Fire'],['🤝','Team Player'],['📚','Bookworm'],['🌟','Perfect Day']].map(b => <View key={b[1]} style={styles.badge}><Text style={styles.badgeIcon}>{b[0]}</Text><Text style={styles.badgeName}>{b[1]}</Text></View>)}</View></Panel>
+    <Panel><Text style={styles.cardTitle}>Hero badges</Text><View style={styles.badges}>{heroBadges.filter(badge => badge.earned).map(badge => <View key={badge.id} style={styles.badge}><Text style={styles.badgeIcon}>{badge.emoji}</Text><Text style={styles.badgeName}>{badge.name}</Text></View>)}</View></Panel>
   </ScrollView>;
 }
 
@@ -221,12 +234,12 @@ function TimerModal({ quest, onClose, onFinish }: { quest: Quest | null; onClose
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.cream }, loading: { alignItems: 'center', justifyContent: 'center', gap: 14 }, content: { padding: 18, paddingBottom: 110, gap: 16 },
+  safe: { flex: 1, backgroundColor: colors.cream }, screen: { flex: 1 }, loading: { alignItems: 'center', justifyContent: 'center', gap: 14 }, content: { padding: 18, paddingBottom: 110, gap: 16 },
   roleBar: { paddingHorizontal: 18, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.cream },
   logo: { color: colors.navy, fontSize: 19, fontWeight: '900', letterSpacing: 1 }, switcher: { flexDirection: 'row', backgroundColor: '#EAE5D9', borderRadius: 12, padding: 3 },
   switchButton: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 9 }, switchActive: { backgroundColor: colors.white }, switchText: { fontSize: 11, color: colors.muted, fontWeight: '700' }, switchTextActive: { color: colors.navy },
-  heroBanner: { borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }, levelShield: { width: 62, height: 70, backgroundColor: colors.green, borderWidth: 3, borderColor: colors.gold, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }, levelSmall: { color: colors.white, fontSize: 9, fontWeight: '900' }, levelNumber: { color: colors.white, fontSize: 33, lineHeight: 36, fontWeight: '900' },
-  eyebrow: { color: '#CBD7EA', fontSize: 9, fontWeight: '900', letterSpacing: 1 }, eyebrowDark: { color: colors.purple, fontSize: 10, fontWeight: '900', letterSpacing: 1 }, greeting: { color: colors.white, fontSize: 23, fontWeight: '900' }, heroSub: { color: '#DCE5F2', fontSize: 11 }, wallet: { position: 'absolute', right: 14, top: 14, backgroundColor: 'rgba(255,255,255,.14)', padding: 7, borderRadius: 99 }, walletText: { color: colors.white, fontWeight: '900' },
+  sharedHeroHeader: { marginHorizontal: 18, marginBottom: 2, borderRadius: 22, padding: 14, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 13 }, levelShield: { width: 58, height: 66, backgroundColor: colors.green, borderWidth: 3, borderColor: colors.gold, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, levelSmall: { color: colors.white, fontSize: 8, fontWeight: '900' }, levelNumber: { color: colors.white, fontSize: 31, lineHeight: 34, fontWeight: '900' }, heroHeaderCopy: { flexGrow: 1, flexBasis: 150, minWidth: 120 }, heroStats: { flexGrow: 1, flexBasis: 220, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 7 }, heroStat: { minWidth: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 13, backgroundColor: 'rgba(255,255,255,.13)' }, heroStatIcon: { fontSize: 16 }, heroStatValue: { color: colors.white, fontSize: 15, lineHeight: 17, fontWeight: '900' }, heroStatLabel: { color: '#CBD7EA', fontSize: 7, fontWeight: '900', letterSpacing: 0.5 },
+  eyebrow: { color: '#CBD7EA', fontSize: 9, fontWeight: '900', letterSpacing: 1 }, eyebrowDark: { color: colors.purple, fontSize: 10, fontWeight: '900', letterSpacing: 1 }, greeting: { color: colors.white, fontSize: 21, fontWeight: '900' }, heroSub: { color: '#DCE5F2', fontSize: 10, lineHeight: 15 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }, cardTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' }, inviteCode: { color: colors.green, fontSize: 28, fontWeight: '900', letterSpacing: 4, marginVertical: 8 }, questTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' }, muted: { color: colors.muted, fontSize: 12, lineHeight: 18 }, sectionTitle: { fontSize: 21, color: colors.navy, fontWeight: '900' }, pageTitle: { fontSize: 27, color: colors.navy, fontWeight: '900' }, pageLead: { fontSize: 13, color: colors.muted, marginTop: -12 }, tipTitle: { color: '#7A5700', fontWeight: '900', marginBottom: 4 },
   bigStar: { fontSize: 36 }, encourage: { color: colors.green, fontWeight: '700', fontSize: 12, marginTop: 10 }, weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 }, day: { alignItems: 'center', gap: 7 }, dayLabel: { fontSize: 10, color: colors.muted, fontWeight: '800' }, dayDot: { width: 33, height: 33, borderRadius: 17, borderWidth: 2, borderColor: '#D9D4C8', justifyContent: 'center', alignItems: 'center' }, dayDone: { backgroundColor: colors.green, borderColor: colors.green }, dayToday: { borderColor: colors.gold }, dayValue: { color: colors.white, fontWeight: '900' }, dayStars: { color: '#836000', fontWeight: '800', fontSize: 10 },
   statRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#EFECE5' }, statEmoji: { fontSize: 25 }, statName: { flex: 1, fontWeight: '800', color: colors.ink }, storeHeading: { flex: 1, gap: 3 }, storeLead: { color: colors.muted, fontSize: 13, lineHeight: 19 }, starBalance: { backgroundColor: '#FFF0B7', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99 }, starBalanceText: { color: '#755400', fontWeight: '900', fontSize: 17 }, storeCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border }, storeEmoji: { fontSize: 34 }, cost: { backgroundColor: colors.navy, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 8 }, costText: { color: colors.white, fontWeight: '900' }, footnote: { color: colors.muted, fontSize: 11, textAlign: 'center', lineHeight: 17, paddingHorizontal: 20 },

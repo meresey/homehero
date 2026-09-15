@@ -16,6 +16,13 @@ export const rewards: Reward[] = [
   { id: 'book', title: 'New book or game', emoji: '🎁', cost: 60, subtitle: 'Pick something special' },
 ];
 
+export const heroBadges = [
+  { id: 'on-fire', emoji: '🔥', name: 'On Fire', earned: true },
+  { id: 'team-player', emoji: '🤝', name: 'Team Player', earned: true },
+  { id: 'bookworm', emoji: '📚', name: 'Bookworm', earned: true },
+  { id: 'perfect-day', emoji: '🌟', name: 'Perfect Day', earned: true },
+];
+
 export const week = [
   { day: 'Mon', stars: 5, done: true }, { day: 'Tue', stars: 4, done: true },
   { day: 'Wed', stars: 5, done: true }, { day: 'Thu', stars: 3, done: true },

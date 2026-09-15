@@ -50,6 +50,11 @@ Do not enable `EXPO_PUBLIC_USE_SUPABASE` until every item below is complete:
 - Replace the client’s initial `heroLevels` fixture with a query that loads `level_definitions` from Supabase.
 - Add a parent-authorized RPC and RLS policy for saving level titles, XP thresholds, and characteristics.
 - Connect `LevelAdmin` saves to that RPC while retaining local-state behavior when the backend flag is off.
+- Load the Hero header name from `profiles.display_name` instead of the local `Alex` placeholder.
+- Continue loading header stars and lifetime XP from `child_balances`, then calculate the current level from the database-backed level definitions.
+- Add `badge_definitions` and `child_badges` tables (including `earned_at`), with household-safe RLS policies.
+- Query the child’s earned badge count and badge collection so the shared Hero header and Hero profile use the same database source.
+- Retain the local profile and badge fixtures while `EXPO_PUBLIC_USE_SUPABASE=false`.
 - Test child read access and parent update access across at least two unrelated households.
 - Set `EXPO_PUBLIC_USE_SUPABASE=true`, rebuild the application, and run the authentication, quest, reward, and level regression tests.
 

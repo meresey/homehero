@@ -24,6 +24,45 @@ export function useHouseholdState() {
     const heroId = current.selectedHero.heroId ?? current.heroes[0]?.id;
     return { ...current, balances: current.balances.map(balance => balance.heroId === heroId ? { ...balance, [field]: typeof update === 'function' ? update(balance[field]) : update } : balance) };
   });
+  const submitGuildQuest = (quest: Quest) => setState(current => {
+    const heroId = current.selectedHero.heroId ?? current.heroes[0]?.id;
+    const templateId = quest.templateId ?? quest.id;
+    const alreadyPending = current.guildApprovals.some(item => item.heroId === heroId && item.questId === templateId && item.status === 'pending');
+    return {
+      ...current,
+      heroQuests: { ...current.heroQuests, [heroId]: (current.heroQuests[heroId] ?? []).map(item => item.id === quest.id ? { ...item, status: 'pending_approval' } : item) },
+      guildApprovals: alreadyPending ? current.guildApprovals : [...current.guildApprovals, { id: `approval-${heroId}-${templateId}-${Date.now()}`, householdId: current.household.id, heroId, questId: templateId, submittedAt: new Date().toISOString(), status: 'pending' }],
+    };
+  });
+  const requestReward = (rewardId: string, starCost: number) => setState(current => {
+    const heroId = current.selectedHero.heroId ?? current.heroes[0]?.id;
+    if (current.rewardRequests.some(item => item.heroId === heroId && item.rewardId === rewardId && item.status === 'pending')) return current;
+    return { ...current, rewardRequests: [...current.rewardRequests, { id: `request-${heroId}-${rewardId}-${Date.now()}`, householdId: current.household.id, heroId, rewardId, starCost, requestedAt: new Date().toISOString(), status: 'pending' }] };
+  });
+  const reviewRewardRequest = (requestId: string, approve: boolean) => {
+    const request = state.rewardRequests.find(item => item.id === requestId && item.status === 'pending');
+    if (!request) return 'missing' as const;
+    const balance = state.balances.find(item => item.heroId === request.heroId);
+    if (approve && (!balance || balance.stars < request.starCost)) return 'insufficient' as const;
+    setState(current => ({
+      ...current,
+      balances: approve ? current.balances.map(item => item.heroId === request.heroId ? { ...item, stars: item.stars - request.starCost } : item) : current.balances,
+      rewardRequests: current.rewardRequests.map(item => item.id === requestId ? { ...item, status: approve ? 'approved' : 'declined' } : item),
+    }));
+    return approve ? 'approved' as const : 'declined' as const;
+  };
+  const reviewGuildApproval = (approvalId: string, approve: boolean) => {
+    const approval = state.guildApprovals.find(item => item.id === approvalId && item.status === 'pending');
+    if (!approval) return false;
+    const quest = (state.heroQuests[approval.heroId] ?? []).find(item => (item.templateId ?? item.id) === approval.questId);
+    setState(current => ({
+      ...current,
+      guildApprovals: current.guildApprovals.map(item => item.id === approvalId ? { ...item, status: approve ? 'approved' : 'rejected' } : item),
+      heroQuests: { ...current.heroQuests, [approval.heroId]: (current.heroQuests[approval.heroId] ?? []).map(item => (item.templateId ?? item.id) === approval.questId ? { ...item, status: approve ? 'rewarded' : 'available' } : item) },
+      balances: approve && quest ? current.balances.map(item => item.heroId === approval.heroId ? { ...item, stars: item.stars + quest.stars, lifetimeXp: item.lifetimeXp + quest.xp } : item) : current.balances,
+    }));
+    return true;
+  };
 
   const summaries = useMemo(() => state.heroes.map(hero => buildSummary(state, hero)), [state]);
 
@@ -36,6 +75,10 @@ export function useHouseholdState() {
     summaries,
     setSelectedHero,
     setSelectedHeroQuests,
+    submitGuildQuest,
+    requestReward,
+    reviewRewardRequest,
+    reviewGuildApproval,
     setSelectedStars: (update: SetStateAction<number>) => updateSelectedBalance('stars', update),
     setSelectedXp: (update: SetStateAction<number>) => updateSelectedBalance('lifetimeXp', update),
   };

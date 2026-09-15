@@ -15,6 +15,7 @@ import { getHeroLevelProgress, HeroLevel, heroLevels } from './levels';
 import { LevelAdmin } from './LevelAdmin';
 import { useHouseholdState } from './useHouseholdState';
 import { HouseholdDashboard } from './HouseholdDashboard';
+import { HouseholdReview } from './HouseholdReview';
 
 type Role = 'child' | 'parent';
 type ChildTab = 'today' | 'week' | 'store' | 'hero';
@@ -51,7 +52,7 @@ export function HomeHeroApp() {
       return;
     }
     if (quest.kind === 'guild') {
-      householdData.setSelectedHeroQuests(list => list.map(q => q.id === quest.id ? { ...q, status: 'pending_approval' } : q));
+      householdData.submitGuildQuest(quest);
       return Alert.alert('Guild quest submitted!', 'Your Party Leader has been asked to approve it.');
     }
     award(quest);
@@ -75,8 +76,11 @@ export function HomeHeroApp() {
   const redeem = async (cost: number, title: string, rewardId?: string) => {
     if (stars < cost) return Alert.alert('Keep questing!', `You need ${cost - stars} more stars.`);
     if (data.backendEnabled && rewardId) { try { await data.redeemReward(rewardId); Alert.alert('Request sent!', `A Party Leader will approve “${title}”.`); } catch (cause) { showError(cause); } return; }
-    householdData.setSelectedStars(value => value - cost);
-    Alert.alert('Request sent!', `A Party Leader will approve “${title}”.`);
+    if (!rewardId) return;
+    const alreadyPending = householdData.state.rewardRequests.some(request => request.heroId === householdData.selectedHero.id && request.rewardId === rewardId && request.status === 'pending');
+    if (alreadyPending) return Alert.alert('Already requested', `“${title}” is waiting for your Party Leader to review it.`);
+    householdData.requestReward(rewardId, cost);
+    Alert.alert('Request sent!', `A Party Leader will approve “${title}”. Your stars will not be charged until then.`);
   };
 
   const saveQuest = async (quest: Quest) => {
@@ -91,7 +95,7 @@ export function HomeHeroApp() {
     householdData.setSelectedHeroQuests(current => current.some(item => item.id === quest.id)
       ? current.map(item => item.id === quest.id ? quest : item)
       : [quest, ...current]);
-    Alert.alert('Quest saved', `“${quest.title}” is ready for Alex.`);
+    Alert.alert('Quest saved', `“${quest.title}” is ready for ${heroName}.`);
   };
 
   const removeQuest = async (id: string) => {
@@ -140,10 +144,11 @@ export function HomeHeroApp() {
         </>
       ) : (
         <>
-          {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} />}
+          {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} onOpenAttention={(heroId, type) => { householdData.setSelectedHero(heroId); setParentTab(type === 'bedtime' ? 'quests' : 'approvals'); }} />}
           {parentTab === 'home' && data.backendEnabled && <ParentHome quests={quests} pendingQuests={data.pendingQuests} familyCode={data.family?.inviteCode} approveGuild={approveGuild} />}
           {parentTab === 'quests' && <QuestAdmin quests={quests} onSave={saveQuest} onRemove={removeQuest} />}
-          {parentTab === 'approvals' && <Approvals quests={data.backendEnabled ? data.pendingQuests : quests} approve={approveGuild} />}
+          {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} />}
+          {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} approve={approveGuild} />}
           {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} onSave={saveReward} onRemove={removeReward} />}
           {parentTab === 'levels' && <LevelAdmin levels={levelDefinitions} onSave={updated => setLevelDefinitions(current => current.map(level => level.level === updated.level ? updated : level))} />}
           <BottomNav value={parentTab} onChange={value => setParentTab(value as ParentTab)} items={[

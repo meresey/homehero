@@ -6,15 +6,17 @@ import { getHeroLevelProgress, HeroLevel } from './levels';
 import { GuildApproval, HeroSummary, Household, RewardRequest } from './types';
 import { colors } from './theme';
 
-export function HouseholdDashboard({ household, heroes, levels, guildApprovals, rewardRequests, onViewHero }: { household: Household; heroes: HeroSummary[]; levels: HeroLevel[]; guildApprovals: GuildApproval[]; rewardRequests: RewardRequest[]; onViewHero: (heroId: string) => void }) {
+type AttentionType = 'guild' | 'reward' | 'bedtime';
+
+export function HouseholdDashboard({ household, heroes, levels, guildApprovals, rewardRequests, onViewHero, onOpenAttention }: { household: Household; heroes: HeroSummary[]; levels: HeroLevel[]; guildApprovals: GuildApproval[]; rewardRequests: RewardRequest[]; onViewHero: (heroId: string) => void; onOpenAttention: (heroId: string, type: AttentionType) => void }) {
   const completed = heroes.reduce((sum, hero) => sum + hero.completedToday, 0);
   const total = heroes.reduce((sum, hero) => sum + hero.totalToday, 0);
-  const pendingApprovals = heroes.reduce((sum, hero) => sum + hero.pendingApprovals, 0);
+  const pendingApprovals = heroes.reduce((sum, hero) => sum + hero.pendingApprovals + hero.pendingRewardRequests, 0);
   const weeklyStars = heroes.reduce((sum, hero) => sum + hero.stars, 0);
   const attention = [
-    ...guildApprovals.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, icon: '🤝', text: 'submitted a Guild Quest' })),
-    ...rewardRequests.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, icon: '🎁', text: 'requested a Star Store reward' })),
-    ...heroes.filter(hero => hero.bedtimeQuestsDue > 0).map(hero => ({ id: `bedtime-${hero.heroId}`, heroId: hero.heroId, icon: '🌙', text: `has ${hero.bedtimeQuestsDue} bedtime quest${hero.bedtimeQuestsDue === 1 ? '' : 's'} due` })),
+    ...guildApprovals.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'guild' as const, icon: '🤝', text: 'submitted a Guild Quest' })),
+    ...rewardRequests.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'reward' as const, icon: '🎁', text: 'requested a Star Store reward' })),
+    ...heroes.filter(hero => hero.bedtimeQuestsDue > 0).map(hero => ({ id: `bedtime-${hero.heroId}`, heroId: hero.heroId, type: 'bedtime' as const, icon: '🌙', text: `has ${hero.bedtimeQuestsDue} bedtime quest${hero.bedtimeQuestsDue === 1 ? '' : 's'} due` })),
   ];
   const heroName = (id: string) => heroes.find(hero => hero.heroId === id)?.displayName ?? 'A Hero';
 
@@ -27,7 +29,7 @@ export function HouseholdDashboard({ household, heroes, levels, guildApprovals, 
       <Metric value={String(weeklyStars)} label="Total stars" tone="gold" />
     </View>
 
-    {attention.length > 0 && <Panel><View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Needs your attention</Text><Pill tone="purple">{attention.length}</Pill></View><View style={styles.attentionList}>{attention.map(item => <Pressable key={item.id} onPress={() => onViewHero(item.heroId)} style={styles.attentionItem}><Text style={styles.attentionIcon}>{item.icon}</Text><Text style={styles.attentionText}><Text style={styles.attentionName}>{heroName(item.heroId)}</Text> {item.text}</Text><Ionicons name="chevron-forward" size={18} color={colors.muted} /></Pressable>)}</View></Panel>}
+    {attention.length > 0 && <Panel><View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Needs your attention</Text><Pill tone="purple">{attention.length}</Pill></View><View style={styles.attentionList}>{attention.map(item => <Pressable key={item.id} onPress={() => onOpenAttention(item.heroId, item.type)} style={styles.attentionItem}><Text style={styles.attentionIcon}>{item.icon}</Text><Text style={styles.attentionText}><Text style={styles.attentionName}>{heroName(item.heroId)}</Text> {item.text}</Text><Ionicons name="chevron-forward" size={18} color={colors.muted} /></Pressable>)}</View></Panel>}
 
     <View style={styles.sectionHeader}><View><Text style={styles.pageTitle}>Your Heroes</Text><Text style={styles.pageLead}>Choose a Hero to see their dashboard.</Text></View></View>
     <View style={styles.heroGrid}>{heroes.map(hero => <HeroCard key={hero.heroId} hero={hero} levels={levels} onView={() => onViewHero(hero.heroId)} />)}</View>

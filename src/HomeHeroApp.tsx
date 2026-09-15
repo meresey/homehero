@@ -152,7 +152,7 @@ function HeroHeader({ level, stars, xp, badges }: { level: HeroLevel; stars: num
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()).toUpperCase();
   return <LinearGradient colors={[colors.navy, '#284A7D']} style={styles.sharedHeroHeader}>
     <View style={styles.levelShield}><Text style={styles.levelSmall}>LEVEL</Text><Text style={styles.levelNumber}>{level.level}</Text></View>
-    <View style={styles.heroHeaderCopy}><Text style={styles.eyebrow}>{weekday} · HERO DASHBOARD</Text><Text style={styles.greeting}>Ready, Alex?</Text><Text style={styles.heroSub}>{level.title} · Every small win builds a hero.</Text></View>
+    <View style={styles.heroHeaderCopy}><Text style={styles.eyebrow}>{weekday} · HERO DASHBOARD</Text><Text style={styles.greeting}>Alex</Text><Text style={styles.heroSub}>{level.title} · Every small win builds a hero.</Text></View>
     <View style={styles.heroStats}>
       <View style={styles.heroStat}><Text style={styles.heroStatIcon}>⭐</Text><View><Text style={styles.heroStatValue}>{stars}</Text><Text style={styles.heroStatLabel}>STARS</Text></View></View>
       <View style={styles.heroStat}><Text style={styles.heroStatIcon}>✦</Text><View><Text style={styles.heroStatValue}>{xp}</Text><Text style={styles.heroStatLabel}>XP</Text></View></View>

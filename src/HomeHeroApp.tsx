@@ -5,8 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Panel, Pill, ProgressBar, QuestCard } from './components';
 import { rewards, week } from './data';
 import { colors } from './theme';
-import { Quest } from './types';
+import { Quest, Reward } from './types';
 import { QuestAdmin } from './QuestAdmin';
+import { RewardAdmin } from './RewardAdmin';
 import { AuthScreen, OnboardingScreen } from './AuthFlow';
 import { useHomeHeroData } from './useHomeHeroData';
 import { archiveQuest, saveQuest as saveQuestToDatabase } from './lib/questAdmin';
@@ -23,6 +24,7 @@ export function HomeHeroApp() {
   const [childTab, setChildTab] = useState<ChildTab>('today');
   const [parentTab, setParentTab] = useState<ParentTab>('home');
   const [timerQuest, setTimerQuest] = useState<Quest | null>(null);
+  const [localRewards, setLocalRewards] = useState<Reward[]>(rewards);
   const { quests, stars, xp } = data;
   const activeRole = data.backendEnabled && data.family ? data.family.role : role;
 
@@ -85,6 +87,15 @@ export function HomeHeroApp() {
     data.setDemoQuests(current => current.filter(item => item.id !== id));
   };
 
+  const saveReward = (reward: Reward) => {
+    setLocalRewards(current => current.some(item => item.id === reward.id)
+      ? current.map(item => item.id === reward.id ? reward : item)
+      : [...current, reward].sort((a, b) => a.cost - b.cost));
+    Alert.alert('Reward saved', `“${reward.title}” is now available in the Star Store.`);
+  };
+
+  const removeReward = (id: string) => setLocalRewards(current => current.filter(item => item.id !== id));
+
   if (data.backendEnabled && data.loading) return <SafeAreaView style={[styles.safe, styles.loading]}><ActivityIndicator size="large" color={colors.green} /><Text style={styles.muted}>Loading your hero party…</Text></SafeAreaView>;
   if (data.backendEnabled && !data.session) return <AuthScreen />;
   if (data.backendEnabled && !data.family) return <OnboardingScreen refresh={data.refresh} />;
@@ -106,7 +117,7 @@ export function HomeHeroApp() {
         <>
           {childTab === 'today' && <ChildToday quests={quests} stars={stars} xp={xp} onQuest={complete} />}
           {childTab === 'week' && <WeeklyBoard />}
-          {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : rewards} stars={stars} onRedeem={redeem} />}
+          {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : localRewards} stars={stars} onRedeem={redeem} />}
           {childTab === 'hero' && <HeroProfile stars={stars} xp={xp} />}
           <BottomNav value={childTab} onChange={value => setChildTab(value as ChildTab)} items={[
             ['today', 'map-outline', 'Today'], ['week', 'calendar-outline', 'Week'], ['store', 'star-outline', 'Store'], ['hero', 'shield-outline', 'Hero'],
@@ -117,7 +128,7 @@ export function HomeHeroApp() {
           {parentTab === 'home' && <ParentHome quests={quests} pendingQuests={data.pendingQuests} familyCode={data.family?.inviteCode} approveGuild={approveGuild} />}
           {parentTab === 'quests' && <QuestAdmin quests={quests} onSave={saveQuest} onRemove={removeQuest} />}
           {parentTab === 'approvals' && <Approvals quests={data.backendEnabled ? data.pendingQuests : quests} approve={approveGuild} />}
-          {parentTab === 'rewards' && <RewardsManager />}
+          {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} onSave={saveReward} onRemove={removeReward} />}
           <BottomNav value={parentTab} onChange={value => setParentTab(value as ParentTab)} items={[
             ['home', 'home-outline', 'Home'], ['quests', 'list-outline', 'Quests'], ['approvals', 'checkmark-done-outline', 'Review'], ['rewards', 'gift-outline', 'Rewards'],
           ]} />
@@ -187,12 +198,6 @@ function Approvals({ quests, approve }: { quests: Quest[]; approve: (q: Quest) =
   const pending = quests.filter(q => q.status === 'pending_approval');
   return <ScrollView contentContainerStyle={styles.content}><Text style={styles.pageTitle}>Approval inbox</Text><Text style={styles.pageLead}>Celebrate effort, then award points.</Text>
     {pending.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>✅</Text><Text style={styles.cardTitle}>All caught up!</Text><Text style={styles.muted}>New Guild Quests will appear here.</Text></Panel> : pending.map(q => <Panel key={q.id}><Text style={styles.eyebrowDark}>READY FOR REVIEW</Text><Text style={styles.approvalQuest}>{q.emoji} {q.title}</Text><Text style={styles.muted}>{q.description}</Text><View style={styles.reviewActions}><Pressable style={styles.secondaryButton}><Text style={styles.secondaryText}>Try again</Text></Pressable><Pressable style={styles.primaryButton} onPress={() => approve(q)}><Text style={styles.primaryText}>Approve · +{q.stars} ⭐</Text></Pressable></View></Panel>)}
-  </ScrollView>;
-}
-
-function RewardsManager() {
-  return <ScrollView contentContainerStyle={styles.content}><View style={styles.sectionHeader}><View><Text style={styles.pageTitle}>Rewards</Text><Text style={styles.pageLead}>Set privileges and star prices</Text></View><Pressable style={styles.addButton}><Ionicons name="add" size={25} color={colors.white} /></Pressable></View>
-    {rewards.map(r => <Panel key={r.id} style={styles.managerCard}><Text style={styles.statEmoji}>{r.emoji}</Text><View style={{ flex: 1 }}><Text style={styles.questTitle}>{r.title}</Text><Text style={styles.muted}>{r.cost} stars · Parent approval</Text></View><Ionicons name="create-outline" size={21} color={colors.navy} /></Panel>)}
   </ScrollView>;
 }
 

@@ -146,15 +146,16 @@ create table public.level_definitions (
   level integer primary key check (level > 0),
   minimum_xp integer not null unique check (minimum_xp >= 0),
   title text not null,
+  characteristics text[] not null default '{}',
   badge_key text not null
 );
 
 insert into public.level_definitions values
-  (1, 0, 'Rookie Hero', 'shield-1'),
-  (2, 100, 'Rising Hero', 'shield-2'),
-  (3, 200, 'Home Hero', 'shield-3'),
-  (4, 300, 'Legendary Leader', 'shield-4'),
-  (5, 400, 'Ultimate Hero', 'shield-5');
+  (1, 0, 'Rookie Hero', array['Ready','Brave','Learning'], 'shield-1'),
+  (2, 100, 'Rising Hero', array['Helpful','Focused','Growing'], 'shield-2'),
+  (3, 200, 'Home Hero', array['Dependable','Curious','Kind'], 'shield-3'),
+  (4, 300, 'Legendary Leader', array['Responsible','Supportive','Confident'], 'shield-4'),
+  (5, 400, 'Ultimate Hero', array['Inspiring','Consistent','Trusted'], 'shield-5');
 
 create table public.streak_awards (
   id uuid primary key default gen_random_uuid(),

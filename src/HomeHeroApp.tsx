@@ -11,11 +11,12 @@ import { RewardAdmin } from './RewardAdmin';
 import { AuthScreen, OnboardingScreen } from './AuthFlow';
 import { useHomeHeroData } from './useHomeHeroData';
 import { archiveQuest, saveQuest as saveQuestToDatabase } from './lib/questAdmin';
-import { getHeroLevelProgress } from './levels';
+import { getHeroLevelProgress, HeroLevel, heroLevels } from './levels';
+import { LevelAdmin } from './LevelAdmin';
 
 type Role = 'child' | 'parent';
 type ChildTab = 'today' | 'week' | 'store' | 'hero';
-type ParentTab = 'home' | 'quests' | 'approvals' | 'rewards';
+type ParentTab = 'home' | 'quests' | 'approvals' | 'rewards' | 'levels';
 
 const showError = (cause: unknown) => Alert.alert('Something went wrong', cause instanceof Error ? cause.message : 'Please try again.');
 
@@ -26,6 +27,7 @@ export function HomeHeroApp() {
   const [parentTab, setParentTab] = useState<ParentTab>('home');
   const [timerQuest, setTimerQuest] = useState<Quest | null>(null);
   const [localRewards, setLocalRewards] = useState<Reward[]>(rewards);
+  const [levelDefinitions, setLevelDefinitions] = useState<HeroLevel[]>(heroLevels);
   const { quests, stars, xp } = data;
   const activeRole = data.backendEnabled && data.family ? data.family.role : role;
 
@@ -116,10 +118,10 @@ export function HomeHeroApp() {
 
       {activeRole === 'child' ? (
         <>
-          {childTab === 'today' && <ChildToday quests={quests} stars={stars} xp={xp} onQuest={complete} />}
+          {childTab === 'today' && <ChildToday quests={quests} stars={stars} xp={xp} levels={levelDefinitions} onQuest={complete} />}
           {childTab === 'week' && <WeeklyBoard />}
           {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : localRewards} stars={stars} onRedeem={redeem} />}
-          {childTab === 'hero' && <HeroProfile stars={stars} xp={xp} />}
+          {childTab === 'hero' && <HeroProfile stars={stars} xp={xp} levels={levelDefinitions} />}
           <BottomNav value={childTab} onChange={value => setChildTab(value as ChildTab)} items={[
             ['today', 'map-outline', 'Today'], ['week', 'calendar-outline', 'Week'], ['store', 'star-outline', 'Store'], ['hero', 'shield-outline', 'Hero'],
           ]} />
@@ -130,8 +132,9 @@ export function HomeHeroApp() {
           {parentTab === 'quests' && <QuestAdmin quests={quests} onSave={saveQuest} onRemove={removeQuest} />}
           {parentTab === 'approvals' && <Approvals quests={data.backendEnabled ? data.pendingQuests : quests} approve={approveGuild} />}
           {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} onSave={saveReward} onRemove={removeReward} />}
+          {parentTab === 'levels' && <LevelAdmin levels={levelDefinitions} onSave={updated => setLevelDefinitions(current => current.map(level => level.level === updated.level ? updated : level))} />}
           <BottomNav value={parentTab} onChange={value => setParentTab(value as ParentTab)} items={[
-            ['home', 'home-outline', 'Home'], ['quests', 'list-outline', 'Quests'], ['approvals', 'checkmark-done-outline', 'Review'], ['rewards', 'gift-outline', 'Rewards'],
+            ['home', 'home-outline', 'Home'], ['quests', 'list-outline', 'Quests'], ['approvals', 'checkmark-done-outline', 'Review'], ['rewards', 'gift-outline', 'Rewards'], ['levels', 'trophy-outline', 'Levels'],
           ]} />
         </>
       )}
@@ -140,9 +143,9 @@ export function HomeHeroApp() {
   );
 }
 
-function ChildToday({ quests, stars, xp, onQuest }: { quests: Quest[]; stars: number; xp: number; onQuest: (q: Quest) => void }) {
+function ChildToday({ quests, stars, xp, levels, onQuest }: { quests: Quest[]; stars: number; xp: number; levels: HeroLevel[]; onQuest: (q: Quest) => void }) {
   const earned = quests.filter(q => q.status === 'rewarded').length;
-  const level = getHeroLevelProgress(xp);
+  const level = getHeroLevelProgress(xp, levels);
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <LinearGradient colors={[colors.navy, '#284A7D']} style={styles.heroBanner}>
@@ -177,9 +180,9 @@ function StarStore({ rewards: storeRewards, stars, onRedeem }: { rewards: typeof
   </ScrollView>;
 }
 
-function HeroProfile({ stars, xp }: { stars: number; xp: number }) {
-  const level = getHeroLevelProgress(xp);
-  return <ScrollView contentContainerStyle={styles.content}><LinearGradient colors={['#EAF3DD','#F7F3E8']} style={styles.profile}><View style={styles.profileShield}><Text style={styles.profileLevel}>{level.current.level}</Text></View><View style={styles.profileHeading}><Text style={styles.profileTitle}>Alex the {level.current.title}</Text><Text style={styles.profileLead}>Dependable · Curious · Kind</Text></View></LinearGradient>
+function HeroProfile({ stars, xp, levels }: { stars: number; xp: number; levels: HeroLevel[] }) {
+  const level = getHeroLevelProgress(xp, levels);
+  return <ScrollView contentContainerStyle={styles.content}><LinearGradient colors={['#EAF3DD','#F7F3E8']} style={styles.profile}><View style={styles.profileShield}><Text style={styles.profileLevel}>{level.current.level}</Text></View><View style={styles.profileHeading}><Text style={styles.profileTitle}>Alex the {level.current.title}</Text><Text style={styles.profileLead}>{level.current.characteristics.join(' · ')}</Text><Text style={styles.qualitiesLabel}>QUALITIES YOU’RE BUILDING</Text></View></LinearGradient>
     <View style={styles.metricGrid}><Panel style={styles.metric}><Text style={styles.metricValue}>{xp}</Text><Text style={styles.muted}>Lifetime XP</Text></Panel><Panel style={styles.metric}><Text style={styles.metricValue}>{stars}</Text><Text style={styles.muted}>Stars to spend</Text></Panel></View>
     <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Level {level.current.level} progress</Text><Text style={styles.muted}>{level.next ? `${level.remainingXp} XP until ${level.next.title}` : 'Highest level reached'}</Text></View><Pill tone="gold">{level.next ? `${level.earnedThisLevel}/${level.levelRange} XP` : 'MAX LEVEL'}</Pill></View><ProgressBar value={level.earnedThisLevel} max={level.levelRange} color={colors.gold} /></Panel>
     <Panel><Text style={styles.cardTitle}>Hero badges</Text><View style={styles.badges}>{[['🔥','On Fire'],['🤝','Team Player'],['📚','Bookworm'],['🌟','Perfect Day']].map(b => <View key={b[1]} style={styles.badge}><Text style={styles.badgeIcon}>{b[0]}</Text><Text style={styles.badgeName}>{b[1]}</Text></View>)}</View></Panel>
@@ -227,7 +230,7 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }, cardTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' }, inviteCode: { color: colors.green, fontSize: 28, fontWeight: '900', letterSpacing: 4, marginVertical: 8 }, questTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' }, muted: { color: colors.muted, fontSize: 12, lineHeight: 18 }, sectionTitle: { fontSize: 21, color: colors.navy, fontWeight: '900' }, pageTitle: { fontSize: 27, color: colors.navy, fontWeight: '900' }, pageLead: { fontSize: 13, color: colors.muted, marginTop: -12 }, tipTitle: { color: '#7A5700', fontWeight: '900', marginBottom: 4 },
   bigStar: { fontSize: 36 }, encourage: { color: colors.green, fontWeight: '700', fontSize: 12, marginTop: 10 }, weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 }, day: { alignItems: 'center', gap: 7 }, dayLabel: { fontSize: 10, color: colors.muted, fontWeight: '800' }, dayDot: { width: 33, height: 33, borderRadius: 17, borderWidth: 2, borderColor: '#D9D4C8', justifyContent: 'center', alignItems: 'center' }, dayDone: { backgroundColor: colors.green, borderColor: colors.green }, dayToday: { borderColor: colors.gold }, dayValue: { color: colors.white, fontWeight: '900' }, dayStars: { color: '#836000', fontWeight: '800', fontSize: 10 },
   statRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#EFECE5' }, statEmoji: { fontSize: 25 }, statName: { flex: 1, fontWeight: '800', color: colors.ink }, storeHeading: { flex: 1, gap: 3 }, storeLead: { color: colors.muted, fontSize: 13, lineHeight: 19 }, starBalance: { backgroundColor: '#FFF0B7', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99 }, starBalanceText: { color: '#755400', fontWeight: '900', fontSize: 17 }, storeCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border }, storeEmoji: { fontSize: 34 }, cost: { backgroundColor: colors.navy, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 8 }, costText: { color: colors.white, fontWeight: '900' }, footnote: { color: colors.muted, fontSize: 11, textAlign: 'center', lineHeight: 17, paddingHorizontal: 20 },
-  profile: { alignItems: 'center', borderRadius: 25, padding: 25 }, profileShield: { width: 92, height: 105, backgroundColor: colors.navy, borderRadius: 26, borderWidth: 5, borderColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginBottom: 15 }, profileLevel: { color: colors.white, fontSize: 52, fontWeight: '900' }, profileHeading: { alignItems: 'center', gap: 5 }, profileTitle: { color: colors.navy, fontSize: 27, lineHeight: 34, fontWeight: '900', textAlign: 'center' }, profileLead: { color: colors.muted, fontSize: 13, lineHeight: 19, textAlign: 'center' }, metricGrid: { flexDirection: 'row', gap: 12 }, metric: { flex: 1, alignItems: 'center' }, metricValue: { color: colors.green, fontSize: 27, fontWeight: '900' }, badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 15 }, badge: { width: '47%', backgroundColor: colors.cream, borderRadius: 15, padding: 13, alignItems: 'center' }, badgeIcon: { fontSize: 28 }, badgeName: { color: colors.ink, fontSize: 11, fontWeight: '800', marginTop: 5 },
+  profile: { alignItems: 'center', borderRadius: 25, padding: 25 }, profileShield: { width: 92, height: 105, backgroundColor: colors.navy, borderRadius: 26, borderWidth: 5, borderColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginBottom: 15 }, profileLevel: { color: colors.white, fontSize: 52, fontWeight: '900' }, profileHeading: { alignItems: 'center', gap: 5 }, profileTitle: { color: colors.navy, fontSize: 27, lineHeight: 34, fontWeight: '900', textAlign: 'center' }, profileLead: { color: colors.muted, fontSize: 13, lineHeight: 19, textAlign: 'center' }, qualitiesLabel: { color: colors.green, fontSize: 9, fontWeight: '900', letterSpacing: 0.8, marginTop: 3 }, metricGrid: { flexDirection: 'row', gap: 12 }, metric: { flex: 1, alignItems: 'center' }, metricValue: { color: colors.green, fontSize: 27, fontWeight: '900' }, badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 15 }, badge: { width: '47%', backgroundColor: colors.cream, borderRadius: 15, padding: 13, alignItems: 'center' }, badgeIcon: { fontSize: 28 }, badgeName: { color: colors.ink, fontSize: 11, fontWeight: '800', marginTop: 5 },
   approvalBanner: { borderRadius: 22, padding: 19 }, approvalTitle: { color: colors.white, fontWeight: '900', fontSize: 17 }, approvalText: { color: '#EFE9F8', marginTop: 5 }, approvalAction: { color: colors.white, fontWeight: '900', marginTop: 14 }, addButton: { width: 43, height: 43, borderRadius: 15, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' }, managerCard: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14 }, empty: { alignItems: 'center', paddingVertical: 45 }, emptyIcon: { fontSize: 44, marginBottom: 12 }, approvalQuest: { color: colors.ink, fontSize: 20, fontWeight: '900', marginVertical: 12 }, reviewActions: { flexDirection: 'row', gap: 10, marginTop: 20 }, secondaryButton: { flex: 1, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center' }, secondaryText: { color: colors.navy, fontWeight: '800' }, primaryButton: { flex: 1, borderRadius: 14, padding: 14, backgroundColor: colors.green, alignItems: 'center' }, primaryText: { color: colors.white, fontWeight: '900' },
   nav: { position: 'absolute', left: 12, right: 12, bottom: 8, backgroundColor: colors.white, borderRadius: 22, flexDirection: 'row', paddingVertical: 10, borderWidth: 1, borderColor: colors.border }, navItem: { flex: 1, alignItems: 'center', gap: 3 }, navText: { color: colors.muted, fontSize: 10, fontWeight: '700' }, navActive: { color: colors.green, fontWeight: '900' },
   timerSafe: { flex: 1, backgroundColor: colors.cream }, close: { alignSelf: 'flex-end', padding: 20 }, timerBody: { flex: 1, padding: 25, alignItems: 'center', justifyContent: 'center', gap: 16 }, timerEmoji: { fontSize: 50 }, timerTitle: { color: colors.navy, fontSize: 27, fontWeight: '900' }, timerRing: { borderRadius: 999, borderWidth: 15, borderColor: colors.green, borderTopColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginVertical: 12 }, timerTime: { color: colors.navy, fontSize: 45, fontWeight: '900' }, timerHint: { color: colors.muted, textAlign: 'center', maxWidth: 280 },

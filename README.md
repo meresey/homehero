@@ -15,7 +15,7 @@ A gamified family habit and chore app for children aged 10–13. This repository
 - Bedtime expiration and Monday–Sunday streak functions
 - Optional Edge Function wrapper for expiration
 
-The app initially uses local demo data so the full interface works without cloud credentials. Connect the queries in `src/lib/supabase.ts` to the included RPCs when a Supabase project is available.
+The app currently uses local demo data so the full interface works without cloud credentials. Supabase is disabled unless `EXPO_PUBLIC_USE_SUPABASE=true` is explicitly set.
 
 ## Run the app
 
@@ -40,6 +40,20 @@ Press `i` for iOS, `a` for Android, or `w` for the browser. Leave the Supabase v
 7. Never put the service-role key in the Expo application.
 
 Example cron setup is included at the bottom of `202609140002_game_functions.sql`.
+
+## Supabase reactivation checklist
+
+Do not enable `EXPO_PUBLIC_USE_SUPABASE` until every item below is complete:
+
+- Apply all pending migrations with `supabase db push`, including `202609150001_consistent_level_progression.sql`.
+- Confirm `level_definitions` contains the 0, 100, 200, 300, and 400 XP thresholds and the `characteristics text[]` column.
+- Replace the client’s initial `heroLevels` fixture with a query that loads `level_definitions` from Supabase.
+- Add a parent-authorized RPC and RLS policy for saving level titles, XP thresholds, and characteristics.
+- Connect `LevelAdmin` saves to that RPC while retaining local-state behavior when the backend flag is off.
+- Test child read access and parent update access across at least two unrelated households.
+- Set `EXPO_PUBLIC_USE_SUPABASE=true`, rebuild the application, and run the authentication, quest, reward, and level regression tests.
+
+Re-enabling the frontend flag never applies migrations automatically. Database migrations must be deployed before the application is rebuilt.
 
 ## Server command mapping
 

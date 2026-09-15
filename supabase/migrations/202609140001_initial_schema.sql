@@ -152,9 +152,9 @@ create table public.level_definitions (
 insert into public.level_definitions values
   (1, 0, 'Rookie Hero', 'shield-1'),
   (2, 100, 'Rising Hero', 'shield-2'),
-  (3, 300, 'Home Hero', 'shield-3'),
-  (4, 400, 'Legendary Leader', 'shield-4'),
-  (5, 500, 'Ultimate Hero', 'shield-5');
+  (3, 200, 'Home Hero', 'shield-3'),
+  (4, 300, 'Legendary Leader', 'shield-4'),
+  (5, 400, 'Ultimate Hero', 'shield-5');
 
 create table public.streak_awards (
   id uuid primary key default gen_random_uuid(),

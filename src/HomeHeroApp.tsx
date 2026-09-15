@@ -11,6 +11,7 @@ import { RewardAdmin } from './RewardAdmin';
 import { AuthScreen, OnboardingScreen } from './AuthFlow';
 import { useHomeHeroData } from './useHomeHeroData';
 import { archiveQuest, saveQuest as saveQuestToDatabase } from './lib/questAdmin';
+import { getHeroLevelProgress } from './levels';
 
 type Role = 'child' | 'parent';
 type ChildTab = 'today' | 'week' | 'store' | 'hero';
@@ -141,16 +142,17 @@ export function HomeHeroApp() {
 
 function ChildToday({ quests, stars, xp, onQuest }: { quests: Quest[]; stars: number; xp: number; onQuest: (q: Quest) => void }) {
   const earned = quests.filter(q => q.status === 'rewarded').length;
+  const level = getHeroLevelProgress(xp);
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <LinearGradient colors={[colors.navy, '#284A7D']} style={styles.heroBanner}>
-        <View style={styles.levelShield}><Text style={styles.levelSmall}>LEVEL</Text><Text style={styles.levelNumber}>3</Text></View>
+        <View style={styles.levelShield}><Text style={styles.levelSmall}>LEVEL</Text><Text style={styles.levelNumber}>{level.current.level}</Text></View>
         <View style={{ flex: 1 }}><Text style={styles.eyebrow}>FRIDAY · QUEST DAY 5</Text><Text style={styles.greeting}>Ready, Alex?</Text><Text style={styles.heroSub}>Every small win builds a hero.</Text></View>
         <View style={styles.wallet}><Text style={styles.walletText}>⭐ {stars}</Text></View>
       </LinearGradient>
       <Panel>
-        <View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Level 3 · Home Hero</Text><Text style={styles.muted}>{xp} of 400 XP</Text></View><Pill tone="gold">76 XP TO GO</Pill></View>
-        <ProgressBar value={xp} max={400} color={colors.gold} />
+        <View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Level {level.current.level} · {level.current.title}</Text><Text style={styles.muted}>{level.lifetimeXp} lifetime XP{level.next ? ` · ${level.earnedThisLevel} of ${level.levelRange} this level` : ''}</Text></View><Pill tone="gold">{level.next ? `${level.remainingXp} XP TO LEVEL ${level.next.level}` : 'MAX LEVEL'}</Pill></View>
+        <ProgressBar value={level.earnedThisLevel} max={level.levelRange} color={colors.gold} />
       </Panel>
       <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Today's quests</Text><Text style={styles.muted}>{earned} of {quests.length} complete</Text></View><Pill>{Math.round(earned / quests.length * 100)}%</Pill></View>
       {quests.map(quest => <QuestCard key={quest.id} quest={quest} onPress={() => onQuest(quest)} />)}
@@ -176,8 +178,10 @@ function StarStore({ rewards: storeRewards, stars, onRedeem }: { rewards: typeof
 }
 
 function HeroProfile({ stars, xp }: { stars: number; xp: number }) {
-  return <ScrollView contentContainerStyle={styles.content}><LinearGradient colors={['#EAF3DD','#F7F3E8']} style={styles.profile}><View style={styles.profileShield}><Text style={styles.profileLevel}>3</Text></View><View style={styles.profileHeading}><Text style={styles.profileTitle}>Alex the Home Hero</Text><Text style={styles.profileLead}>Dependable · Curious · Kind</Text></View></LinearGradient>
+  const level = getHeroLevelProgress(xp);
+  return <ScrollView contentContainerStyle={styles.content}><LinearGradient colors={['#EAF3DD','#F7F3E8']} style={styles.profile}><View style={styles.profileShield}><Text style={styles.profileLevel}>{level.current.level}</Text></View><View style={styles.profileHeading}><Text style={styles.profileTitle}>Alex the {level.current.title}</Text><Text style={styles.profileLead}>Dependable · Curious · Kind</Text></View></LinearGradient>
     <View style={styles.metricGrid}><Panel style={styles.metric}><Text style={styles.metricValue}>{xp}</Text><Text style={styles.muted}>Lifetime XP</Text></Panel><Panel style={styles.metric}><Text style={styles.metricValue}>{stars}</Text><Text style={styles.muted}>Stars to spend</Text></Panel></View>
+    <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Level {level.current.level} progress</Text><Text style={styles.muted}>{level.next ? `${level.remainingXp} XP until ${level.next.title}` : 'Highest level reached'}</Text></View><Pill tone="gold">{level.next ? `${level.earnedThisLevel}/${level.levelRange} XP` : 'MAX LEVEL'}</Pill></View><ProgressBar value={level.earnedThisLevel} max={level.levelRange} color={colors.gold} /></Panel>
     <Panel><Text style={styles.cardTitle}>Hero badges</Text><View style={styles.badges}>{[['🔥','On Fire'],['🤝','Team Player'],['📚','Bookworm'],['🌟','Perfect Day']].map(b => <View key={b[1]} style={styles.badge}><Text style={styles.badgeIcon}>{b[0]}</Text><Text style={styles.badgeName}>{b[1]}</Text></View>)}</View></Panel>
   </ScrollView>;
 }

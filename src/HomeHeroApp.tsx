@@ -13,6 +13,8 @@ import { useHomeHeroData } from './useHomeHeroData';
 import { archiveQuest, saveQuest as saveQuestToDatabase } from './lib/questAdmin';
 import { getHeroLevelProgress, HeroLevel, heroLevels } from './levels';
 import { LevelAdmin } from './LevelAdmin';
+import { useHouseholdState } from './useHouseholdState';
+import { HouseholdDashboard } from './HouseholdDashboard';
 
 type Role = 'child' | 'parent';
 type ChildTab = 'today' | 'week' | 'store' | 'hero';
@@ -22,16 +24,21 @@ const showError = (cause: unknown) => Alert.alert('Something went wrong', cause 
 
 export function HomeHeroApp() {
   const data = useHomeHeroData();
+  const householdData = useHouseholdState();
   const [role, setRole] = useState<Role>('child');
   const [childTab, setChildTab] = useState<ChildTab>('today');
   const [parentTab, setParentTab] = useState<ParentTab>('home');
   const [timerQuest, setTimerQuest] = useState<Quest | null>(null);
   const [localRewards, setLocalRewards] = useState<Reward[]>(rewards);
   const [levelDefinitions, setLevelDefinitions] = useState<HeroLevel[]>(heroLevels);
-  const { quests, stars, xp } = data;
+  const quests = data.backendEnabled ? data.quests : householdData.selectedQuests;
+  const stars = data.backendEnabled ? data.stars : householdData.selectedBalance.stars;
+  const xp = data.backendEnabled ? data.xp : householdData.selectedBalance.lifetimeXp;
+  const heroName = data.backendEnabled ? 'Hero' : householdData.selectedHero.displayName;
+  const earnedBadges = data.backendEnabled ? heroBadges.filter(badge => badge.earned) : householdData.selectedBadges;
   const activeRole = data.backendEnabled && data.family ? data.family.role : role;
   const currentHeroLevel = getHeroLevelProgress(xp, levelDefinitions).current;
-  const earnedBadgeCount = heroBadges.filter(badge => badge.earned).length;
+  const earnedBadgeCount = earnedBadges.length;
 
   const complete = async (quest: Quest) => {
     if (['rewarded', 'pending_approval', 'expired'].includes(quest.status)) return;
@@ -44,16 +51,16 @@ export function HomeHeroApp() {
       return;
     }
     if (quest.kind === 'guild') {
-      data.setDemoQuests(list => list.map(q => q.id === quest.id ? { ...q, status: 'pending_approval' } : q));
+      householdData.setSelectedHeroQuests(list => list.map(q => q.id === quest.id ? { ...q, status: 'pending_approval' } : q));
       return Alert.alert('Guild quest submitted!', 'Your Party Leader has been asked to approve it.');
     }
     award(quest);
   };
 
   const award = (quest: Quest) => {
-    data.setDemoQuests(list => list.map(q => q.id === quest.id ? { ...q, status: 'rewarded' } : q));
-    data.setDemoStars(value => value + quest.stars);
-    data.setDemoXp(value => value + quest.xp);
+    householdData.setSelectedHeroQuests(list => list.map(q => q.id === quest.id ? { ...q, status: 'rewarded' } : q));
+    householdData.setSelectedStars(value => value + quest.stars);
+    householdData.setSelectedXp(value => value + quest.xp);
     setTimerQuest(null);
   };
 
@@ -68,7 +75,7 @@ export function HomeHeroApp() {
   const redeem = async (cost: number, title: string, rewardId?: string) => {
     if (stars < cost) return Alert.alert('Keep questing!', `You need ${cost - stars} more stars.`);
     if (data.backendEnabled && rewardId) { try { await data.redeemReward(rewardId); Alert.alert('Request sent!', `A Party Leader will approve “${title}”.`); } catch (cause) { showError(cause); } return; }
-    data.setDemoStars(value => value - cost);
+    householdData.setSelectedStars(value => value - cost);
     Alert.alert('Request sent!', `A Party Leader will approve “${title}”.`);
   };
 
@@ -81,7 +88,7 @@ export function HomeHeroApp() {
       } catch (cause) { showError(cause); }
       return;
     }
-    data.setDemoQuests(current => current.some(item => item.id === quest.id)
+    householdData.setSelectedHeroQuests(current => current.some(item => item.id === quest.id)
       ? current.map(item => item.id === quest.id ? quest : item)
       : [quest, ...current]);
     Alert.alert('Quest saved', `“${quest.title}” is ready for Alex.`);
@@ -89,7 +96,7 @@ export function HomeHeroApp() {
 
   const removeQuest = async (id: string) => {
     if (data.backendEnabled) { try { await archiveQuest(id); await data.refresh(); } catch (cause) { showError(cause); } return; }
-    data.setDemoQuests(current => current.filter(item => item.id !== id));
+    householdData.setSelectedHeroQuests(current => current.filter(item => item.id !== id));
   };
 
   const saveReward = (reward: Reward) => {
@@ -120,12 +127,12 @@ export function HomeHeroApp() {
 
       {activeRole === 'child' ? (
         <>
-          <HeroHeader level={currentHeroLevel} stars={stars} xp={xp} badges={earnedBadgeCount} />
+          <HeroHeader name={heroName} level={currentHeroLevel} stars={stars} xp={xp} badges={earnedBadgeCount} />
           <View style={styles.screen}>
             {childTab === 'today' && <ChildToday quests={quests} xp={xp} levels={levelDefinitions} onQuest={complete} />}
             {childTab === 'week' && <WeeklyBoard />}
             {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : localRewards} stars={stars} onRedeem={redeem} />}
-            {childTab === 'hero' && <HeroProfile stars={stars} xp={xp} levels={levelDefinitions} />}
+            {childTab === 'hero' && <HeroProfile name={heroName} stars={stars} xp={xp} levels={levelDefinitions} badges={earnedBadges} />}
           </View>
           <BottomNav value={childTab} onChange={value => setChildTab(value as ChildTab)} items={[
             ['today', 'map-outline', 'Today'], ['week', 'calendar-outline', 'Week'], ['store', 'star-outline', 'Store'], ['hero', 'shield-outline', 'Hero'],
@@ -133,7 +140,8 @@ export function HomeHeroApp() {
         </>
       ) : (
         <>
-          {parentTab === 'home' && <ParentHome quests={quests} pendingQuests={data.pendingQuests} familyCode={data.family?.inviteCode} approveGuild={approveGuild} />}
+          {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} />}
+          {parentTab === 'home' && data.backendEnabled && <ParentHome quests={quests} pendingQuests={data.pendingQuests} familyCode={data.family?.inviteCode} approveGuild={approveGuild} />}
           {parentTab === 'quests' && <QuestAdmin quests={quests} onSave={saveQuest} onRemove={removeQuest} />}
           {parentTab === 'approvals' && <Approvals quests={data.backendEnabled ? data.pendingQuests : quests} approve={approveGuild} />}
           {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} onSave={saveReward} onRemove={removeReward} />}
@@ -148,11 +156,11 @@ export function HomeHeroApp() {
   );
 }
 
-function HeroHeader({ level, stars, xp, badges }: { level: HeroLevel; stars: number; xp: number; badges: number }) {
+function HeroHeader({ name, level, stars, xp, badges }: { name: string; level: HeroLevel; stars: number; xp: number; badges: number }) {
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()).toUpperCase();
   return <LinearGradient colors={[colors.navy, '#284A7D']} style={styles.sharedHeroHeader}>
     <View style={styles.levelShield}><Text style={styles.levelSmall}>LEVEL</Text><Text style={styles.levelNumber}>{level.level}</Text></View>
-    <View style={styles.heroHeaderCopy}><Text style={styles.eyebrow}>{weekday} · HERO DASHBOARD</Text><Text style={styles.greeting}>Alex</Text><Text style={styles.heroSub}>{level.title} · Every small win builds a hero.</Text></View>
+    <View style={styles.heroHeaderCopy}><Text style={styles.eyebrow}>{weekday} · HERO DASHBOARD</Text><Text style={styles.greeting}>{name}</Text><Text style={styles.heroSub}>{level.title} · Every small win builds a hero.</Text></View>
     <View style={styles.heroStats}>
       <View style={styles.heroStat}><Text style={styles.heroStatIcon}>⭐</Text><View><Text style={styles.heroStatValue}>{stars}</Text><Text style={styles.heroStatLabel}>STARS</Text></View></View>
       <View style={styles.heroStat}><Text style={styles.heroStatIcon}>✦</Text><View><Text style={styles.heroStatValue}>{xp}</Text><Text style={styles.heroStatLabel}>XP</Text></View></View>
@@ -196,12 +204,12 @@ function StarStore({ rewards: storeRewards, stars, onRedeem }: { rewards: typeof
   </ScrollView>;
 }
 
-function HeroProfile({ stars, xp, levels }: { stars: number; xp: number; levels: HeroLevel[] }) {
+function HeroProfile({ name, stars, xp, levels, badges }: { name: string; stars: number; xp: number; levels: HeroLevel[]; badges: { id: string; emoji: string; name: string }[] }) {
   const level = getHeroLevelProgress(xp, levels);
-  return <ScrollView contentContainerStyle={styles.content}><LinearGradient colors={['#EAF3DD','#F7F3E8']} style={styles.profile}><View style={styles.profileShield}><Text style={styles.profileLevel}>{level.current.level}</Text></View><View style={styles.profileHeading}><Text style={styles.profileTitle}>Alex the {level.current.title}</Text><Text style={styles.profileLead}>{level.current.characteristics.join(' · ')}</Text><Text style={styles.qualitiesLabel}>QUALITIES YOU’RE BUILDING</Text></View></LinearGradient>
+  return <ScrollView contentContainerStyle={styles.content}><LinearGradient colors={['#EAF3DD','#F7F3E8']} style={styles.profile}><View style={styles.profileShield}><Text style={styles.profileLevel}>{level.current.level}</Text></View><View style={styles.profileHeading}><Text style={styles.profileTitle}>{name} the {level.current.title}</Text><Text style={styles.profileLead}>{level.current.characteristics.join(' · ')}</Text><Text style={styles.qualitiesLabel}>QUALITIES YOU’RE BUILDING</Text></View></LinearGradient>
     <View style={styles.metricGrid}><Panel style={styles.metric}><Text style={styles.metricValue}>{xp}</Text><Text style={styles.muted}>Lifetime XP</Text></Panel><Panel style={styles.metric}><Text style={styles.metricValue}>{stars}</Text><Text style={styles.muted}>Stars to spend</Text></Panel></View>
     <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Level {level.current.level} progress</Text><Text style={styles.muted}>{level.next ? `${level.remainingXp} XP until ${level.next.title}` : 'Highest level reached'}</Text></View><Pill tone="gold">{level.next ? `${level.earnedThisLevel}/${level.levelRange} XP` : 'MAX LEVEL'}</Pill></View><ProgressBar value={level.earnedThisLevel} max={level.levelRange} color={colors.gold} /></Panel>
-    <Panel><Text style={styles.cardTitle}>Hero badges</Text><View style={styles.badges}>{heroBadges.filter(badge => badge.earned).map(badge => <View key={badge.id} style={styles.badge}><Text style={styles.badgeIcon}>{badge.emoji}</Text><Text style={styles.badgeName}>{badge.name}</Text></View>)}</View></Panel>
+    <Panel><Text style={styles.cardTitle}>Hero badges</Text><View style={styles.badges}>{badges.map(badge => <View key={badge.id} style={styles.badge}><Text style={styles.badgeIcon}>{badge.emoji}</Text><Text style={styles.badgeName}>{badge.name}</Text></View>)}</View></Panel>
   </ScrollView>;
 }
 

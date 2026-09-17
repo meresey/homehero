@@ -39,15 +39,15 @@ export function useHomeHeroData() {
       if (!childId) { setQuests([]); setStars(0); setXp(0); return; }
 
       if (membership.role === 'parent') {
-        const { data, error: questError } = await supabase.from('quest_templates').select('id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds').eq('household_id',membership.household_id).eq('is_active',true).order('created_at');
+        const { data, error: questError } = await supabase.from('quest_templates').select('id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('household_id',membership.household_id).eq('is_active',true).order('created_at');
         if (questError) throw questError;
         setQuests((data ?? []).map(mapTemplate));
-        const { data: pending, error: pendingError } = await supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds)').eq('household_id', membership.household_id).eq('status', 'pending_approval').order('completed_at', { ascending: false });
+        const { data: pending, error: pendingError } = await supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('household_id', membership.household_id).eq('status', 'pending_approval').order('completed_at', { ascending: false });
         if (pendingError) throw pendingError;
         setPendingQuests((pending ?? []).map(mapInstance));
       } else {
         const today = new Date().toLocaleDateString('en-CA');
-        const { data, error: questError } = await supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds)').eq('child_id',childId).eq('occurrence_date',today).order('available_at');
+        const { data, error: questError } = await supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('child_id',childId).eq('occurrence_date',today).order('available_at');
         if (questError) throw questError;
         setQuests((data ?? []).map(mapInstance));
         setPendingQuests([]);
@@ -86,5 +86,5 @@ export function useHomeHeroData() {
   };
 }
 
-function mapTemplate(row: any): Quest { return { id: row.id, templateId: row.id, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined }; }
-function mapInstance(row: any): Quest { const t = row.quest_templates; return { id: row.id, instanceId: row.id, templateId: row.quest_template_id, title: t.title, description: t.description ?? '', emoji: t.icon_key?.length <= 3 ? t.icon_key : '✨', kind: t.kind as QuestKind, cadence: t.cadence, scheduleLabel: t.schedule_label, status: row.status as QuestStatus, stars: row.star_reward_snapshot, xp: row.xp_reward_snapshot, timerMinutes: t.timer_seconds ? t.timer_seconds / 60 : undefined, cutoffLabel: row.cutoff_at ? new Date(row.cutoff_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : undefined }; }
+function mapTemplate(row: any): Quest { return { id: row.id, templateId: row.id, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
+function mapInstance(row: any): Quest { const t = row.quest_templates; return { id: row.id, instanceId: row.id, templateId: row.quest_template_id, title: t.title, description: t.description ?? '', emoji: t.icon_key?.length <= 3 ? t.icon_key : '✨', kind: t.kind as QuestKind, cadence: t.cadence, scheduleLabel: t.schedule_label, status: row.status as QuestStatus, stars: row.star_reward_snapshot, xp: row.xp_reward_snapshot, timerMinutes: t.timer_seconds ? t.timer_seconds / 60 : undefined, minimumAge: t.minimum_age ?? undefined, maximumAge: t.maximum_age ?? undefined, cutoffLabel: row.cutoff_at ? new Date(row.cutoff_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : undefined }; }

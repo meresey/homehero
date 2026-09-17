@@ -16,6 +16,8 @@ export type Quest = {
   cutoffLabel?: string;
   cadence?: 'daily' | 'weekly' | 'guild';
   scheduleLabel?: string;
+  minimumAge?: number;
+  maximumAge?: number;
 };
 
 export type Reward = { id: string; title: string; emoji: string; cost: number; subtitle: string };
@@ -32,6 +34,7 @@ export type HeroProfile = {
   householdId: string;
   displayName: string;
   avatarEmoji: string;
+  dateOfBirth: string;
   status: 'active' | 'paused';
   joinedAt: string;
 };

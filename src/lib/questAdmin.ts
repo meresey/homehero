@@ -14,6 +14,8 @@ export type QuestAdminInput = {
   daysOfWeek: number[];
   localCutoff?: string;
   scheduleLabel?: string;
+  minimumAge?: number;
+  maximumAge?: number;
 };
 
 export async function saveQuest(input: QuestAdminInput) {
@@ -32,6 +34,8 @@ export async function saveQuest(input: QuestAdminInput) {
     p_days_of_week: input.daysOfWeek,
     p_local_cutoff: input.localCutoff ?? null,
     p_schedule_label: input.scheduleLabel ?? null,
+    p_minimum_age: input.minimumAge ?? null,
+    p_maximum_age: input.maximumAge ?? null,
   });
   if (error) throw error;
   return data;

@@ -2,10 +2,10 @@ import { Quest, Reward } from './types';
 
 export const initialQuests: Quest[] = [
   { id: 'bed', title: 'Make bed & tidy room', description: 'Start the day with a clear space', emoji: '🛏️', kind: 'daily', cadence: 'daily', scheduleLabel: 'Every day', status: 'rewarded', stars: 1, xp: 1 },
-  { id: 'homework', title: 'Homework focus', description: 'Finish today’s schoolwork', emoji: '📚', kind: 'daily', cadence: 'daily', scheduleLabel: 'Mon–Fri', status: 'available', stars: 1, xp: 1 },
+  { id: 'homework', title: 'Homework focus', description: 'Finish today’s schoolwork', emoji: '📚', kind: 'daily', cadence: 'daily', scheduleLabel: 'Mon–Fri', status: 'available', stars: 1, xp: 1, minimumAge: 8, maximumAge: 15 },
   { id: 'read', title: 'Reading adventure', description: 'Read without distractions', emoji: '📖', kind: 'timer', cadence: 'daily', scheduleLabel: 'Every day', status: 'available', stars: 1, xp: 1, timerMinutes: 20 },
   { id: 'outside', title: 'Outdoor explorer', description: 'Move, play, and get fresh air', emoji: '🌳', kind: 'timer', cadence: 'weekly', scheduleLabel: '3 times a week', status: 'available', stars: 2, xp: 2, timerMinutes: 30 },
-  { id: 'cook', title: 'Help with dinner', description: 'A family co-op quest', emoji: '🍳', kind: 'guild', cadence: 'guild', scheduleLabel: 'Saturday', status: 'available', stars: 3, xp: 3 },
+  { id: 'cook', title: 'Help with dinner', description: 'A family co-op quest', emoji: '🍳', kind: 'guild', cadence: 'guild', scheduleLabel: 'Saturday', status: 'available', stars: 3, xp: 3, minimumAge: 10, maximumAge: 15 },
   { id: 'night', title: 'Night-time reset', description: 'Teeth, clothes, bag, and lights out', emoji: '🌙', kind: 'bedtime', cadence: 'daily', scheduleLabel: 'Every day · 8:30 PM', status: 'available', stars: 1, xp: 1, cutoffLabel: '8:30 PM' },
 ];
 

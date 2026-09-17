@@ -1,13 +1,15 @@
 import { Dispatch, SetStateAction, useMemo, useState } from 'react';
 import { initialHouseholdState } from './householdData';
 import { HeroBalance, HeroProfile, HeroSummary, HouseholdState, Quest } from './types';
+import { isQuestAgeAppropriate } from './ageEligibility';
 
 export function useHouseholdState() {
   const [state, setState] = useState<HouseholdState>(initialHouseholdState);
   const selectedHeroId = state.selectedHero.heroId ?? state.heroes[0]?.id;
   const selectedHero = state.heroes.find(hero => hero.id === selectedHeroId) ?? state.heroes[0];
   const selectedBalance = state.balances.find(balance => balance.heroId === selectedHero?.id) ?? emptyBalance(selectedHero?.id);
-  const selectedQuests = state.heroQuests[selectedHero?.id] ?? [];
+  const selectedAllQuests = state.heroQuests[selectedHero?.id] ?? [];
+  const selectedQuests = selectedAllQuests.filter(quest => isQuestAgeAppropriate(quest, selectedHero?.dateOfBirth ?? ''));
   const selectedBadges = state.heroBadges
     .filter(earned => earned.heroId === selectedHero?.id)
     .map(earned => state.badgeDefinitions.find(badge => badge.id === earned.badgeId))
@@ -70,6 +72,7 @@ export function useHouseholdState() {
     state,
     selectedHero,
     selectedBalance,
+    selectedAllQuests,
     selectedQuests,
     selectedBadges,
     summaries,
@@ -88,7 +91,7 @@ function emptyBalance(heroId = ''): HeroBalance { return { heroId, stars: 0, lif
 
 function buildSummary(state: HouseholdState, hero: HeroProfile): HeroSummary {
   const balance = state.balances.find(item => item.heroId === hero.id) ?? emptyBalance(hero.id);
-  const quests = state.heroQuests[hero.id] ?? [];
+  const quests = (state.heroQuests[hero.id] ?? []).filter(quest => isQuestAgeAppropriate(quest, hero.dateOfBirth));
   return {
     heroId: hero.id,
     displayName: hero.displayName,

@@ -20,9 +20,9 @@ export const demoHousehold: Household = {
 };
 
 export const demoHeroes: HeroProfile[] = [
-  { id: 'hero-alex', householdId: demoHousehold.id, displayName: 'Alex', avatarEmoji: '🦸', status: 'active', joinedAt: '2026-01-08T09:00:00.000Z' },
-  { id: 'hero-sam', householdId: demoHousehold.id, displayName: 'Sam', avatarEmoji: '🧑‍🚀', status: 'active', joinedAt: '2026-02-12T09:00:00.000Z' },
-  { id: 'hero-jamie', householdId: demoHousehold.id, displayName: 'Jamie', avatarEmoji: '🧙', status: 'active', joinedAt: '2026-03-03T09:00:00.000Z' },
+  { id: 'hero-alex', householdId: demoHousehold.id, displayName: 'Alex', avatarEmoji: '🦸', dateOfBirth: '2014-06-18', status: 'active', joinedAt: '2026-01-08T09:00:00.000Z' },
+  { id: 'hero-sam', householdId: demoHousehold.id, displayName: 'Sam', avatarEmoji: '🧑‍🚀', dateOfBirth: '2016-02-12', status: 'active', joinedAt: '2026-02-12T09:00:00.000Z' },
+  { id: 'hero-jamie', householdId: demoHousehold.id, displayName: 'Jamie', avatarEmoji: '🧙', dateOfBirth: '2018-03-03', status: 'active', joinedAt: '2026-03-03T09:00:00.000Z' },
 ];
 
 export const demoHeroBalances: HeroBalance[] = [

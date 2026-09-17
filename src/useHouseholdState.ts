@@ -13,7 +13,11 @@ export function useHouseholdState() {
   const selectedHero = state.heroes.find(hero => hero.id === selectedHeroId) ?? state.heroes[0];
   const selectedBalance = state.balances.find(balance => balance.heroId === selectedHero?.id) ?? emptyBalance(selectedHero?.id);
   const selectedAllQuests = state.heroQuests[selectedHero?.id] ?? [];
-  const selectedQuests = selectedAllQuests.filter(quest => isQuestAgeAppropriate(quest, selectedHero?.dateOfBirth ?? ''));
+  const selectedQuests = selectedAllQuests.filter(quest => {
+    const templateId = quest.templateId ?? quest.id;
+    return state.questAssignments.some(assignment => assignment.heroId === selectedHero?.id && assignment.questId === templateId && assignment.active)
+      && isQuestAgeAppropriate(quest, selectedHero?.dateOfBirth ?? '');
+  });
   const selectedBadges = state.heroBadges
     .filter(earned => earned.heroId === selectedHero?.id)
     .map(earned => state.badgeDefinitions.find(badge => badge.id === earned.badgeId))
@@ -92,10 +96,39 @@ export function useHouseholdState() {
     });
     return true;
   };
+  const saveHouseholdQuest = (quest: Quest, heroIds: string[]) => setState(current => {
+    const templateId = quest.templateId ?? quest.id;
+    const template: Quest = { ...quest, id: templateId, templateId: undefined, instanceId: undefined, householdId: current.household.id, visibility: 'household', status: 'available', timerStartedAt: undefined, timerEndsAt: undefined, timerCompletedAt: undefined, completedAt: undefined, expiredAt: undefined };
+    const eligibleIds = new Set(current.heroes.filter(hero => heroIds.includes(hero.id) && isQuestAgeAppropriate(template, hero.dateOfBirth)).map(hero => hero.id));
+    const now = new Date().toISOString();
+    const questTemplates = current.questTemplates.some(item => item.id === templateId)
+      ? current.questTemplates.map(item => item.id === templateId ? template : item)
+      : [template, ...current.questTemplates];
+    const questAssignments = [
+      ...current.questAssignments.filter(item => item.questId !== templateId),
+      ...[...eligibleIds].map(heroId => ({ id: `assignment-${heroId}-${templateId}`, householdId: current.household.id, questId: templateId, heroId, assignedAt: now, active: true })),
+    ];
+    const heroQuests = Object.fromEntries(current.heroes.map(hero => {
+      const existing = (current.heroQuests[hero.id] ?? []).find(item => (item.templateId ?? item.id) === templateId);
+      const other = (current.heroQuests[hero.id] ?? []).filter(item => (item.templateId ?? item.id) !== templateId);
+      if (!eligibleIds.has(hero.id)) return [hero.id, other];
+      const instance: Quest = { ...template, ...(existing ? { status: existing.status, timerStartedAt: existing.timerStartedAt, timerEndsAt: existing.timerEndsAt, timerCompletedAt: existing.timerCompletedAt, completedAt: existing.completedAt, expiredAt: existing.expiredAt } : {}), id: existing?.id ?? `${hero.id}-${templateId}`, templateId };
+      return [hero.id, [instance, ...other]];
+    }));
+    const guildApprovals = current.guildApprovals.filter(item => item.questId !== templateId || item.status !== 'pending' || eligibleIds.has(item.heroId));
+    return { ...current, questTemplates, questAssignments, heroQuests, guildApprovals };
+  });
+  const removeHouseholdQuest = (questId: string) => setState(current => ({
+    ...current,
+    questTemplates: current.questTemplates.filter(item => item.id !== questId),
+    questAssignments: current.questAssignments.filter(item => item.questId !== questId),
+    guildApprovals: current.guildApprovals.filter(item => item.questId !== questId || item.status !== 'pending'),
+    heroQuests: Object.fromEntries(Object.entries(current.heroQuests).map(([heroId, quests]) => [heroId, quests.filter(item => (item.templateId ?? item.id) !== questId)])),
+  }));
 
   useEffect(() => {
     AsyncStorage.getItem(HOUSEHOLD_STORAGE_KEY)
-      .then(saved => { if (saved) setState({ ...initialHouseholdState, ...JSON.parse(saved) } as HouseholdState); })
+      .then(saved => { if (saved) { const parsed = JSON.parse(saved) as Partial<HouseholdState>; setState(normalizeHouseholdState({ ...initialHouseholdState, ...parsed } as HouseholdState, !parsed.questTemplates)); } })
       .finally(() => setHydrated(true));
   }, []);
 
@@ -128,6 +161,7 @@ export function useHouseholdState() {
     selectedQuests,
     selectedBadges,
     summaries,
+    questTemplates: state.questTemplates,
     setSelectedHero,
     setSelectedHeroQuests,
     startTimerQuest,
@@ -137,6 +171,8 @@ export function useHouseholdState() {
     requestReward,
     reviewRewardRequest,
     reviewGuildApproval,
+    saveHouseholdQuest,
+    removeHouseholdQuest,
     setSelectedStars: (update: SetStateAction<number>) => updateSelectedBalance('stars', update),
     setSelectedXp: (update: SetStateAction<number>) => updateSelectedBalance('lifetimeXp', update),
   };
@@ -233,7 +269,7 @@ function emptyBalance(heroId = ''): HeroBalance { return { heroId, stars: 0, lif
 
 function buildSummary(state: HouseholdState, hero: HeroProfile): HeroSummary {
   const balance = state.balances.find(item => item.heroId === hero.id) ?? emptyBalance(hero.id);
-  const quests = (state.heroQuests[hero.id] ?? []).filter(quest => isQuestAgeAppropriate(quest, hero.dateOfBirth));
+  const quests = (state.heroQuests[hero.id] ?? []).filter(quest => state.questAssignments.some(assignment => assignment.heroId === hero.id && assignment.questId === (quest.templateId ?? quest.id) && assignment.active) && isQuestAgeAppropriate(quest, hero.dateOfBirth));
   return {
     heroId: hero.id,
     displayName: hero.displayName,
@@ -247,4 +283,10 @@ function buildSummary(state: HouseholdState, hero: HeroProfile): HeroSummary {
     pendingRewardRequests: state.rewardRequests.filter(request => request.heroId === hero.id && request.status === 'pending').length,
     bedtimeQuestsDue: quests.filter(quest => quest.kind === 'bedtime' && ['available', 'in_progress'].includes(quest.status)).length,
   };
+}
+
+function normalizeHouseholdState(state: HouseholdState, legacy = false): HouseholdState {
+  const questTemplates = state.questTemplates?.length ? state.questTemplates : initialHouseholdState.questTemplates;
+  const questAssignments = legacy ? state.heroes.flatMap(hero => questTemplates.filter(quest => isQuestAgeAppropriate(quest, hero.dateOfBirth)).map(quest => ({ id: `assignment-${hero.id}-${quest.id}`, householdId: state.household.id, questId: quest.id, heroId: hero.id, assignedAt: new Date().toISOString(), active: true }))) : state.questAssignments;
+  return { ...state, questTemplates, questAssignments };
 }

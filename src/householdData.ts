@@ -11,6 +11,7 @@ import {
   RewardRequest,
 } from './types';
 import { initialQuests } from './data';
+import { isQuestAgeAppropriate } from './ageEligibility';
 
 export const demoHousehold: Household = {
   id: 'household-kamau',
@@ -49,14 +50,9 @@ export const demoHeroBadges: HeroBadge[] = [
   { heroId: 'hero-jamie', badgeId: 'badge-bookworm', earnedAt: '2026-09-12T16:00:00.000Z' },
 ];
 
-export const demoQuestAssignments: QuestAssignment[] = [
-  { id: 'assignment-alex-bed', householdId: demoHousehold.id, questId: 'bed', heroId: 'hero-alex', assignedAt: '2026-09-01T06:00:00.000Z', active: true },
-  { id: 'assignment-alex-read', householdId: demoHousehold.id, questId: 'read', heroId: 'hero-alex', assignedAt: '2026-09-01T06:00:00.000Z', active: true },
-  { id: 'assignment-sam-homework', householdId: demoHousehold.id, questId: 'homework', heroId: 'hero-sam', assignedAt: '2026-09-01T06:00:00.000Z', active: true },
-  { id: 'assignment-sam-cook', householdId: demoHousehold.id, questId: 'cook', heroId: 'hero-sam', assignedAt: '2026-09-01T06:00:00.000Z', active: true },
-  { id: 'assignment-jamie-outside', householdId: demoHousehold.id, questId: 'outside', heroId: 'hero-jamie', assignedAt: '2026-09-01T06:00:00.000Z', active: true },
-  { id: 'assignment-jamie-night', householdId: demoHousehold.id, questId: 'night', heroId: 'hero-jamie', assignedAt: '2026-09-01T06:00:00.000Z', active: true },
-];
+export const demoQuestAssignments: QuestAssignment[] = demoHeroes.flatMap(hero => initialQuests
+  .filter(quest => isQuestAgeAppropriate(quest, hero.dateOfBirth))
+  .map(quest => ({ id: `assignment-${hero.id}-${quest.id}`, householdId: demoHousehold.id, questId: quest.id, heroId: hero.id, assignedAt: '2026-09-01T06:00:00.000Z', active: true })));
 
 export const demoGuildApprovals: GuildApproval[] = [
   { id: 'approval-alex-cook', householdId: demoHousehold.id, heroId: 'hero-alex', questId: 'cook', submittedAt: '2026-09-15T15:42:00.000Z', status: 'pending', kind: 'guild' },
@@ -90,6 +86,7 @@ export const initialHouseholdState: HouseholdState = {
     { id: 'completion-jamie-bed-today', heroId: 'hero-jamie', questId: 'bed', questTitle: 'Make bed & tidy room', questEmoji: '🛏️', questKind: 'daily', stars: 1, xp: 1, completedAt: new Date().toISOString() },
   ],
   streakAwards: [],
+  questTemplates: initialQuests.map(quest => ({ ...quest, householdId: demoHousehold.id, catalogQuestId: `catalog-${quest.id}`, visibility: 'household', status: 'available' })),
   heroQuests: {
     'hero-alex': initialQuests.map(quest => ({ ...quest, id: `hero-alex-${quest.id}`, templateId: quest.id })),
     'hero-sam': initialQuests.map((quest, index) => ({ ...quest, id: `hero-sam-${quest.id}`, templateId: quest.id, status: index < 2 ? 'rewarded' : quest.id === 'cook' ? 'pending_approval' : 'available' })),

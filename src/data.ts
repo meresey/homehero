@@ -9,6 +9,13 @@ export const initialQuests: Quest[] = [
   { id: 'night', title: 'Night-time reset', description: 'Teeth, clothes, bag, and lights out', emoji: '🌙', kind: 'bedtime', cadence: 'daily', scheduleLabel: 'Every day · 8:30 PM', status: 'available', stars: 1, xp: 1, cutoffLabel: '8:30 PM' },
 ];
 
+export const questCatalog: Quest[] = [
+  ...initialQuests.map(quest => ({ ...quest, id: `catalog-${quest.id}`, catalogQuestId: `catalog-${quest.id}`, status: 'available' as const })),
+  { id: 'catalog-laundry', catalogQuestId: 'catalog-laundry', title: 'Laundry helper', description: 'Sort, fold, and put away clean clothes', emoji: '🧺', kind: 'daily', cadence: 'weekly', scheduleLabel: 'Once a week', status: 'available', stars: 2, xp: 2, minimumAge: 8 },
+  { id: 'catalog-dishes', catalogQuestId: 'catalog-dishes', title: 'Dish duty', description: 'Load or unload the dishwasher', emoji: '🍽️', kind: 'daily', cadence: 'daily', scheduleLabel: 'Every day', status: 'available', stars: 1, xp: 1, minimumAge: 8 },
+  { id: 'catalog-pet', catalogQuestId: 'catalog-pet', title: 'Pet care', description: 'Feed, water, or tidy up after a pet', emoji: '🐾', kind: 'daily', cadence: 'daily', scheduleLabel: 'Every day', status: 'available', stars: 1, xp: 1, minimumAge: 7 },
+];
+
 export const rewards: Reward[] = [
   { id: 'screen', title: 'Extra screen time', emoji: '🎮', cost: 25, subtitle: '+1 hour this weekend' },
   { id: 'dessert', title: 'Special dessert', emoji: '🍦', cost: 35, subtitle: 'Choose the family treat' },

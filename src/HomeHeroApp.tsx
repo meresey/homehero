@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, SafeAreaView, ScrollView, S
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Panel, Pill, ProgressBar, QuestCard } from './components';
-import { heroBadges, rewards } from './data';
+import { heroBadges, questCatalog, rewards } from './data';
 import { colors } from './theme';
 import { Quest, QuestCompletion, Reward, StreakAward } from './types';
 import { QuestAdmin } from './QuestAdmin';
@@ -34,7 +34,7 @@ export function HomeHeroApp() {
   const [localRewards, setLocalRewards, rewardsHydrated] = usePersistentState<Reward[]>('home-hero.rewards.v1', rewards);
   const [levelDefinitions, setLevelDefinitions, levelsHydrated] = usePersistentState<HeroLevel[]>('home-hero.levels.v1', heroLevels);
   const activeRole = data.backendEnabled && data.family ? data.family.role : role;
-  const quests = data.backendEnabled ? data.quests : activeRole === 'child' ? householdData.selectedQuests : householdData.selectedAllQuests;
+  const quests = data.backendEnabled ? data.quests : activeRole === 'child' ? householdData.selectedQuests : householdData.questTemplates;
   const stars = data.backendEnabled ? data.stars : householdData.selectedBalance.stars;
   const xp = data.backendEnabled ? data.xp : householdData.selectedBalance.lifetimeXp;
   const heroName = data.backendEnabled ? 'Hero' : householdData.selectedHero.displayName;
@@ -92,7 +92,7 @@ export function HomeHeroApp() {
     Alert.alert('Request sent!', `A Party Leader will approve “${title}”. Your stars will not be charged until then.`);
   };
 
-  const saveQuest = async (quest: Quest) => {
+  const saveQuest = async (quest: Quest, heroIds: string[] = []) => {
     if (data.backendEnabled) {
       if (!data.family?.childId) return Alert.alert('Invite your hero first', `Share family code ${data.family?.inviteCode}. Once they join, you can assign quests.`);
       try {
@@ -101,15 +101,14 @@ export function HomeHeroApp() {
       } catch (cause) { showError(cause); }
       return;
     }
-    householdData.setSelectedHeroQuests(current => current.some(item => item.id === quest.id)
-      ? current.map(item => item.id === quest.id ? quest : item)
-      : [quest, ...current]);
-    Alert.alert('Quest saved', `“${quest.title}” is ready for ${heroName}.`);
+    householdData.saveHouseholdQuest(quest, heroIds);
+    const names = householdData.state.heroes.filter(hero => heroIds.includes(hero.id)).map(hero => hero.displayName);
+    Alert.alert('Quest saved', `“${quest.title}” is ready for ${names.join(', ')}.`);
   };
 
   const removeQuest = async (id: string) => {
     if (data.backendEnabled) { try { await archiveQuest(id); await data.refresh(); } catch (cause) { showError(cause); } return; }
-    householdData.setSelectedHeroQuests(current => current.filter(item => item.id !== id));
+    householdData.removeHouseholdQuest(id);
   };
 
   const saveReward = (reward: Reward) => {
@@ -155,7 +154,7 @@ export function HomeHeroApp() {
         <>
           {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} onOpenAttention={heroId => { householdData.setSelectedHero(heroId); setParentTab('approvals'); }} />}
           {parentTab === 'home' && data.backendEnabled && <ParentHome quests={quests} pendingQuests={data.pendingQuests} familyCode={data.family?.inviteCode} approveGuild={approveGuild} />}
-          {parentTab === 'quests' && <QuestAdmin quests={quests} heroName={data.backendEnabled ? undefined : householdData.selectedHero.displayName} heroDateOfBirth={data.backendEnabled ? undefined : householdData.selectedHero.dateOfBirth} onSave={saveQuest} onRemove={removeQuest} />}
+          {parentTab === 'quests' && <QuestAdmin quests={quests} heroes={data.backendEnabled ? [] : householdData.state.heroes} assignments={data.backendEnabled ? [] : householdData.state.questAssignments} catalog={data.backendEnabled ? [] : questCatalog} householdName={data.backendEnabled ? undefined : householdData.state.household.name} onSave={saveQuest} onRemove={removeQuest} />}
           {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} />}
           {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} approve={approveGuild} />}
           {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} onSave={saveReward} onRemove={removeReward} />}

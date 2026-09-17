@@ -23,7 +23,12 @@ export type Quest = {
   timerCompletedAt?: string;
   completedAt?: string;
   expiredAt?: string;
+  householdId?: string;
+  catalogQuestId?: string;
+  visibility?: 'household';
 };
+
+export type QuestCatalogItem = Quest & { catalogQuestId: string };
 
 export type Reward = { id: string; title: string; emoji: string; cost: number; subtitle: string };
 
@@ -145,6 +150,7 @@ export type HouseholdState = {
   rewardRequests: RewardRequest[];
   completionHistory: QuestCompletion[];
   streakAwards: StreakAward[];
+  questTemplates: Quest[];
   heroQuests: Record<string, Quest[]>;
   selectedHero: HeroSelection;
 };

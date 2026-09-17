@@ -59,8 +59,8 @@ export const demoQuestAssignments: QuestAssignment[] = [
 ];
 
 export const demoGuildApprovals: GuildApproval[] = [
-  { id: 'approval-alex-cook', householdId: demoHousehold.id, heroId: 'hero-alex', questId: 'cook', submittedAt: '2026-09-15T15:42:00.000Z', status: 'pending' },
-  { id: 'approval-sam-cook', householdId: demoHousehold.id, heroId: 'hero-sam', questId: 'cook', submittedAt: '2026-09-15T14:20:00.000Z', status: 'pending' },
+  { id: 'approval-alex-cook', householdId: demoHousehold.id, heroId: 'hero-alex', questId: 'cook', submittedAt: '2026-09-15T15:42:00.000Z', status: 'pending', kind: 'guild' },
+  { id: 'approval-sam-cook', householdId: demoHousehold.id, heroId: 'hero-sam', questId: 'cook', submittedAt: '2026-09-15T14:20:00.000Z', status: 'pending', kind: 'guild' },
 ];
 
 export const demoRewardRequests: RewardRequest[] = [

@@ -49,7 +49,7 @@ export function HomeHeroApp() {
         const now = new Date();
         const startedAt = quest.timerStartedAt ?? now.toISOString();
         const endsAt = quest.timerEndsAt ?? new Date(now.getTime() + (quest.timerMinutes ?? 20) * 60_000).toISOString();
-        if (new Date(endsAt).getTime() <= now.getTime()) { if (!data.backendEnabled) award(quest); return; }
+        if (new Date(endsAt).getTime() <= now.getTime()) { if (!data.backendEnabled) householdData.finishTimerQuest(quest); return; }
         if (quest.status !== 'in_progress') {
           if (data.backendEnabled) await data.startTimer(quest);
           else householdData.startTimerQuest(quest, startedAt, endsAt);
@@ -165,7 +165,7 @@ export function HomeHeroApp() {
           ]} />
         </>
       )}
-      <TimerModal quest={timerQuest} onClose={() => setTimerQuest(null)} onFinish={async () => { if (!timerQuest) return; try { if (data.backendEnabled) await data.finishTimer(timerQuest); else award(timerQuest); setTimerQuest(null); Alert.alert('Quest complete!', `${timerQuest.title} earned ${timerQuest.stars} stars and ${timerQuest.xp} XP.`); } catch (cause) { showError(cause); } }} />
+      <TimerModal quest={timerQuest} onClose={() => setTimerQuest(null)} onFinish={async () => { if (!timerQuest) return; try { if (data.backendEnabled) await data.finishTimer(timerQuest); else householdData.finishTimerQuest(timerQuest); setTimerQuest(null); Alert.alert('Timer complete!', `${timerQuest.title} was sent to your Party Leader for approval.`); } catch (cause) { showError(cause); } }} />
     </SafeAreaView>
   );
 }

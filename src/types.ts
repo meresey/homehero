@@ -20,6 +20,7 @@ export type Quest = {
   maximumAge?: number;
   timerStartedAt?: string;
   timerEndsAt?: string;
+  timerCompletedAt?: string;
   completedAt?: string;
   expiredAt?: string;
 };
@@ -78,6 +79,7 @@ export type GuildApproval = {
   questId: string;
   submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
+  kind?: 'guild' | 'timer';
   note?: string;
 };
 

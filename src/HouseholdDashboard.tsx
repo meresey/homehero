@@ -14,7 +14,7 @@ export function HouseholdDashboard({ household, heroes, levels, guildApprovals, 
   const pendingApprovals = guildApprovals.filter(item => item.status === 'pending').length + rewardRequests.filter(item => item.status === 'pending').length;
   const weeklyStars = heroes.reduce((sum, hero) => sum + hero.stars, 0);
   const attention = [
-    ...guildApprovals.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'guild' as const, icon: '🤝', text: 'submitted a Guild Quest' })),
+    ...guildApprovals.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'guild' as const, icon: item.kind === 'timer' ? '⏱️' : '🤝', text: item.kind === 'timer' ? 'finished a timed quest' : 'submitted a Guild Quest' })),
     ...rewardRequests.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'reward' as const, icon: '🎁', text: 'requested a Star Store reward' })),
   ];
   const heroName = (id: string) => heroes.find(hero => hero.heroId === id)?.displayName ?? 'A Hero';

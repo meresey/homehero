@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, shadow } from './theme';
@@ -22,14 +22,16 @@ export function ProgressBar({ value, max, color = colors.green }: { value: numbe
 export function QuestCard({ quest, onPress }: { quest: Quest; onPress: () => void }) {
   const complete = quest.status === 'rewarded';
   const pending = quest.status === 'pending_approval';
+  const timerRemaining = useQuestTimerRemaining(quest);
+  const timerRunning = quest.kind === 'timer' && quest.status === 'in_progress' && timerRemaining != null;
   return (
-    <Pressable onPress={onPress} disabled={complete || pending} style={({ pressed }) => [styles.quest, pressed && styles.pressed, complete && styles.questDone]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={timerRunning ? `${quest.title}, ${formatTimer(timerRemaining)} remaining` : quest.title} onPress={onPress} disabled={complete || pending} style={({ pressed }) => [styles.quest, pressed && styles.pressed, complete && styles.questDone, timerRunning && styles.questRunning]}>
       <View style={styles.emoji}><Text style={styles.emojiText}>{quest.emoji}</Text></View>
       <View style={styles.questCopy}>
-        <View style={styles.row}><Text style={[styles.questTitle, complete && styles.doneText]}>{quest.title}</Text>{quest.kind === 'guild' && <Pill tone="purple">GUILD</Pill>}</View>
+        <View style={styles.row}><Text style={[styles.questTitle, complete && styles.doneText]}>{quest.title}</Text>{quest.kind === 'guild' && <Pill tone="purple">GUILD</Pill>}{timerRunning && <Pill tone="purple">RUNNING</Pill>}</View>
         <Text style={styles.questDescription}>{pending ? 'Waiting for Party Leader' : quest.description}</Text>
         <View style={styles.rewardRow}>
-          {quest.timerMinutes && <Text style={styles.meta}>◷ {quest.timerMinutes} min</Text>}
+          {quest.timerMinutes && <Text style={[styles.meta, timerRunning && styles.timerActive]}>◷ {timerRunning ? formatTimer(timerRemaining) : `${quest.timerMinutes} min`}</Text>}
           {quest.cutoffLabel && <Text style={[styles.meta, { color: colors.coral }]}>Safe Zone · {quest.cutoffLabel}</Text>}
           <Text style={styles.reward}>⭐ {quest.stars}  ✦ {quest.xp} XP</Text>
         </View>
@@ -41,6 +43,27 @@ export function QuestCard({ quest, onPress }: { quest: Quest; onPress: () => voi
   );
 }
 
+function useQuestTimerRemaining(quest: Quest) {
+  const active = quest.kind === 'timer' && quest.status === 'in_progress' && Boolean(quest.timerEndsAt);
+  const calculate = () => active ? Math.max(0, Math.ceil((new Date(quest.timerEndsAt as string).getTime() - Date.now()) / 1000)) : null;
+  const [remaining, setRemaining] = useState<number | null>(calculate);
+
+  useEffect(() => {
+    setRemaining(calculate());
+    if (!active) return;
+    const interval = setInterval(() => setRemaining(calculate()), 1000);
+    return () => clearInterval(interval);
+  }, [active, quest.timerEndsAt]);
+
+  return remaining;
+}
+
+function formatTimer(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 const styles = StyleSheet.create({
   panel: { backgroundColor: colors.white, borderRadius: 22, padding: 18, ...shadow },
   pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99 },
@@ -48,6 +71,7 @@ const styles = StyleSheet.create({
   track: { height: 11, borderRadius: 99, backgroundColor: '#E8E4DA', overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 99 },
   quest: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: colors.white, borderRadius: 18, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
+  questRunning: { borderColor: colors.purple, backgroundColor: '#FAF7FF' },
   pressed: { transform: [{ scale: .985 }], opacity: .9 },
   questDone: { backgroundColor: '#F0F6E9', borderColor: '#C9DEB0' },
   emoji: { width: 48, height: 48, borderRadius: 15, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
@@ -59,6 +83,7 @@ const styles = StyleSheet.create({
   questDescription: { color: colors.muted, fontSize: 12, lineHeight: 17 },
   rewardRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
   meta: { color: colors.purple, fontSize: 11, fontWeight: '700' },
+  timerActive: { color: colors.purple, fontSize: 13, fontWeight: '900' },
   reward: { color: '#886100', fontSize: 11, fontWeight: '800', marginLeft: 'auto' },
   check: { width: 31, height: 31, borderRadius: 16, borderWidth: 1.5, borderColor: '#CCD3DE', alignItems: 'center', justifyContent: 'center' },
   checkDone: { backgroundColor: colors.green, borderColor: colors.green },

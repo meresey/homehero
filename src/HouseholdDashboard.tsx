@@ -6,17 +6,16 @@ import { getHeroLevelProgress, HeroLevel } from './levels';
 import { GuildApproval, HeroSummary, Household, RewardRequest } from './types';
 import { colors } from './theme';
 
-type AttentionType = 'guild' | 'reward' | 'bedtime';
+type AttentionType = 'guild' | 'reward';
 
 export function HouseholdDashboard({ household, heroes, levels, guildApprovals, rewardRequests, onViewHero, onOpenAttention }: { household: Household; heroes: HeroSummary[]; levels: HeroLevel[]; guildApprovals: GuildApproval[]; rewardRequests: RewardRequest[]; onViewHero: (heroId: string) => void; onOpenAttention: (heroId: string, type: AttentionType) => void }) {
   const completed = heroes.reduce((sum, hero) => sum + hero.completedToday, 0);
   const total = heroes.reduce((sum, hero) => sum + hero.totalToday, 0);
-  const pendingApprovals = heroes.reduce((sum, hero) => sum + hero.pendingApprovals + hero.pendingRewardRequests, 0);
+  const pendingApprovals = guildApprovals.filter(item => item.status === 'pending').length + rewardRequests.filter(item => item.status === 'pending').length;
   const weeklyStars = heroes.reduce((sum, hero) => sum + hero.stars, 0);
   const attention = [
     ...guildApprovals.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'guild' as const, icon: '🤝', text: 'submitted a Guild Quest' })),
     ...rewardRequests.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'reward' as const, icon: '🎁', text: 'requested a Star Store reward' })),
-    ...heroes.filter(hero => hero.bedtimeQuestsDue > 0).map(hero => ({ id: `bedtime-${hero.heroId}`, heroId: hero.heroId, type: 'bedtime' as const, icon: '🌙', text: `has ${hero.bedtimeQuestsDue} bedtime quest${hero.bedtimeQuestsDue === 1 ? '' : 's'} due` })),
   ];
   const heroName = (id: string) => heroes.find(hero => hero.heroId === id)?.displayName ?? 'A Hero';
 
@@ -44,7 +43,7 @@ function Metric({ value, label, tone = 'green' }: { value: string; label: string
 function HeroCard({ hero, levels, onView }: { hero: HeroSummary; levels: HeroLevel[]; onView: () => void }) {
   const level = getHeroLevelProgress(hero.lifetimeXp, levels);
   const completion = hero.totalToday ? hero.completedToday / hero.totalToday : 0;
-  const needsAttention = hero.pendingApprovals + hero.pendingRewardRequests + hero.bedtimeQuestsDue;
+  const needsAttention = hero.pendingApprovals + hero.pendingRewardRequests;
   return <Panel style={styles.heroCard}>
     <View style={styles.heroCardHeader}><View style={styles.avatar}><Text style={styles.avatarEmoji}>{hero.avatarEmoji}</Text></View><View style={styles.heroIdentity}><Text style={styles.heroName}>{hero.displayName}</Text><Text style={styles.levelTitle}>Level {level.current.level} · {level.current.title}</Text></View>{needsAttention > 0 && <View style={styles.alertBadge}><Text style={styles.alertText}>{needsAttention}</Text></View>}</View>
     <View style={styles.progressCopy}><Text style={styles.progressLabel}>Today’s quests</Text><Text style={styles.progressValue}>{hero.completedToday} of {hero.totalToday}</Text></View><ProgressBar value={completion} max={1} />

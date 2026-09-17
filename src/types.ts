@@ -18,6 +18,10 @@ export type Quest = {
   scheduleLabel?: string;
   minimumAge?: number;
   maximumAge?: number;
+  timerStartedAt?: string;
+  timerEndsAt?: string;
+  completedAt?: string;
+  expiredAt?: string;
 };
 
 export type Reward = { id: string; title: string; emoji: string; cost: number; subtitle: string };
@@ -87,6 +91,27 @@ export type RewardRequest = {
   status: 'pending' | 'approved' | 'declined' | 'fulfilled';
 };
 
+export type QuestCompletion = {
+  id: string;
+  heroId: string;
+  questId: string;
+  questTitle: string;
+  questEmoji: string;
+  questKind: QuestKind;
+  stars: number;
+  xp: number;
+  completedAt: string;
+};
+
+export type StreakAward = {
+  id: string;
+  heroId: string;
+  questId: string;
+  weekStart: string;
+  xpAwarded: number;
+  awardedAt: string;
+};
+
 export type HeroSummary = {
   heroId: string;
   displayName: string;
@@ -107,6 +132,7 @@ export type HeroSelection = {
 };
 
 export type HouseholdState = {
+  questDate: string;
   household: Household;
   heroes: HeroProfile[];
   balances: HeroBalance[];
@@ -115,6 +141,8 @@ export type HouseholdState = {
   questAssignments: QuestAssignment[];
   guildApprovals: GuildApproval[];
   rewardRequests: RewardRequest[];
+  completionHistory: QuestCompletion[];
+  streakAwards: StreakAward[];
   heroQuests: Record<string, Quest[]>;
   selectedHero: HeroSelection;
 };

@@ -74,6 +74,7 @@ export const demoHeroSummaries: HeroSummary[] = [
 ];
 
 export const initialHouseholdState: HouseholdState = {
+  questDate: new Date().toLocaleDateString('en-CA'),
   household: demoHousehold,
   heroes: demoHeroes,
   balances: demoHeroBalances,
@@ -82,6 +83,13 @@ export const initialHouseholdState: HouseholdState = {
   questAssignments: demoQuestAssignments,
   guildApprovals: demoGuildApprovals,
   rewardRequests: demoRewardRequests,
+  completionHistory: [
+    { id: 'completion-alex-bed-today', heroId: 'hero-alex', questId: 'bed', questTitle: 'Make bed & tidy room', questEmoji: '🛏️', questKind: 'daily', stars: 1, xp: 1, completedAt: new Date().toISOString() },
+    { id: 'completion-sam-bed-today', heroId: 'hero-sam', questId: 'bed', questTitle: 'Make bed & tidy room', questEmoji: '🛏️', questKind: 'daily', stars: 1, xp: 1, completedAt: new Date().toISOString() },
+    { id: 'completion-sam-homework-today', heroId: 'hero-sam', questId: 'homework', questTitle: 'Homework focus', questEmoji: '📚', questKind: 'daily', stars: 1, xp: 1, completedAt: new Date().toISOString() },
+    { id: 'completion-jamie-bed-today', heroId: 'hero-jamie', questId: 'bed', questTitle: 'Make bed & tidy room', questEmoji: '🛏️', questKind: 'daily', stars: 1, xp: 1, completedAt: new Date().toISOString() },
+  ],
+  streakAwards: [],
   heroQuests: {
     'hero-alex': initialQuests.map(quest => ({ ...quest, id: `hero-alex-${quest.id}`, templateId: quest.id })),
     'hero-sam': initialQuests.map((quest, index) => ({ ...quest, id: `hero-sam-${quest.id}`, templateId: quest.id, status: index < 2 ? 'rewarded' : quest.id === 'cook' ? 'pending_approval' : 'available' })),

@@ -176,9 +176,26 @@ export function useHomeHeroData() {
         if (questError) throw questError;
         setQuests((data ?? []).map(mapInstance));
         setPendingQuests([]);
-        const { data: badgeRows, error: badgeError } = await supabase.from('hero_badges').select('earned_at,badge_definitions(key,name,description,icon_key,sort_order)').eq('child_id', current.user.id).order('earned_at');
-        if (badgeError) throw badgeError;
-        setEarnedBadges((badgeRows ?? []).map(mapEarnedBadge).filter((badge): badge is BadgeDefinition => badge !== null));
+        const { data: badgeRows, error: badgeError } = await supabase.from('hero_badges').select('badge_key,earned_at').eq('child_id', current.user.id).order('earned_at');
+        if (badgeError) {
+          setEarnedBadges([]);
+        } else {
+          const badgeKeys = (badgeRows ?? []).map(row => row.badge_key);
+          if (badgeKeys.length === 0) {
+            setEarnedBadges([]);
+          } else {
+            const { data: definitions, error: definitionsError } = await supabase.from('badge_definitions').select('key,name,description,icon_key').in('key', badgeKeys);
+            if (definitionsError) {
+              setEarnedBadges([]);
+            } else {
+              const definitionsByKey = new Map((definitions ?? []).map(badge => [badge.key, badge]));
+              setEarnedBadges(badgeKeys.flatMap(key => {
+                const badge = definitionsByKey.get(key);
+                return badge ? [{ id: badge.key, name: badge.name, description: badge.description, emoji: badge.icon_key }] : [];
+              }));
+            }
+          }
+        }
       }
       if (childId) {
         const { data: balance, error: balanceError } = await supabase.from('child_balances').select('stars,xp').eq('child_id',childId).maybeSingle();
@@ -285,7 +302,6 @@ function mapInstance(row: any): Quest { const t = row.quest_templates; return { 
 function mapReward(row: any): Reward { return { id: row.id, rewardId: row.id, catalogRewardId: row.catalog_reward_id ?? undefined, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }
 function mapCatalogReward(row: any): Reward { return { id: row.id, catalogRewardId: row.id, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }
 function mapRedemption(row: any, heroName: string, availableStars: number): RewardRedemption { const reward = row.rewards as { title: string; description?: string; icon_key?: string }; return { id: row.id, rewardId: row.reward_id, childId: row.child_id, heroName, title: reward.title, subtitle: reward.description ?? 'Parent-approved reward', emoji: reward.icon_key || '🎁', cost: row.star_cost_snapshot, availableStars, requestedAt: row.requested_at }; }
-function mapEarnedBadge(row: any): BadgeDefinition | null { const badge = Array.isArray(row.badge_definitions) ? row.badge_definitions[0] : row.badge_definitions; return badge ? { id: badge.key, name: badge.name, description: badge.description, emoji: badge.icon_key } : null; }
 
 function errorMessage(cause: unknown) {
   if (cause instanceof Error) return cause.message;

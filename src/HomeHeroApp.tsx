@@ -132,7 +132,7 @@ export function HomeHeroApp() {
 
   if ((data.backendEnabled && data.loading) || (!data.backendEnabled && (!householdData.hydrated || !rewardsHydrated || !levelsHydrated))) return <SafeAreaView style={styles.safe}><AppFrame><View style={styles.loading}><ActivityIndicator size="large" color={colors.green} /><Text style={styles.muted}>Loading your hero party…</Text></View></AppFrame></SafeAreaView>;
   if (data.backendEnabled && !data.session) return <AuthScreen />;
-  if (data.backendEnabled && !data.family) return <OnboardingScreen refresh={data.refresh} />;
+  if (data.backendEnabled && !data.family) return <OnboardingScreen refresh={data.refresh} backendError={data.error} />;
 
   return (
     <SafeAreaView style={styles.safe}>

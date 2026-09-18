@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from './lib/supabase';
 import { colors } from './theme';
@@ -14,10 +14,26 @@ export function AuthScreen() {
 
 function confirmationRedirect(){if(Platform.OS==='web'&&typeof window!=='undefined')return window.location.origin;return 'homehero://';}
 
-export function OnboardingScreen({refresh}:{refresh:()=>Promise<void>}) {
-  const [mode,setMode]=useState<'parent'|'child'>('parent'); const [value,setValue]=useState(''); const [birthDate,setBirthDate]=useState(''); const [busy,setBusy]=useState(false);
-  const submit=async()=>{if(!supabase||!value.trim())return;if(mode==='child'&&!isValidBirthDate(birthDate))return Alert.alert('Valid birth date required','Enter a real date as YYYY-MM-DD. Heroes must be between 3 and 18 years old.');setBusy(true);const {error}=mode==='parent'?await supabase.rpc('create_parent_household',{p_name:value.trim(),p_timezone:Intl.DateTimeFormat().resolvedOptions().timeZone}):await supabase.rpc('join_household_as_child',{p_invite_code:value.trim(),p_date_of_birth:birthDate});setBusy(false);if(error)Alert.alert('Could not continue',error.message);else await refresh();};
-  return <SafeAreaView style={styles.safe}><AppFrame><View style={styles.onboard}><Text style={styles.shield}>🛡️</Text><Text style={styles.heading}>Build your hero party</Text><Text style={styles.copy}>Choose how this account will use Home Hero.</Text><View style={styles.segment}>{(['parent','child'] as const).map(item=><Pressable key={item} onPress={()=>setMode(item)} style={[styles.segmentItem,mode===item&&styles.segmentActive]}><Text style={[styles.segmentText,mode===item&&styles.segmentTextActive]}>{item==='parent'?'Party Leader':'Hero'}</Text></Pressable>)}</View><TextInput value={value} onChangeText={setValue} autoCapitalize={mode==='child'?'characters':'words'} placeholder={mode==='parent'?'Family name':'8-character family code'} style={styles.input}/>{mode==='child'&&<><TextInput value={birthDate} onChangeText={setBirthDate} keyboardType="numbers-and-punctuation" placeholder="Birth date · YYYY-MM-DD" style={styles.input}/><Text style={styles.privacyNote}>Used only to show age-appropriate quests.</Text></>}<Pressable onPress={submit} disabled={busy} style={styles.primary}><Text style={styles.primaryText}>{busy?'Setting up…':mode==='parent'?'Create family':'Join family'}</Text></Pressable><Pressable onPress={()=>supabase?.auth.signOut()}><Text style={styles.link}>Sign out</Text></Pressable></View></AppFrame></SafeAreaView>;
+export function OnboardingScreen({refresh,backendError}:{refresh:()=>Promise<void>;backendError?:string|null}) {
+  const [mode,setMode]=useState<'parent'|'child'>('parent'); const [value,setValue]=useState(''); const [birthDate,setBirthDate]=useState(''); const [busy,setBusy]=useState(false); const [message,setMessage]=useState<{tone:'success'|'error';text:string}|null>(null);
+  const changeMode=(next:'parent'|'child')=>{setMode(next);setValue('');setBirthDate('');setMessage(null);};
+  const submit=async()=>{
+    if(!supabase)return setMessage({tone:'error',text:'Home Hero could not connect to the server. Please reload and try again.'});
+    if(!value.trim())return setMessage({tone:'error',text:mode==='parent'?'Enter a family name.':'Enter the 8-character family code from your Party Leader.'});
+    if(mode==='child'&&!isValidBirthDate(birthDate))return setMessage({tone:'error',text:'Enter a real birth date as YYYY-MM-DD. Heroes must be between 3 and 18 years old.'});
+    setBusy(true);setMessage(null);
+    try{
+      const {error}=mode==='parent'
+        ?await supabase.rpc('create_parent_household',{p_name:value.trim(),p_timezone:Intl.DateTimeFormat().resolvedOptions().timeZone})
+        :await supabase.rpc('join_household_as_child',{p_invite_code:value.trim().toUpperCase(),p_date_of_birth:birthDate});
+      if(error)throw error;
+      setMessage({tone:'success',text:mode==='parent'?'Family created. Loading your Party Leader dashboard…':'Family joined. Loading your Hero dashboard…'});
+      await refresh();
+    }catch(cause){setMessage({tone:'error',text:cause instanceof Error?cause.message:'Could not complete household setup. Please try again.'});}
+    finally{setBusy(false);}
+  };
+  const visibleMessage=message??(backendError?{tone:'error' as const,text:backendError}:null);
+  return <SafeAreaView style={styles.safe}><AppFrame><View style={styles.onboard}><Text style={styles.shield}>🛡️</Text><Text style={styles.heading}>Build your hero party</Text><Text style={styles.copy}>Choose how this account will use Home Hero.</Text><View style={styles.segment}>{(['parent','child'] as const).map(item=><Pressable key={item} disabled={busy} onPress={()=>changeMode(item)} style={[styles.segmentItem,mode===item&&styles.segmentActive]}><Text style={[styles.segmentText,mode===item&&styles.segmentTextActive]}>{item==='parent'?'Party Leader':'Hero'}</Text></Pressable>)}</View>{visibleMessage&&<View accessibilityRole="alert" style={[styles.message,visibleMessage.tone==='success'?styles.successMessage:styles.errorMessage]}><Text style={[styles.messageText,visibleMessage.tone==='success'?styles.successText:styles.errorText]}>{visibleMessage.text}</Text></View>}<TextInput editable={!busy} value={value} onChangeText={text=>{setValue(text);setMessage(null);}} autoCapitalize={mode==='child'?'characters':'words'} placeholder={mode==='parent'?'Family name':'8-character family code'} style={styles.input}/>{mode==='child'&&<><TextInput editable={!busy} value={birthDate} onChangeText={text=>{setBirthDate(text);setMessage(null);}} keyboardType="numbers-and-punctuation" placeholder="Birth date · YYYY-MM-DD" style={styles.input}/><Text style={styles.privacyNote}>Used only to show age-appropriate quests.</Text></>}<Pressable onPress={submit} disabled={busy} style={[styles.primary,busy&&styles.primaryDisabled]}><Text style={styles.primaryText}>{busy?'Setting up…':mode==='parent'?'Create family':'Join family'}</Text></Pressable><Pressable disabled={busy} onPress={()=>supabase?.auth.signOut()}><Text style={styles.link}>Sign out</Text></Pressable></View></AppFrame></SafeAreaView>;
 }
 
 function isValidBirthDate(value:string){if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const date=new Date(`${value}T00:00:00`);if(Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==value)return false;const now=new Date();let age=now.getFullYear()-date.getFullYear();if(now.getMonth()<date.getMonth()||(now.getMonth()===date.getMonth()&&now.getDate()<date.getDate()))age-=1;return age>=3&&age<=18;}

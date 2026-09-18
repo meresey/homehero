@@ -7,6 +7,7 @@ A gamified family habit and chore app for children aged 10–13. This repository
 - Child Today, Week, Star Store, and Hero screens
 - Parent Dashboard, Quest Manager, Approval Inbox, and Rewards screens
 - Parent-managed Hero enrollment with child-safe usernames and six-digit PINs
+- Party Leader controls for changing managed Hero usernames and resetting PINs
 - Separate Party Leader email sign-in and Hero username/PIN sign-in
 - Functional Party Leader quest administration with daily, weekly, and Guild filters, create/edit forms, schedules, timers, rewards, and archive-safe removal
 - Timer, direct-completion, Guild Quest approval, and reward-redemption interactions
@@ -36,7 +37,7 @@ Press `i` for iOS, `a` for Android, or `w` for the browser. Leave the Supabase v
 1. Create a Supabase project.
 2. Install the Supabase CLI and link the project.
 3. Apply migrations with `supabase db push`.
-4. Deploy the managed-Hero function with `supabase functions deploy enroll-hero`.
+4. Deploy the managed-Hero functions with `supabase functions deploy enroll-hero manage-hero-credentials`.
 5. Enable the `pg_cron` extension in the dashboard.
 6. Schedule `expire_overdue_quests()` every five minutes.
 7. Add the project URL and publishable/anon key to `.env`.
@@ -49,7 +50,7 @@ Example cron setup is included at the bottom of `202609140002_game_functions.sql
 Do not enable `EXPO_PUBLIC_USE_SUPABASE` until every item below is complete:
 
 - Apply all pending migrations with `supabase db push`, including `202609150001_consistent_level_progression.sql`.
-- Deploy `enroll-hero`; it uses the automatically available `SUPABASE_SERVICE_ROLE_KEY` only inside the Edge Function.
+- Deploy `enroll-hero` and `manage-hero-credentials`; they use the automatically available `SUPABASE_SERVICE_ROLE_KEY` only inside Edge Functions.
 - Confirm `level_definitions` contains the 0, 100, 200, 300, and 400 XP thresholds and the `characteristics text[]` column.
 - Replace the client’s initial `heroLevels` fixture with a query that loads `level_definitions` from Supabase.
 - Add a parent-authorized RPC and RLS policy for saving level titles, XP thresholds, and characteristics.

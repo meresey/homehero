@@ -8,11 +8,14 @@ type FamilyContext = { householdId: string; householdName: string; inviteCode: s
 export type ParentDashboardSummary = {
   leaderName: string;
   heroNames: string[];
+  managedHeroes: ManagedHeroAccount[];
   completedToday: number;
   totalToday: number;
   weeklyProgress: HeroWeeklyProgress[];
   safeZone: { title: string; heroName: string; cutoffAt: string } | null;
 };
+
+export type ManagedHeroAccount = { userId: string; displayName: string; username: string };
 
 export type HeroWeeklyProgress = {
   childId: string;
@@ -22,7 +25,7 @@ export type HeroWeeklyProgress = {
   goalStars: number | null;
 };
 
-const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader', heroNames: [], completedToday: 0, totalToday: 0, weeklyProgress: [], safeZone: null };
+const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader', heroNames: [], managedHeroes: [], completedToday: 0, totalToday: 0, weeklyProgress: [], safeZone: null };
 
 export function useHomeHeroData() {
   const [session, setSession] = useState<Session | null>(null);
@@ -73,6 +76,10 @@ export function useHomeHeroData() {
           : { data: [], error: null };
         if (heroesError) throw heroesError;
         const heroNamesById = new Map((heroProfiles ?? []).map(profile => [profile.id, profile.display_name]));
+        const { data: managedRows, error: managedError } = childIds.length
+          ? await supabase.from('managed_hero_accounts').select('user_id,username').eq('household_id', membership.household_id).in('user_id', childIds).order('created_at')
+          : { data: [], error: null };
+        if (managedError) throw managedError;
         const { data: todayRows, error: todayError } = await supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_templates(title,kind)').eq('household_id', membership.household_id).eq('occurrence_date', today);
         if (todayError) throw todayError;
         const { data: weekRows, error: weekError } = await supabase.from('quest_instances').select('child_id,star_reward_snapshot').eq('household_id', membership.household_id).eq('status', 'rewarded').gte('occurrence_date', weekStart).lte('occurrence_date', weekEnd);
@@ -103,6 +110,7 @@ export function useHomeHeroData() {
         setParentDashboard({
           leaderName: ownProfile.display_name,
           heroNames: (heroProfiles ?? []).map(profile => profile.display_name),
+          managedHeroes: (managedRows ?? []).map(account => ({ userId: account.user_id, username: account.username, displayName: heroNamesById.get(account.user_id) ?? 'Hero' })),
           completedToday: (todayRows ?? []).filter(row => row.status === 'rewarded').length,
           totalToday: (todayRows ?? []).length,
           weeklyProgress,

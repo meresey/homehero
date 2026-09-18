@@ -63,7 +63,7 @@ export function useHomeHeroData() {
       const { data: rewardRows, error: rewardError } = await supabase.from('rewards').select('id,title,description,icon_key,star_cost').eq('household_id', membership.household_id).eq('is_active', true).order('star_cost');
       if (rewardError) throw rewardError;
       setRewards((rewardRows ?? []).map(row => ({ id: row.id, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key?.length <= 3 ? row.icon_key : '🎁', cost: row.star_cost })));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load Home Hero'); }
+    } catch (cause) { setError(errorMessage(cause)); }
     finally { setLoading(false); }
   }, []);
 
@@ -94,3 +94,9 @@ export function useHomeHeroData() {
 function mapTemplate(row: any): Quest { return { id: row.id, templateId: row.id, catalogQuestId: row.catalog_quest_id ?? undefined, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
 function mapCatalogQuest(row: any): Quest { return { id: row.id, catalogQuestId: row.id, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
 function mapInstance(row: any): Quest { const t = row.quest_templates; return { id: row.id, instanceId: row.id, templateId: row.quest_template_id, title: t.title, description: t.description ?? '', emoji: t.icon_key?.length <= 3 ? t.icon_key : '✨', kind: t.kind as QuestKind, cadence: t.cadence, scheduleLabel: t.schedule_label, status: row.status as QuestStatus, stars: row.star_reward_snapshot, xp: row.xp_reward_snapshot, timerMinutes: t.timer_seconds ? t.timer_seconds / 60 : undefined, minimumAge: t.minimum_age ?? undefined, maximumAge: t.maximum_age ?? undefined, cutoffLabel: row.cutoff_at ? new Date(row.cutoff_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : undefined }; }
+
+function errorMessage(cause: unknown) {
+  if (cause instanceof Error) return cause.message;
+  if (cause && typeof cause === 'object' && 'message' in cause && typeof cause.message === 'string') return cause.message;
+  return 'Could not load Home Hero';
+}

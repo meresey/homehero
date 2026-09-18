@@ -9,13 +9,19 @@ export type ParentDashboardSummary = {
   leaderName: string;
   heroNames: string[];
   managedHeroes: ManagedHeroAccount[];
-  completedToday: number;
-  totalToday: number;
+  todayProgress: HeroTodayProgress[];
   weeklyProgress: HeroWeeklyProgress[];
   safeZone: { title: string; heroName: string; cutoffAt: string } | null;
 };
 
 export type ManagedHeroAccount = { userId: string; displayName: string; username: string };
+
+export type HeroTodayProgress = {
+  childId: string;
+  heroName: string;
+  completedQuests: number;
+  totalQuests: number;
+};
 
 export type HeroWeeklyProgress = {
   childId: string;
@@ -25,7 +31,7 @@ export type HeroWeeklyProgress = {
   goalStars: number | null;
 };
 
-const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader', heroNames: [], managedHeroes: [], completedToday: 0, totalToday: 0, weeklyProgress: [], safeZone: null };
+const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader', heroNames: [], managedHeroes: [], todayProgress: [], weeklyProgress: [], safeZone: null };
 
 export function useHomeHeroData() {
   const [session, setSession] = useState<Session | null>(null);
@@ -102,6 +108,15 @@ export function useHomeHeroData() {
           availableStars: calculateWeeklyAvailability(assignmentRows ?? [], profile.id, profile.date_of_birth, weekStart),
           goalStars: goalByHero.get(profile.id) ?? null,
         }));
+        const todayProgress = (heroProfiles ?? []).map(profile => {
+          const heroQuests = (todayRows ?? []).filter(row => row.child_id === profile.id);
+          return {
+            childId: profile.id,
+            heroName: profile.display_name,
+            completedQuests: heroQuests.filter(row => row.status === 'rewarded').length,
+            totalQuests: heroQuests.length,
+          };
+        });
         const safeZoneRow = (todayRows ?? []).filter(row => {
           const template = row.quest_templates as unknown as { title: string; kind: QuestKind };
           return template?.kind === 'bedtime' && row.cutoff_at && ['available', 'in_progress'].includes(row.status);
@@ -111,8 +126,7 @@ export function useHomeHeroData() {
           leaderName: ownProfile.display_name,
           heroNames: (heroProfiles ?? []).map(profile => profile.display_name),
           managedHeroes: (managedRows ?? []).map(account => ({ userId: account.user_id, username: account.username, displayName: heroNamesById.get(account.user_id) ?? 'Hero' })),
-          completedToday: (todayRows ?? []).filter(row => row.status === 'rewarded').length,
-          totalToday: (todayRows ?? []).length,
+          todayProgress,
           weeklyProgress,
           safeZone: safeZoneRow && safeTemplate ? { title: safeTemplate.title, heroName: heroNamesById.get(safeZoneRow.child_id) ?? 'Hero', cutoffAt: safeZoneRow.cutoff_at as string } : null,
         });

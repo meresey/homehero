@@ -4,7 +4,18 @@ import { initialQuests } from './data';
 import { backendEnabled, supabase } from './lib/supabase';
 import { Quest, QuestKind, QuestStatus, Reward } from './types';
 
-type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child' };
+type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child'; displayName: string };
+export type ParentDashboardSummary = {
+  leaderName: string;
+  heroNames: string[];
+  completedToday: number;
+  totalToday: number;
+  weeklyStars: number;
+  weeklyTarget: number;
+  safeZone: { title: string; heroName: string; cutoffAt: string } | null;
+};
+
+const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader', heroNames: [], completedToday: 0, totalToday: 0, weeklyStars: 0, weeklyTarget: 30, safeZone: null };
 
 export function useHomeHeroData() {
   const [session, setSession] = useState<Session | null>(null);
@@ -15,6 +26,7 @@ export function useHomeHeroData() {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [stars, setStars] = useState(backendEnabled ? 0 : 19);
   const [xp, setXp] = useState(backendEnabled ? 0 : 324);
+  const [parentDashboard, setParentDashboard] = useState<ParentDashboardSummary>(emptyParentDashboard);
   const [loading, setLoading] = useState(backendEnabled);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,23 +34,59 @@ export function useHomeHeroData() {
     if (!supabase) return;
     const current = activeSession === undefined ? (await supabase.auth.getSession()).data.session : activeSession;
     setSession(current);
-    if (!current) { setFamily(null); setQuests([]); setQuestCatalog([]); setPendingQuests([]); setLoading(false); return; }
+    if (!current) { setFamily(null); setQuests([]); setQuestCatalog([]); setPendingQuests([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
     setLoading(true); setError(null);
     try {
-      const { data: membership, error: membershipError } = await supabase.from('household_members').select('household_id, role, households(name, invite_code)').eq('user_id', current.user.id).maybeSingle();
+      const { data: membership, error: membershipError } = await supabase.from('household_members').select('household_id, role, households(name, invite_code, timezone)').eq('user_id', current.user.id).maybeSingle();
       if (membershipError) throw membershipError;
-      if (!membership) { setFamily(null); setQuests([]); return; }
-      const household = membership.households as unknown as { name: string; invite_code: string };
+      if (!membership) { setFamily(null); setQuests([]); setParentDashboard(emptyParentDashboard); return; }
+      const household = membership.households as unknown as { name: string; invite_code: string; timezone: string };
+      const { data: ownProfile, error: profileError } = await supabase.from('profiles').select('display_name').eq('id', current.user.id).single();
+      if (profileError) throw profileError;
       let childId: string | null = current.user.id;
+      let childIds: string[] = [];
       if (membership.role === 'parent') {
-        const { data: link, error: linkError } = await supabase.from('parent_child_links').select('child_id').eq('household_id', membership.household_id).eq('parent_id', current.user.id).limit(1).maybeSingle();
+        const { data: links, error: linkError } = await supabase.from('parent_child_links').select('child_id').eq('household_id', membership.household_id).eq('parent_id', current.user.id);
         if (linkError) throw linkError;
-        childId = link?.child_id ?? null;
+        childIds = (links ?? []).map(link => link.child_id);
+        childId = childIds[0] ?? null;
       }
-      const nextFamily: FamilyContext = { householdId: membership.household_id, householdName: household.name, inviteCode: household.invite_code, childId, role: membership.role };
+      const nextFamily: FamilyContext = { householdId: membership.household_id, householdName: household.name, inviteCode: household.invite_code, childId, role: membership.role, displayName: ownProfile.display_name };
       setFamily(nextFamily);
 
       if (membership.role === 'parent') {
+        const today = dateKey(new Date(), household.timezone);
+        const weekStart = startOfWeek(today);
+        const weekEnd = addDays(weekStart, 6);
+        const { data: heroProfiles, error: heroesError } = childIds.length
+          ? await supabase.from('profiles').select('id,display_name').in('id', childIds)
+          : { data: [], error: null };
+        if (heroesError) throw heroesError;
+        const heroNamesById = new Map((heroProfiles ?? []).map(profile => [profile.id, profile.display_name]));
+        const { data: todayRows, error: todayError } = await supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_templates(title,kind)').eq('household_id', membership.household_id).eq('occurrence_date', today);
+        if (todayError) throw todayError;
+        const { data: weekRows, error: weekError } = await supabase.from('quest_instances').select('star_reward_snapshot').eq('household_id', membership.household_id).eq('status', 'rewarded').gte('occurrence_date', weekStart).lte('occurrence_date', weekEnd);
+        if (weekError) throw weekError;
+        const { data: goals, error: goalsError } = childIds.length
+          ? await supabase.from('weekly_goals').select('target_stars').eq('household_id', membership.household_id).eq('week_start', weekStart)
+          : { data: [], error: null };
+        if (goalsError) throw goalsError;
+        const safeZoneRow = (todayRows ?? []).filter(row => {
+          const template = row.quest_templates as unknown as { title: string; kind: QuestKind };
+          return template?.kind === 'bedtime' && row.cutoff_at && ['available', 'in_progress'].includes(row.status);
+        }).sort((a, b) => new Date(a.cutoff_at as string).getTime() - new Date(b.cutoff_at as string).getTime())[0];
+        const safeTemplate = safeZoneRow?.quest_templates as unknown as { title: string; kind: QuestKind } | undefined;
+        setParentDashboard({
+          leaderName: ownProfile.display_name,
+          heroNames: (heroProfiles ?? []).map(profile => profile.display_name),
+          completedToday: (todayRows ?? []).filter(row => row.status === 'rewarded').length,
+          totalToday: (todayRows ?? []).length,
+          weeklyStars: (weekRows ?? []).reduce((sum, row) => sum + row.star_reward_snapshot, 0),
+          weeklyTarget: childIds.length
+            ? (goals ?? []).reduce((sum, goal) => sum + goal.target_stars, 0) + Math.max(0, childIds.length - (goals ?? []).length) * 30
+            : 30,
+          safeZone: safeZoneRow && safeTemplate ? { title: safeTemplate.title, heroName: heroNamesById.get(safeZoneRow.child_id) ?? 'Hero', cutoffAt: safeZoneRow.cutoff_at as string } : null,
+        });
         const { data: catalogRows, error: catalogError } = await supabase.from('quest_catalog').select('id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('is_active', true).order('created_at');
         if (catalogError) throw catalogError;
         setQuestCatalog((catalogRows ?? []).map(mapCatalogQuest));
@@ -49,8 +97,9 @@ export function useHomeHeroData() {
         if (pendingError) throw pendingError;
         setPendingQuests((pending ?? []).map(mapInstance));
       } else {
+        setParentDashboard(emptyParentDashboard);
         setQuestCatalog([]);
-        const today = new Date().toLocaleDateString('en-CA');
+        const today = dateKey(new Date(), household.timezone);
         const { data, error: questError } = await supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('child_id',childId).eq('occurrence_date',today).order('available_at');
         if (questError) throw questError;
         setQuests((data ?? []).map(mapInstance));
@@ -84,7 +133,7 @@ export function useHomeHeroData() {
     await refresh();
   }, [refresh]);
 
-  return { backendEnabled, session, family, quests, questCatalog, pendingQuests, rewards, stars, xp, loading, error, refresh,
+  return { backendEnabled, session, family, quests, questCatalog, pendingQuests, rewards, stars, xp, parentDashboard, loading, error, refresh,
     setDemoQuests: setQuests, setDemoStars: setStars, setDemoXp: setXp,
     completeQuest: (q: Quest) => rpc(q.kind === 'guild' ? 'submit_guild_quest' : 'complete_quest', { p_instance_id: q.instanceId }),
     startTimer: (q: Quest) => rpc('start_timer', { p_instance_id: q.instanceId }),
@@ -93,6 +142,14 @@ export function useHomeHeroData() {
     redeemReward: (rewardId: string) => rpc('redeem_reward', { p_reward_id: rewardId, p_idempotency_key: `${rewardId}-${Date.now()}` }),
   };
 }
+
+function dateKey(date: Date, timeZone?: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+function startOfWeek(date: string) { const value = new Date(`${date}T00:00:00Z`); const day = value.getUTCDay() || 7; value.setUTCDate(value.getUTCDate() - day + 1); return value.toISOString().slice(0, 10); }
+function addDays(date: string, days: number) { const value = new Date(`${date}T00:00:00Z`); value.setUTCDate(value.getUTCDate() + days); return value.toISOString().slice(0, 10); }
 
 function mapTemplate(row: any): Quest { return { id: row.id, templateId: row.id, catalogQuestId: row.catalog_quest_id ?? undefined, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
 function mapCatalogQuest(row: any): Quest { return { id: row.id, catalogQuestId: row.id, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }

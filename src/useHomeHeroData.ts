@@ -37,7 +37,6 @@ export function useHomeHeroData() {
       }
       const nextFamily: FamilyContext = { householdId: membership.household_id, householdName: household.name, inviteCode: household.invite_code, childId, role: membership.role };
       setFamily(nextFamily);
-      if (!childId) { setQuests([]); setStars(0); setXp(0); return; }
 
       if (membership.role === 'parent') {
         const { data: catalogRows, error: catalogError } = await supabase.from('quest_catalog').select('id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('is_active', true).order('created_at');
@@ -57,9 +56,13 @@ export function useHomeHeroData() {
         setQuests((data ?? []).map(mapInstance));
         setPendingQuests([]);
       }
-      const { data: balance, error: balanceError } = await supabase.from('child_balances').select('stars,xp').eq('child_id',childId).maybeSingle();
-      if (balanceError) throw balanceError;
-      setStars(balance?.stars ?? 0); setXp(balance?.xp ?? 0);
+      if (childId) {
+        const { data: balance, error: balanceError } = await supabase.from('child_balances').select('stars,xp').eq('child_id',childId).maybeSingle();
+        if (balanceError) throw balanceError;
+        setStars(balance?.stars ?? 0); setXp(balance?.xp ?? 0);
+      } else {
+        setStars(0); setXp(0);
+      }
       const { data: rewardRows, error: rewardError } = await supabase.from('rewards').select('id,title,description,icon_key,star_cost').eq('household_id', membership.household_id).eq('is_active', true).order('star_cost');
       if (rewardError) throw rewardError;
       setRewards((rewardRows ?? []).map(row => ({ id: row.id, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key?.length <= 3 ? row.icon_key : '🎁', cost: row.star_cost })));

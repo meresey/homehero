@@ -10,12 +10,19 @@ export type ParentDashboardSummary = {
   heroNames: string[];
   completedToday: number;
   totalToday: number;
-  weeklyStars: number;
-  weeklyTarget: number;
+  weeklyProgress: HeroWeeklyProgress[];
   safeZone: { title: string; heroName: string; cutoffAt: string } | null;
 };
 
-const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader', heroNames: [], completedToday: 0, totalToday: 0, weeklyStars: 0, weeklyTarget: 30, safeZone: null };
+export type HeroWeeklyProgress = {
+  childId: string;
+  heroName: string;
+  earnedStars: number;
+  availableStars: number;
+  goalStars: number | null;
+};
+
+const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader', heroNames: [], completedToday: 0, totalToday: 0, weeklyProgress: [], safeZone: null };
 
 export function useHomeHeroData() {
   const [session, setSession] = useState<Session | null>(null);
@@ -62,18 +69,32 @@ export function useHomeHeroData() {
         const weekStart = startOfWeek(today);
         const weekEnd = addDays(weekStart, 6);
         const { data: heroProfiles, error: heroesError } = childIds.length
-          ? await supabase.from('profiles').select('id,display_name').in('id', childIds)
+          ? await supabase.from('profiles').select('id,display_name,date_of_birth').in('id', childIds)
           : { data: [], error: null };
         if (heroesError) throw heroesError;
         const heroNamesById = new Map((heroProfiles ?? []).map(profile => [profile.id, profile.display_name]));
         const { data: todayRows, error: todayError } = await supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_templates(title,kind)').eq('household_id', membership.household_id).eq('occurrence_date', today);
         if (todayError) throw todayError;
-        const { data: weekRows, error: weekError } = await supabase.from('quest_instances').select('star_reward_snapshot').eq('household_id', membership.household_id).eq('status', 'rewarded').gte('occurrence_date', weekStart).lte('occurrence_date', weekEnd);
+        const { data: weekRows, error: weekError } = await supabase.from('quest_instances').select('child_id,star_reward_snapshot').eq('household_id', membership.household_id).eq('status', 'rewarded').gte('occurrence_date', weekStart).lte('occurrence_date', weekEnd);
         if (weekError) throw weekError;
+        const { data: assignmentRows, error: assignmentsError } = childIds.length
+          ? await supabase.from('quest_assignments').select('child_id,starts_on,ends_on,days_of_week,quest_templates(star_reward,is_active,minimum_age,maximum_age)').in('child_id', childIds).eq('active', true)
+          : { data: [], error: null };
+        if (assignmentsError) throw assignmentsError;
         const { data: goals, error: goalsError } = childIds.length
-          ? await supabase.from('weekly_goals').select('target_stars').eq('household_id', membership.household_id).eq('week_start', weekStart)
+          ? await supabase.from('weekly_goals').select('child_id,target_stars').eq('household_id', membership.household_id).eq('week_start', weekStart)
           : { data: [], error: null };
         if (goalsError) throw goalsError;
+        const earnedByHero = new Map<string, number>();
+        for (const row of weekRows ?? []) earnedByHero.set(row.child_id, (earnedByHero.get(row.child_id) ?? 0) + row.star_reward_snapshot);
+        const goalByHero = new Map((goals ?? []).map(goal => [goal.child_id, goal.target_stars]));
+        const weeklyProgress = (heroProfiles ?? []).map(profile => ({
+          childId: profile.id,
+          heroName: profile.display_name,
+          earnedStars: earnedByHero.get(profile.id) ?? 0,
+          availableStars: calculateWeeklyAvailability(assignmentRows ?? [], profile.id, profile.date_of_birth, weekStart),
+          goalStars: goalByHero.get(profile.id) ?? null,
+        }));
         const safeZoneRow = (todayRows ?? []).filter(row => {
           const template = row.quest_templates as unknown as { title: string; kind: QuestKind };
           return template?.kind === 'bedtime' && row.cutoff_at && ['available', 'in_progress'].includes(row.status);
@@ -84,10 +105,7 @@ export function useHomeHeroData() {
           heroNames: (heroProfiles ?? []).map(profile => profile.display_name),
           completedToday: (todayRows ?? []).filter(row => row.status === 'rewarded').length,
           totalToday: (todayRows ?? []).length,
-          weeklyStars: (weekRows ?? []).reduce((sum, row) => sum + row.star_reward_snapshot, 0),
-          weeklyTarget: childIds.length
-            ? (goals ?? []).reduce((sum, goal) => sum + goal.target_stars, 0) + Math.max(0, childIds.length - (goals ?? []).length) * 30
-            : 30,
+          weeklyProgress,
           safeZone: safeZoneRow && safeTemplate ? { title: safeTemplate.title, heroName: heroNamesById.get(safeZoneRow.child_id) ?? 'Hero', cutoffAt: safeZoneRow.cutoff_at as string } : null,
         });
         const { data: catalogRows, error: catalogError } = await supabase.from('quest_catalog').select('id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('is_active', true).order('created_at');
@@ -183,6 +201,33 @@ function dateKey(date: Date, timeZone?: string) {
 }
 function startOfWeek(date: string) { const value = new Date(`${date}T00:00:00Z`); const day = value.getUTCDay() || 7; value.setUTCDate(value.getUTCDate() - day + 1); return value.toISOString().slice(0, 10); }
 function addDays(date: string, days: number) { const value = new Date(`${date}T00:00:00Z`); value.setUTCDate(value.getUTCDate() + days); return value.toISOString().slice(0, 10); }
+
+function calculateWeeklyAvailability(rows: any[], childId: string, dateOfBirth: string | null, weekStart: string) {
+  let total = 0;
+  for (const row of rows.filter(item => item.child_id === childId)) {
+    const template = row.quest_templates as { star_reward: number; is_active: boolean; minimum_age: number | null; maximum_age: number | null } | null;
+    if (!template?.is_active) continue;
+    for (let dayOffset = 0; dayOffset < 7; dayOffset += 1) {
+      const occurrenceDate = addDays(weekStart, dayOffset);
+      const isoDay = dayOffset + 1;
+      if (!(row.days_of_week as number[]).includes(isoDay)) continue;
+      if (occurrenceDate < row.starts_on || (row.ends_on && occurrenceDate > row.ends_on)) continue;
+      const age = dateOfBirth ? ageOnDate(dateOfBirth, occurrenceDate) : null;
+      if (age !== null && template.minimum_age !== null && age < template.minimum_age) continue;
+      if (age !== null && template.maximum_age !== null && age > template.maximum_age) continue;
+      total += template.star_reward;
+    }
+  }
+  return total;
+}
+
+function ageOnDate(dateOfBirth: string, date: string) {
+  const birth = new Date(`${dateOfBirth}T00:00:00Z`);
+  const current = new Date(`${date}T00:00:00Z`);
+  let age = current.getUTCFullYear() - birth.getUTCFullYear();
+  if (current.getUTCMonth() < birth.getUTCMonth() || (current.getUTCMonth() === birth.getUTCMonth() && current.getUTCDate() < birth.getUTCDate())) age -= 1;
+  return age;
+}
 
 function mapTemplate(row: any): Quest { return { id: row.id, templateId: row.id, catalogQuestId: row.catalog_quest_id ?? undefined, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
 function mapCatalogQuest(row: any): Quest { return { id: row.id, catalogQuestId: row.id, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }

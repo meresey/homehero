@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, SafeAreaView, ScrollView, S
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppFrame, Panel, Pill, ProgressBar, QuestCard } from './components';
-import { heroBadges, questCatalog, rewards } from './data';
+import { heroBadges, questCatalog as demoQuestCatalog, rewards } from './data';
 import { colors } from './theme';
 import { Quest, QuestCompletion, Reward, StreakAward } from './types';
 import { QuestAdmin } from './QuestAdmin';
@@ -98,7 +98,7 @@ export function HomeHeroApp() {
     if (data.backendEnabled) {
       if (!data.family?.childId) return Alert.alert('Invite your hero first', `Share family code ${data.family?.inviteCode}. Once they join, you can assign quests.`);
       try {
-        await saveQuestToDatabase({ householdId: data.family.householdId, childId: data.family.childId, templateId: quest.templateId, title: quest.title, description: quest.description, iconKey: quest.emoji, cadence: quest.cadence ?? 'daily', stars: quest.stars, xp: quest.xp, timerMinutes: quest.timerMinutes, daysOfWeek: quest.cadence === 'weekly' ? [1] : [1,2,3,4,5,6,7], scheduleLabel: quest.scheduleLabel, minimumAge: quest.minimumAge, maximumAge: quest.maximumAge });
+        await saveQuestToDatabase({ householdId: data.family.householdId, childId: data.family.childId, templateId: quest.templateId, catalogQuestId: quest.catalogQuestId, title: quest.title, description: quest.description, iconKey: quest.emoji, cadence: quest.cadence ?? 'daily', stars: quest.stars, xp: quest.xp, timerMinutes: quest.timerMinutes, daysOfWeek: quest.cadence === 'weekly' ? [1] : [1,2,3,4,5,6,7], scheduleLabel: quest.scheduleLabel, minimumAge: quest.minimumAge, maximumAge: quest.maximumAge });
         await data.refresh(); Alert.alert('Quest saved', `“${quest.title}” is ready.`);
       } catch (cause) { showError(cause); }
       return;
@@ -168,7 +168,7 @@ export function HomeHeroApp() {
         <>
           {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} onOpenAttention={heroId => { householdData.setSelectedHero(heroId); setParentTab('approvals'); }} />}
           {parentTab === 'home' && data.backendEnabled && <ParentHome quests={quests} pendingQuests={data.pendingQuests} familyCode={data.family?.inviteCode} approveGuild={approveGuild} />}
-          {parentTab === 'quests' && <QuestAdmin quests={quests} heroes={data.backendEnabled ? [] : householdData.state.heroes} assignments={data.backendEnabled ? [] : householdData.state.questAssignments} catalog={data.backendEnabled ? [] : questCatalog} householdName={data.backendEnabled ? undefined : householdData.state.household.name} onSave={saveQuest} onRemove={removeQuest} />}
+          {parentTab === 'quests' && <QuestAdmin quests={quests} heroes={data.backendEnabled ? [] : householdData.state.heroes} assignments={data.backendEnabled ? [] : householdData.state.questAssignments} catalog={data.backendEnabled ? data.questCatalog : demoQuestCatalog} householdName={data.backendEnabled ? data.family?.householdName : householdData.state.household.name} onSave={saveQuest} onRemove={removeQuest} />}
           {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} />}
           {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} approve={approveGuild} />}
           {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} onSave={saveReward} onRemove={removeReward} />}

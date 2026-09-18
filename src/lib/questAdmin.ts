@@ -4,6 +4,7 @@ export type QuestAdminInput = {
   householdId: string;
   childId: string;
   templateId?: string;
+  catalogQuestId?: string;
   title: string;
   description?: string;
   iconKey?: string;
@@ -38,6 +39,12 @@ export async function saveQuest(input: QuestAdminInput) {
     p_maximum_age: input.maximumAge ?? null,
   });
   if (error) throw error;
+  if (input.catalogQuestId) {
+    const templateId = typeof data === 'string' ? data : data?.id;
+    if (!templateId) throw new Error('Quest was saved, but its template ID was not returned');
+    const { error: linkError } = await supabase.from('quest_templates').update({ catalog_quest_id: input.catalogQuestId }).eq('id', templateId);
+    if (linkError) throw linkError;
+  }
   return data;
 }
 

@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // Expo replaces direct EXPO_PUBLIC_* references when it creates the web/native bundle.
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -15,6 +16,6 @@ export const supabase = backendEnabled ? createClient(url!, key!, {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === 'web',
   },
 }) : null;

@@ -14,12 +14,11 @@ export function HeroEnrollmentModal({ visible, onClose, onEnrolled }: { visible:
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [busy, setBusy] = useState(false);
-  const [enrolled, setEnrolled] = useState(false);
   const [message, setMessage] = useState<Message>(null);
 
   useEffect(() => {
     if (!visible) return;
-    setDisplayName(''); setUsername(''); setBirthDate(''); setPin(''); setConfirmPin(''); setEnrolled(false); setMessage(null);
+    setDisplayName(''); setUsername(''); setBirthDate(''); setPin(''); setConfirmPin(''); setMessage(null);
   }, [visible]);
 
   const submit = async () => {
@@ -36,8 +35,7 @@ export function HeroEnrollmentModal({ visible, onClose, onEnrolled }: { visible:
       const { data, error } = await supabase.functions.invoke('enroll-hero', { body: { displayName: displayName.trim(), username: normalizedUsername, dateOfBirth: birthDate, pin } });
       if (error) throw new Error(await functionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
-      setEnrolled(true);
-      setMessage({ tone: 'success', text: `${displayName.trim()} is enrolled. Username: ${normalizedUsername}` });
+      onClose();
       await onEnrolled(displayName.trim(), normalizedUsername);
     } catch (cause) {
       setMessage({ tone: 'error', text: cause instanceof Error ? cause.message : 'Could not enroll this Hero. Please try again.' });
@@ -50,13 +48,12 @@ export function HeroEnrollmentModal({ visible, onClose, onEnrolled }: { visible:
         <View style={styles.header}><View><Text style={styles.title}>Enroll a Hero</Text><Text style={styles.lead}>Create the username and PIN they’ll use to sign in.</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Close" disabled={busy} onPress={onClose} style={styles.close}><Ionicons name="close" size={24} color={colors.navy} /></Pressable></View>
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           {message && <View accessibilityRole="alert" style={[styles.message, message.tone === 'success' ? styles.successMessage : styles.errorMessage]}><Text style={[styles.messageText, message.tone === 'success' ? styles.successText : styles.errorText]}>{message.text}</Text></View>}
-          <Field label="Hero name"><TextInput editable={!busy && !enrolled} value={displayName} onChangeText={setDisplayName} autoCapitalize="words" placeholder="e.g. Alex" style={styles.input} /></Field>
-          <Field label="Username"><TextInput editable={!busy && !enrolled} value={username} onChangeText={text => setUsername(text.toLowerCase().replace(/\s/g, ''))} autoCapitalize="none" autoCorrect={false} placeholder="e.g. alex_hero" style={styles.input} /><Text style={styles.hint}>3–20 characters. Start with a letter; use letters, numbers, or underscores.</Text></Field>
-          <Field label="Birth date"><TextInput editable={!busy && !enrolled} value={birthDate} onChangeText={setBirthDate} keyboardType="numbers-and-punctuation" placeholder="YYYY-MM-DD" style={styles.input} /><Text style={styles.hint}>Used to show age-appropriate quests.</Text></Field>
-          <View style={styles.pinRow}><Field label="Six-digit PIN" style={styles.pinField}><TextInput editable={!busy && !enrolled} value={pin} onChangeText={text => setPin(text.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" style={styles.input} /></Field><Field label="Confirm PIN" style={styles.pinField}><TextInput editable={!busy && !enrolled} value={confirmPin} onChangeText={text => setConfirmPin(text.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" style={styles.input} /></Field></View>
+          <Field label="Hero name"><TextInput editable={!busy} value={displayName} onChangeText={setDisplayName} autoCapitalize="words" placeholder="e.g. Alex" style={styles.input} /></Field>
+          <Field label="Username"><TextInput editable={!busy} value={username} onChangeText={text => setUsername(text.toLowerCase().replace(/\s/g, ''))} autoCapitalize="none" autoCorrect={false} placeholder="e.g. alex_hero" style={styles.input} /><Text style={styles.hint}>3–20 characters. Start with a letter; use letters, numbers, or underscores.</Text></Field>
+          <Field label="Birth date"><TextInput editable={!busy} value={birthDate} onChangeText={setBirthDate} keyboardType="numbers-and-punctuation" placeholder="YYYY-MM-DD" style={styles.input} /><Text style={styles.hint}>Used to show age-appropriate quests.</Text></Field>
+          <View style={styles.pinRow}><Field label="Six-digit PIN" style={styles.pinField}><TextInput editable={!busy} value={pin} onChangeText={text => setPin(text.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" style={styles.input} /></Field><Field label="Confirm PIN" style={styles.pinField}><TextInput editable={!busy} value={confirmPin} onChangeText={text => setConfirmPin(text.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" style={styles.input} /></Field></View>
           <View style={styles.notice}><Text style={styles.noticeIcon}>🛡️</Text><Text style={styles.noticeText}>Keep these credentials somewhere safe. The Hero does not need an email address.</Text></View>
-          {!enrolled && <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={[styles.primary, busy && styles.disabled]}>{busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>Enroll Hero</Text>}</Pressable>}
-          {enrolled && <Pressable accessibilityRole="button" onPress={onClose} style={styles.primary}><Text style={styles.primaryText}>Done</Text></Pressable>}
+          <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={[styles.primary, busy && styles.disabled]}>{busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryText}>Enroll Hero</Text>}</Pressable>
         </ScrollView>
       </View>
     </SafeAreaView>

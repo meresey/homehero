@@ -206,7 +206,7 @@ export function HomeHeroApp() {
         </>
       )}
       </AppFrame>
-      <HeroEnrollmentModal visible={enrollingHero} onClose={() => setEnrollingHero(false)} onEnrolled={async () => { await data.refresh(); }} />
+      <HeroEnrollmentModal visible={enrollingHero} onClose={() => setEnrollingHero(false)} onEnrolled={async (name, username) => { await data.refresh(); Alert.alert('Hero enrolled', `${name} can sign in with username “${username}” and the PIN you created.`); }} />
       <TimerModal quest={timerQuest} onClose={() => setTimerQuest(null)} onFinish={async () => { if (!timerQuest) return; try { if (data.backendEnabled) await data.finishTimer(timerQuest); else householdData.finishTimerQuest(timerQuest); setTimerQuest(null); Alert.alert('Timer complete!', `${timerQuest.title} was sent to your Party Leader for approval.`); } catch (cause) { showError(cause); } }} />
     </SafeAreaView>
   );

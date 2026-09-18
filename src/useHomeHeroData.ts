@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { initialQuests } from './data';
 import { backendEnabled, supabase } from './lib/supabase';
-import { HeroProfile, Quest, QuestAssignment, QuestKind, QuestStatus, Reward, RewardRedemption } from './types';
+import { BadgeDefinition, HeroProfile, Quest, QuestAssignment, QuestKind, QuestStatus, Reward, RewardRedemption } from './types';
 
 type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child'; displayName: string };
 export type ParentDashboardSummary = {
@@ -45,6 +45,7 @@ export function useHomeHeroData() {
   const [rewardCatalog, setRewardCatalog] = useState<Reward[]>([]);
   const [pendingRewards, setPendingRewards] = useState<RewardRedemption[]>([]);
   const [pendingRewardIds, setPendingRewardIds] = useState<string[]>([]);
+  const [earnedBadges, setEarnedBadges] = useState<BadgeDefinition[]>([]);
   const [stars, setStars] = useState(backendEnabled ? 0 : 19);
   const [xp, setXp] = useState(backendEnabled ? 0 : 324);
   const [parentDashboard, setParentDashboard] = useState<ParentDashboardSummary>(emptyParentDashboard);
@@ -55,18 +56,19 @@ export function useHomeHeroData() {
     if (!supabase) return;
     const current = activeSession === undefined ? (await supabase.auth.getSession()).data.session : activeSession;
     setSession(current);
-    if (!current) { setFamily(null); setQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
+    if (!current) { setFamily(null); setQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
     setLoading(true); setError(null);
     try {
       const { data: membership, error: membershipError } = await supabase.from('household_members').select('household_id, role, households(name, invite_code, timezone)').eq('user_id', current.user.id).maybeSingle();
       if (membershipError) throw membershipError;
-      if (!membership) { setFamily(null); setQuests([]); setHeroes([]); setQuestAssignments([]); setParentDashboard(emptyParentDashboard); return; }
+      if (!membership) { setFamily(null); setQuests([]); setHeroes([]); setQuestAssignments([]); setEarnedBadges([]); setParentDashboard(emptyParentDashboard); return; }
       const household = membership.households as unknown as { name: string; invite_code: string; timezone: string };
       const { data: ownProfile, error: profileError } = await supabase.from('profiles').select('display_name').eq('id', current.user.id).single();
       if (profileError) throw profileError;
       let childId: string | null = current.user.id;
       let childIds: string[] = [];
       if (membership.role === 'parent') {
+        setEarnedBadges([]);
         const { data: links, error: linkError } = await supabase.from('parent_child_links').select('child_id').eq('household_id', membership.household_id).eq('parent_id', current.user.id);
         if (linkError) throw linkError;
         childIds = (links ?? []).map(link => link.child_id);
@@ -174,6 +176,9 @@ export function useHomeHeroData() {
         if (questError) throw questError;
         setQuests((data ?? []).map(mapInstance));
         setPendingQuests([]);
+        const { data: badgeRows, error: badgeError } = await supabase.from('hero_badges').select('earned_at,badge_definitions(key,name,description,icon_key,sort_order)').eq('child_id', current.user.id).order('earned_at');
+        if (badgeError) throw badgeError;
+        setEarnedBadges((badgeRows ?? []).map(mapEarnedBadge).filter((badge): badge is BadgeDefinition => badge !== null));
       }
       if (childId) {
         const { data: balance, error: balanceError } = await supabase.from('child_balances').select('stars,xp').eq('child_id',childId).maybeSingle();
@@ -228,7 +233,7 @@ export function useHomeHeroData() {
     await refresh();
   }, [refresh]);
 
-  return { backendEnabled, session, family, quests, questCatalog, heroes, questAssignments, pendingQuests, rewards, rewardCatalog, pendingRewards, pendingRewardIds, stars, xp, parentDashboard, loading, error, refresh,
+  return { backendEnabled, session, family, quests, questCatalog, heroes, questAssignments, pendingQuests, rewards, rewardCatalog, pendingRewards, pendingRewardIds, earnedBadges, stars, xp, parentDashboard, loading, error, refresh,
     setDemoQuests: setQuests, setDemoStars: setStars, setDemoXp: setXp,
     completeQuest: (q: Quest) => rpc(q.kind === 'guild' ? 'submit_guild_quest' : 'complete_quest', { p_instance_id: q.instanceId }),
     startTimer: (q: Quest) => rpc('start_timer', { p_instance_id: q.instanceId }),
@@ -280,6 +285,7 @@ function mapInstance(row: any): Quest { const t = row.quest_templates; return { 
 function mapReward(row: any): Reward { return { id: row.id, rewardId: row.id, catalogRewardId: row.catalog_reward_id ?? undefined, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }
 function mapCatalogReward(row: any): Reward { return { id: row.id, catalogRewardId: row.id, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }
 function mapRedemption(row: any, heroName: string, availableStars: number): RewardRedemption { const reward = row.rewards as { title: string; description?: string; icon_key?: string }; return { id: row.id, rewardId: row.reward_id, childId: row.child_id, heroName, title: reward.title, subtitle: reward.description ?? 'Parent-approved reward', emoji: reward.icon_key || '🎁', cost: row.star_cost_snapshot, availableStars, requestedAt: row.requested_at }; }
+function mapEarnedBadge(row: any): BadgeDefinition | null { const badge = Array.isArray(row.badge_definitions) ? row.badge_definitions[0] : row.badge_definitions; return badge ? { id: badge.key, name: badge.name, description: badge.description, emoji: badge.icon_key } : null; }
 
 function errorMessage(cause: unknown) {
   if (cause instanceof Error) return cause.message;

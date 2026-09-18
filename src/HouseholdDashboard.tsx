@@ -11,7 +11,6 @@ type AttentionType = 'guild' | 'reward';
 export function HouseholdDashboard({ household, heroes, levels, guildApprovals, rewardRequests, onViewHero, onOpenAttention }: { household: Household; heroes: HeroSummary[]; levels: HeroLevel[]; guildApprovals: GuildApproval[]; rewardRequests: RewardRequest[]; onViewHero: (heroId: string) => void; onOpenAttention: (heroId: string, type: AttentionType) => void }) {
   const completed = heroes.reduce((sum, hero) => sum + hero.completedToday, 0);
   const total = heroes.reduce((sum, hero) => sum + hero.totalToday, 0);
-  const pendingApprovals = guildApprovals.filter(item => item.status === 'pending').length + rewardRequests.filter(item => item.status === 'pending').length;
   const weeklyStars = heroes.reduce((sum, hero) => sum + hero.stars, 0);
   const attention = [
     ...guildApprovals.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'guild' as const, icon: item.kind === 'timer' ? '⏱️' : item.kind === 'guild' ? '🤝' : item.kind === 'bedtime' ? '🌙' : '⭐', text: item.kind === 'timer' ? 'finished a timed quest' : item.kind === 'guild' ? 'submitted a Guild Quest' : item.kind === 'bedtime' ? 'submitted a bedtime quest' : 'submitted a daily quest' })),
@@ -23,7 +22,6 @@ export function HouseholdDashboard({ household, heroes, levels, guildApprovals, 
     <LinearGradient colors={[colors.navy, '#284A7D']} style={styles.householdHero}><View><Text style={styles.eyebrow}>PARTY LEADER DASHBOARD</Text><Text style={styles.heading}>{household.name}</Text><Text style={styles.heroLead}>{heroes.length} active Heroes · Household overview</Text></View><Text style={styles.houseEmoji}>🏠</Text></LinearGradient>
     <View style={styles.metrics}>
       <Metric value={`${completed}/${total}`} label="Quests today" />
-      <Metric value={String(pendingApprovals)} label="Needs review" tone="purple" />
       <Metric value={String(heroes.length)} label="Active Heroes" />
       <Metric value={String(weeklyStars)} label="Total stars" tone="gold" />
     </View>

@@ -30,7 +30,8 @@ export type Quest = {
 
 export type QuestCatalogItem = Quest & { catalogQuestId: string };
 
-export type Reward = { id: string; title: string; emoji: string; cost: number; subtitle: string };
+export type Reward = { id: string; rewardId?: string; catalogRewardId?: string; title: string; emoji: string; cost: number; subtitle: string };
+export type RewardRedemption = { id: string; rewardId: string; childId: string; heroName: string; title: string; subtitle: string; emoji: string; cost: number; availableStars: number; requestedAt: string };
 
 export type Household = {
   id: string;

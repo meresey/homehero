@@ -23,6 +23,18 @@ export const rewards: Reward[] = [
   { id: 'book', title: 'New book or game', emoji: '🎁', cost: 60, subtitle: 'Pick something special' },
 ];
 
+export const rewardCatalog: Reward[] = [
+  { id: 'catalog-screen-30', catalogRewardId: 'catalog-screen-30', title: 'Extra screen time', emoji: '🎮', cost: 20, subtitle: '30 bonus minutes after responsibilities are done' },
+  { id: 'catalog-dessert', catalogRewardId: 'catalog-dessert', title: 'Choose dessert', emoji: '🍦', cost: 25, subtitle: 'Pick the family treat' },
+  { id: 'catalog-movie', catalogRewardId: 'catalog-movie', title: 'Pick family movie', emoji: '🎬', cost: 30, subtitle: 'Choose the next family movie night' },
+  { id: 'catalog-bedtime', catalogRewardId: 'catalog-bedtime', title: 'Stay up 30 minutes later', emoji: '🌙', cost: 35, subtitle: 'A special weekend bedtime extension' },
+  { id: 'catalog-activity', catalogRewardId: 'catalog-activity', title: 'Choose a family activity', emoji: '⚽', cost: 40, subtitle: 'You pick the next family adventure' },
+  { id: 'catalog-friend', catalogRewardId: 'catalog-friend', title: 'Invite a friend over', emoji: '🧑‍🤝‍🧑', cost: 50, subtitle: 'Plan a parent-approved visit' },
+  { id: 'catalog-book', catalogRewardId: 'catalog-book', title: 'New book or small game', emoji: '📚', cost: 60, subtitle: 'Choose something special within the family budget' },
+  { id: 'catalog-weekend', catalogRewardId: 'catalog-weekend', title: 'Weekend privilege', emoji: '🎟️', cost: 75, subtitle: 'Choose an agreed special weekend privilege' },
+  { id: 'catalog-outing', catalogRewardId: 'catalog-outing', title: 'Special outing', emoji: '🗺️', cost: 100, subtitle: 'Plan one-on-one time with a parent' },
+];
+
 export const heroBadges = [
   { id: 'on-fire', emoji: '🔥', name: 'On Fire', earned: true },
   { id: 'team-player', emoji: '🤝', name: 'Team Player', earned: true },

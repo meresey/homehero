@@ -3,15 +3,16 @@ import { ActivityIndicator, Alert, Modal, Pressable, SafeAreaView, ScrollView, S
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppFrame, Panel, Pill, ProgressBar, QuestCard } from './components';
-import { heroBadges, questCatalog as demoQuestCatalog, rewards } from './data';
+import { heroBadges, questCatalog as demoQuestCatalog, rewardCatalog as demoRewardCatalog, rewards } from './data';
 import { colors } from './theme';
-import { Quest, QuestCompletion, Reward, StreakAward } from './types';
+import { Quest, QuestCompletion, Reward, RewardRedemption, StreakAward } from './types';
 import { QuestAdmin } from './QuestAdmin';
 import { RewardAdmin } from './RewardAdmin';
 import { AuthScreen, OnboardingScreen } from './AuthFlow';
 import { useHomeHeroData } from './useHomeHeroData';
 import type { ParentDashboardSummary } from './useHomeHeroData';
 import { archiveQuest, saveQuest as saveQuestToDatabase } from './lib/questAdmin';
+import { archiveReward, saveReward as saveRewardToDatabase } from './lib/rewardAdmin';
 import { getHeroLevelProgress, HeroLevel, heroLevels } from './levels';
 import { LevelAdmin } from './LevelAdmin';
 import { useHouseholdState } from './useHouseholdState';
@@ -85,6 +86,15 @@ export function HomeHeroApp() {
     Alert.alert('Quest approved', `${quest.stars} stars and ${quest.xp} XP awarded.`);
   };
 
+  const reviewReward = async (request: RewardRedemption, approve: boolean) => {
+    try {
+      await data.reviewReward(request.id, approve);
+      Alert.alert(approve ? 'Reward approved' : 'Reward declined', approve
+        ? `${request.cost} stars were deducted from ${request.heroName}’s balance.`
+        : `${request.heroName} was not charged for this request.`);
+    } catch (cause) { showError(cause); }
+  };
+
   const redeem = async (cost: number, title: string, rewardId?: string) => {
     if (stars < cost) return Alert.alert('Keep questing!', `You need ${cost - stars} more stars.`);
     if (data.backendEnabled && rewardId) { try { await data.redeemReward(rewardId); Alert.alert('Request sent!', `A Party Leader will approve “${title}”.`); } catch (cause) { showError(cause); } return; }
@@ -115,14 +125,27 @@ export function HomeHeroApp() {
     householdData.removeHouseholdQuest(id);
   };
 
-  const saveReward = (reward: Reward) => {
+  const saveReward = async (reward: Reward) => {
+    if (data.backendEnabled) {
+      if (!data.family) return false;
+      try {
+        await saveRewardToDatabase({ householdId: data.family.householdId, rewardId: reward.rewardId, catalogRewardId: reward.catalogRewardId, title: reward.title, description: reward.subtitle, iconKey: reward.emoji, starCost: reward.cost });
+        await data.refresh();
+        Alert.alert('Reward saved', `“${reward.title}” is now available in the Star Store.`);
+        return true;
+      } catch (cause) { showError(cause); return false; }
+    }
     setLocalRewards(current => current.some(item => item.id === reward.id)
       ? current.map(item => item.id === reward.id ? reward : item)
       : [...current, reward].sort((a, b) => a.cost - b.cost));
     Alert.alert('Reward saved', `“${reward.title}” is now available in the Star Store.`);
+    return true;
   };
 
-  const removeReward = (id: string) => setLocalRewards(current => current.filter(item => item.id !== id));
+  const removeReward = async (id: string) => {
+    if (data.backendEnabled) { try { await archiveReward(id); await data.refresh(); } catch (cause) { showError(cause); } return; }
+    setLocalRewards(current => current.filter(item => item.id !== id));
+  };
 
   const signOut = async () => {
     if (!supabase || signingOut) return;
@@ -159,7 +182,7 @@ export function HomeHeroApp() {
           <View style={styles.screen}>
             {childTab === 'today' && <ChildToday quests={quests} xp={xp} levels={levelDefinitions} onQuest={complete} />}
             {childTab === 'week' && <WeeklyBoard history={data.backendEnabled ? [] : householdData.state.completionHistory.filter(item => item.heroId === householdData.selectedHero.id)} quests={quests} streakAwards={data.backendEnabled ? [] : householdData.state.streakAwards.filter(item => item.heroId === householdData.selectedHero.id)} />}
-            {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : localRewards} stars={stars} pendingRewardIds={data.backendEnabled ? [] : householdData.state.rewardRequests.filter(item => item.heroId === householdData.selectedHero.id && item.status === 'pending').map(item => item.rewardId)} onRedeem={redeem} />}
+            {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : localRewards} stars={stars} pendingRewardIds={data.backendEnabled ? data.pendingRewardIds : householdData.state.rewardRequests.filter(item => item.heroId === householdData.selectedHero.id && item.status === 'pending').map(item => item.rewardId)} onRedeem={redeem} />}
             {childTab === 'hero' && <HeroProfile name={heroName} stars={stars} xp={xp} levels={levelDefinitions} badges={earnedBadges} />}
           </View>
           <BottomNav value={childTab} onChange={value => setChildTab(value as ChildTab)} items={[
@@ -169,11 +192,11 @@ export function HomeHeroApp() {
       ) : (
         <>
           {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} onOpenAttention={heroId => { householdData.setSelectedHero(heroId); setParentTab('approvals'); }} />}
-          {parentTab === 'home' && data.backendEnabled && <ParentHome dashboard={data.parentDashboard} pendingQuests={data.pendingQuests} familyCode={data.family?.inviteCode} approveGuild={approveGuild} />}
+          {parentTab === 'home' && data.backendEnabled && <ParentHome dashboard={data.parentDashboard} pendingQuestCount={data.pendingQuests.length} pendingRewardCount={data.pendingRewards.length} familyCode={data.family?.inviteCode} onOpenReview={() => setParentTab('approvals')} />}
           {parentTab === 'quests' && <QuestAdmin quests={quests} heroes={data.backendEnabled ? [] : householdData.state.heroes} assignments={data.backendEnabled ? [] : householdData.state.questAssignments} catalog={data.backendEnabled ? data.questCatalog : demoQuestCatalog} householdName={data.backendEnabled ? data.family?.householdName : householdData.state.household.name} onSave={saveQuest} onRemove={removeQuest} />}
           {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} />}
-          {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} approve={approveGuild} />}
-          {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} onSave={saveReward} onRemove={removeReward} />}
+          {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} rewards={data.pendingRewards} approveQuest={approveGuild} reviewReward={reviewReward} />}
+          {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} catalog={data.backendEnabled ? data.rewardCatalog : demoRewardCatalog} onSave={saveReward} onRemove={removeReward} />}
           {parentTab === 'levels' && <LevelAdmin levels={levelDefinitions} onSave={updated => setLevelDefinitions(current => current.map(level => level.level === updated.level ? updated : level))} />}
           <BottomNav value={parentTab} onChange={value => setParentTab(value as ParentTab)} items={[
             ['home', 'home-outline', 'Home'], ['quests', 'list-outline', 'Quests'], ['approvals', 'checkmark-done-outline', 'Review'], ['rewards', 'gift-outline', 'Rewards'], ['levels', 'trophy-outline', 'Levels'],
@@ -258,14 +281,14 @@ function HeroProfile({ name, stars, xp, levels, badges }: { name: string; stars:
   </ScrollView>;
 }
 
-function ParentHome({ dashboard, pendingQuests, familyCode, approveGuild }: { dashboard: ParentDashboardSummary; pendingQuests: Quest[]; familyCode?: string; approveGuild: (q?: Quest) => void }) {
-  const pending = pendingQuests.length;
+function ParentHome({ dashboard, pendingQuestCount, pendingRewardCount, familyCode, onOpenReview }: { dashboard: ParentDashboardSummary; pendingQuestCount: number; pendingRewardCount: number; familyCode?: string; onOpenReview: () => void }) {
+  const pending = pendingQuestCount + pendingRewardCount;
   const progress = Math.round(dashboard.weeklyStars / dashboard.weeklyTarget * 100);
   const summary = dashboard.heroNames.length === 0 ? 'Invite your first Hero to begin.' : dashboard.heroNames.length === 1 ? `${dashboard.heroNames[0]}’s quest summary` : `${dashboard.heroNames.length} Heroes in your party`;
   return <ScrollView contentContainerStyle={styles.content}><Text style={styles.pageTitle}>{greeting()}, {dashboard.leaderName}</Text><Text style={styles.pageLead}>{summary}</Text>
     {familyCode && <Panel><Text style={styles.cardTitle}>Family join code</Text><Text style={styles.inviteCode}>{familyCode}</Text><Text style={styles.muted}>Share this code with your child so their Hero account joins your party.</Text></Panel>}
     <View style={styles.metricGrid}><Panel style={styles.metric}><Text style={styles.metricValue}>{dashboard.completedToday}/{dashboard.totalToday}</Text><Text style={styles.muted}>Quests today</Text></Panel><Panel style={styles.metric}><Text style={[styles.metricValue, { color: colors.purple }]}>{pending}</Text><Text style={styles.muted}>Needs review</Text></Panel></View>
-    {pending > 0 && <Pressable onPress={() => approveGuild()}><LinearGradient colors={[colors.purple, '#9274BD']} style={styles.approvalBanner}><Text style={styles.approvalTitle}>🤝 Guild quest ready</Text><Text style={styles.approvalText}>A Hero submitted a co-op quest.</Text><Text style={styles.approvalAction}>Approve now →</Text></LinearGradient></Pressable>}
+    {pending > 0 && <Pressable onPress={onOpenReview}><LinearGradient colors={[colors.purple, '#9274BD']} style={styles.approvalBanner}><Text style={styles.approvalTitle}>🔔 {pending} item{pending === 1 ? '' : 's'} need review</Text><Text style={styles.approvalText}>{pendingQuestCount > 0 && pendingRewardCount > 0 ? 'Guild quests and reward requests are waiting.' : pendingRewardCount > 0 ? 'A Hero requested a reward.' : 'A Hero submitted a co-op quest.'}</Text><Text style={styles.approvalAction}>Open review inbox →</Text></LinearGradient></Pressable>}
     <Panel><View style={styles.sectionHeader}><Text style={styles.cardTitle}>Weekly progress</Text><Pill>{dashboard.heroNames.length ? dashboard.weeklyStars >= dashboard.weeklyTarget ? 'GOAL MET' : 'IN PROGRESS' : 'NO HEROES'}</Pill></View><View style={styles.dashboardProgress}><ProgressBar value={dashboard.weeklyStars} max={dashboard.weeklyTarget} /></View><Text style={styles.encourage}>{dashboard.weeklyStars} of {dashboard.weeklyTarget} stars · {progress}%</Text></Panel>
     {dashboard.safeZone && <Panel><Text style={styles.cardTitle}>Tonight’s Safe Zone</Text><View style={styles.statRow}><Text style={styles.statEmoji}>🌙</Text><View style={{ flex: 1 }}><Text style={styles.statName}>{dashboard.safeZone.title}</Text><Text style={styles.muted}>{dashboard.safeZone.heroName} · Closes at {formatCutoff(dashboard.safeZone.cutoffAt)}</Text></View><Pill tone="gold">{formatTimeRemaining(dashboard.safeZone.cutoffAt)}</Pill></View></Panel>}
   </ScrollView>;
@@ -275,10 +298,16 @@ function greeting() { const hour = new Date().getHours(); return hour < 12 ? 'Go
 function formatCutoff(value: string) { return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
 function formatTimeRemaining(value: string) { const minutes = Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 60_000)); return minutes ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : 'Due now'; }
 
-function Approvals({ quests, approve }: { quests: Quest[]; approve: (q: Quest) => void }) {
+function Approvals({ quests, rewards: rewardRequests, approveQuest, reviewReward }: { quests: Quest[]; rewards: RewardRedemption[]; approveQuest: (q: Quest) => void; reviewReward: (request: RewardRedemption, approve: boolean) => void }) {
   const pending = quests.filter(q => q.status === 'pending_approval');
   return <ScrollView contentContainerStyle={styles.content}><Text style={styles.pageTitle}>Approval inbox</Text><Text style={styles.pageLead}>Celebrate effort, then award points.</Text>
-    {pending.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>✅</Text><Text style={styles.cardTitle}>All caught up!</Text><Text style={styles.muted}>New Guild Quests will appear here.</Text></Panel> : pending.map(q => <Panel key={q.id}><Text style={styles.eyebrowDark}>READY FOR REVIEW</Text><Text style={styles.approvalQuest}>{q.emoji} {q.title}</Text><Text style={styles.muted}>{q.description}</Text><View style={styles.reviewActions}><Pressable style={styles.secondaryButton}><Text style={styles.secondaryText}>Try again</Text></Pressable><Pressable style={styles.primaryButton} onPress={() => approve(q)}><Text style={styles.primaryText}>Approve · +{q.stars} ⭐</Text></Pressable></View></Panel>)}
+    {pending.length === 0 && rewardRequests.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>✅</Text><Text style={styles.cardTitle}>All caught up!</Text><Text style={styles.muted}>New Guild Quests and reward requests will appear here.</Text></Panel> : <>
+      {rewardRequests.map(request => {
+        const enoughStars = request.availableStars >= request.cost;
+        return <Panel key={request.id}><Text style={styles.eyebrowDark}>REWARD REQUEST</Text><Text style={styles.approvalQuest}>{request.emoji} {request.heroName} wants {request.title}</Text><Text style={styles.muted}>{request.subtitle}</Text><Text style={styles.rewardBalance}>{request.cost} stars · {request.availableStars} available</Text>{!enoughStars && <View style={styles.balanceError}><Text style={styles.balanceErrorTitle}>Not enough stars</Text><Text style={styles.balanceErrorText}>{request.heroName} needs {request.cost - request.availableStars} more stars before this reward can be approved.</Text></View>}<View style={styles.reviewActions}><Pressable style={styles.secondaryButton} onPress={() => reviewReward(request, false)}><Text style={styles.secondaryText}>Decline</Text></Pressable><Pressable accessibilityState={{ disabled: !enoughStars }} disabled={!enoughStars} style={[styles.primaryButton, !enoughStars && styles.primaryButtonDisabled]} onPress={() => reviewReward(request, true)}><Text style={[styles.primaryText, !enoughStars && styles.primaryTextDisabled]}>Approve · −{request.cost} ⭐</Text></Pressable></View></Panel>;
+      })}
+      {pending.map(q => <Panel key={q.id}><Text style={styles.eyebrowDark}>QUEST READY FOR REVIEW</Text><Text style={styles.approvalQuest}>{q.emoji} {q.title}</Text><Text style={styles.muted}>{q.description}</Text><View style={styles.reviewActions}><Pressable style={styles.secondaryButton}><Text style={styles.secondaryText}>Try again</Text></Pressable><Pressable style={styles.primaryButton} onPress={() => approveQuest(q)}><Text style={styles.primaryText}>Approve · +{q.stars} ⭐</Text></Pressable></View></Panel>)}
+    </>}
   </ScrollView>;
 }
 
@@ -331,7 +360,7 @@ const styles = StyleSheet.create({
   bigStar: { fontSize: 36 }, encourage: { color: colors.green, fontWeight: '700', fontSize: 12, marginTop: 10 }, weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 }, day: { alignItems: 'center', gap: 7 }, dayLabel: { fontSize: 10, color: colors.muted, fontWeight: '800' }, dayDot: { width: 33, height: 33, borderRadius: 17, borderWidth: 2, borderColor: '#D9D4C8', justifyContent: 'center', alignItems: 'center' }, dayDone: { backgroundColor: colors.green, borderColor: colors.green }, dayToday: { borderColor: colors.gold }, dayValue: { color: colors.white, fontWeight: '900' }, dayStars: { color: '#836000', fontWeight: '800', fontSize: 10 },
   dashboardProgress: { marginTop: 12 }, statRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#EFECE5' }, statEmoji: { fontSize: 25 }, statName: { flex: 1, fontWeight: '800', color: colors.ink }, storeHeading: { flex: 1, gap: 3 }, storeLead: { color: colors.muted, fontSize: 13, lineHeight: 19 }, starBalance: { backgroundColor: '#FFF0B7', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99 }, starBalanceText: { color: '#755400', fontWeight: '900', fontSize: 17 }, storeCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border }, storeEmoji: { fontSize: 34 }, starsNeeded: { color: colors.coral, fontSize: 10, fontWeight: '800', marginTop: 4 }, pendingReward: { color: colors.purple, fontSize: 10, fontWeight: '900', marginTop: 4 }, buyButton: { backgroundColor: colors.navy, borderRadius: 99, paddingHorizontal: 13, paddingVertical: 10 }, buyButtonDisabled: { backgroundColor: '#E1DED5' }, buyButtonText: { color: colors.white, fontWeight: '900', fontSize: 12 }, buyButtonTextDisabled: { color: colors.muted }, footnote: { color: colors.muted, fontSize: 11, textAlign: 'center', lineHeight: 17, paddingHorizontal: 20 },
   profile: { alignItems: 'center', borderRadius: 25, padding: 25 }, profileShield: { width: 92, height: 105, backgroundColor: colors.navy, borderRadius: 26, borderWidth: 5, borderColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginBottom: 15 }, profileLevel: { color: colors.white, fontSize: 52, fontWeight: '900' }, profileHeading: { alignItems: 'center', gap: 5 }, profileTitle: { color: colors.navy, fontSize: 27, lineHeight: 34, fontWeight: '900', textAlign: 'center' }, profileLead: { color: colors.muted, fontSize: 13, lineHeight: 19, textAlign: 'center' }, qualitiesLabel: { color: colors.green, fontSize: 9, fontWeight: '900', letterSpacing: 0.8, marginTop: 3 }, metricGrid: { flexDirection: 'row', gap: 12 }, metric: { flex: 1, alignItems: 'center' }, metricValue: { color: colors.green, fontSize: 27, fontWeight: '900' }, badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 15 }, badge: { width: '47%', backgroundColor: colors.cream, borderRadius: 15, padding: 13, alignItems: 'center' }, badgeIcon: { fontSize: 28 }, badgeName: { color: colors.ink, fontSize: 11, fontWeight: '800', marginTop: 5 },
-  approvalBanner: { borderRadius: 22, padding: 19 }, approvalTitle: { color: colors.white, fontWeight: '900', fontSize: 17 }, approvalText: { color: '#EFE9F8', marginTop: 5 }, approvalAction: { color: colors.white, fontWeight: '900', marginTop: 14 }, addButton: { width: 43, height: 43, borderRadius: 15, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' }, managerCard: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14 }, empty: { alignItems: 'center', paddingVertical: 45 }, emptyIcon: { fontSize: 44, marginBottom: 12 }, approvalQuest: { color: colors.ink, fontSize: 20, fontWeight: '900', marginVertical: 12 }, reviewActions: { flexDirection: 'row', gap: 10, marginTop: 20 }, secondaryButton: { flex: 1, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center' }, secondaryText: { color: colors.navy, fontWeight: '800' }, primaryButton: { flex: 1, borderRadius: 14, padding: 14, backgroundColor: colors.green, alignItems: 'center' }, primaryText: { color: colors.white, fontWeight: '900' },
+  approvalBanner: { borderRadius: 22, padding: 19 }, approvalTitle: { color: colors.white, fontWeight: '900', fontSize: 17 }, approvalText: { color: '#EFE9F8', marginTop: 5 }, approvalAction: { color: colors.white, fontWeight: '900', marginTop: 14 }, addButton: { width: 43, height: 43, borderRadius: 15, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' }, managerCard: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14 }, empty: { alignItems: 'center', paddingVertical: 45 }, emptyIcon: { fontSize: 44, marginBottom: 12 }, approvalQuest: { color: colors.ink, fontSize: 20, fontWeight: '900', marginVertical: 12 }, rewardBalance: { color: colors.green, fontWeight: '900', fontSize: 12, marginTop: 10 }, balanceError: { borderRadius: 13, padding: 12, marginTop: 12, backgroundColor: '#FDE8E5', borderWidth: 1, borderColor: '#F2B8B1' }, balanceErrorTitle: { color: colors.coral, fontWeight: '900', fontSize: 12 }, balanceErrorText: { color: '#8B3D34', fontSize: 11, lineHeight: 16, marginTop: 3 }, reviewActions: { flexDirection: 'row', gap: 10, marginTop: 20 }, secondaryButton: { flex: 1, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center' }, secondaryText: { color: colors.navy, fontWeight: '800' }, primaryButton: { flex: 1, borderRadius: 14, padding: 14, backgroundColor: colors.green, alignItems: 'center' }, primaryButtonDisabled: { backgroundColor: '#E1DED5' }, primaryText: { color: colors.white, fontWeight: '900' }, primaryTextDisabled: { color: colors.muted },
   nav: { position: 'absolute', left: 12, right: 12, bottom: 8, backgroundColor: colors.white, borderRadius: 22, flexDirection: 'row', paddingVertical: 10, borderWidth: 1, borderColor: colors.border }, navItem: { flex: 1, alignItems: 'center', gap: 3 }, navText: { color: colors.muted, fontSize: 10, fontWeight: '700' }, navActive: { color: colors.green, fontWeight: '900' },
   timerSafe: { flex: 1, backgroundColor: colors.cream }, close: { alignSelf: 'flex-end', padding: 20 }, timerBody: { flex: 1, padding: 25, alignItems: 'center', justifyContent: 'center', gap: 16 }, timerEmoji: { fontSize: 50 }, timerTitle: { color: colors.navy, fontSize: 27, fontWeight: '900' }, timerRing: { borderRadius: 999, borderWidth: 15, borderColor: colors.green, borderTopColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginVertical: 12 }, timerTime: { color: colors.navy, fontSize: 45, fontWeight: '900' }, timerHint: { color: colors.muted, textAlign: 'center', maxWidth: 280 },
 });

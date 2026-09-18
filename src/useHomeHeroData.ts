@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { initialQuests } from './data';
 import { backendEnabled, supabase } from './lib/supabase';
-import { Quest, QuestKind, QuestStatus, Reward, RewardRedemption } from './types';
+import { HeroProfile, Quest, QuestAssignment, QuestKind, QuestStatus, Reward, RewardRedemption } from './types';
 
 type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child'; displayName: string };
 export type ParentDashboardSummary = {
@@ -38,6 +38,8 @@ export function useHomeHeroData() {
   const [family, setFamily] = useState<FamilyContext | null>(null);
   const [quests, setQuests] = useState<Quest[]>(backendEnabled ? [] : initialQuests);
   const [questCatalog, setQuestCatalog] = useState<Quest[]>([]);
+  const [heroes, setHeroes] = useState<HeroProfile[]>([]);
+  const [questAssignments, setQuestAssignments] = useState<QuestAssignment[]>([]);
   const [pendingQuests, setPendingQuests] = useState<Quest[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [rewardCatalog, setRewardCatalog] = useState<Reward[]>([]);
@@ -53,12 +55,12 @@ export function useHomeHeroData() {
     if (!supabase) return;
     const current = activeSession === undefined ? (await supabase.auth.getSession()).data.session : activeSession;
     setSession(current);
-    if (!current) { setFamily(null); setQuests([]); setQuestCatalog([]); setPendingQuests([]); setRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
+    if (!current) { setFamily(null); setQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
     setLoading(true); setError(null);
     try {
       const { data: membership, error: membershipError } = await supabase.from('household_members').select('household_id, role, households(name, invite_code, timezone)').eq('user_id', current.user.id).maybeSingle();
       if (membershipError) throw membershipError;
-      if (!membership) { setFamily(null); setQuests([]); setParentDashboard(emptyParentDashboard); return; }
+      if (!membership) { setFamily(null); setQuests([]); setHeroes([]); setQuestAssignments([]); setParentDashboard(emptyParentDashboard); return; }
       const household = membership.households as unknown as { name: string; invite_code: string; timezone: string };
       const { data: ownProfile, error: profileError } = await supabase.from('profiles').select('display_name').eq('id', current.user.id).single();
       if (profileError) throw profileError;
@@ -81,6 +83,15 @@ export function useHomeHeroData() {
           ? await supabase.from('profiles').select('id,display_name,date_of_birth').in('id', childIds)
           : { data: [], error: null };
         if (heroesError) throw heroesError;
+        setHeroes((heroProfiles ?? []).map(profile => ({
+          id: profile.id,
+          householdId: membership.household_id,
+          displayName: profile.display_name,
+          avatarEmoji: '🦸',
+          dateOfBirth: profile.date_of_birth ?? '',
+          status: 'active',
+          joinedAt: '',
+        })));
         const heroNamesById = new Map((heroProfiles ?? []).map(profile => [profile.id, profile.display_name]));
         const { data: managedRows, error: managedError } = childIds.length
           ? await supabase.from('managed_hero_accounts').select('user_id,username').eq('household_id', membership.household_id).in('user_id', childIds).order('created_at')
@@ -91,9 +102,17 @@ export function useHomeHeroData() {
         const { data: weekRows, error: weekError } = await supabase.from('quest_instances').select('child_id,star_reward_snapshot').eq('household_id', membership.household_id).eq('status', 'rewarded').gte('occurrence_date', weekStart).lte('occurrence_date', weekEnd);
         if (weekError) throw weekError;
         const { data: assignmentRows, error: assignmentsError } = childIds.length
-          ? await supabase.from('quest_assignments').select('child_id,starts_on,ends_on,days_of_week,quest_templates(star_reward,is_active,minimum_age,maximum_age)').in('child_id', childIds).eq('active', true)
+          ? await supabase.from('quest_assignments').select('id,quest_template_id,child_id,created_at,starts_on,ends_on,days_of_week,quest_templates(star_reward,is_active,minimum_age,maximum_age)').in('child_id', childIds).eq('active', true)
           : { data: [], error: null };
         if (assignmentsError) throw assignmentsError;
+        setQuestAssignments((assignmentRows ?? []).map(assignment => ({
+          id: assignment.id,
+          householdId: membership.household_id,
+          questId: assignment.quest_template_id,
+          heroId: assignment.child_id,
+          assignedAt: assignment.created_at,
+          active: true,
+        })));
         const { data: goals, error: goalsError } = childIds.length
           ? await supabase.from('weekly_goals').select('child_id,target_stars').eq('household_id', membership.household_id).eq('week_start', weekStart)
           : { data: [], error: null };
@@ -146,6 +165,8 @@ export function useHomeHeroData() {
         setParentDashboard(emptyParentDashboard);
         setQuestCatalog([]);
         setRewardCatalog([]);
+        setHeroes([]);
+        setQuestAssignments([]);
         const { error: syncError } = await supabase.rpc('sync_my_quest_assignments');
         if (syncError) throw syncError;
         const today = dateKey(new Date(), household.timezone);
@@ -207,7 +228,7 @@ export function useHomeHeroData() {
     await refresh();
   }, [refresh]);
 
-  return { backendEnabled, session, family, quests, questCatalog, pendingQuests, rewards, rewardCatalog, pendingRewards, pendingRewardIds, stars, xp, parentDashboard, loading, error, refresh,
+  return { backendEnabled, session, family, quests, questCatalog, heroes, questAssignments, pendingQuests, rewards, rewardCatalog, pendingRewards, pendingRewardIds, stars, xp, parentDashboard, loading, error, refresh,
     setDemoQuests: setQuests, setDemoStars: setStars, setDemoXp: setXp,
     completeQuest: (q: Quest) => rpc(q.kind === 'guild' ? 'submit_guild_quest' : 'complete_quest', { p_instance_id: q.instanceId }),
     startTimer: (q: Quest) => rpc('start_timer', { p_instance_id: q.instanceId }),

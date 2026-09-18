@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 
 export type QuestAdminInput = {
   householdId: string;
-  childId: string | null;
+  childIds: string[];
   templateId?: string;
   catalogQuestId?: string;
   title: string;
@@ -23,7 +23,7 @@ export async function saveQuest(input: QuestAdminInput) {
   if (!supabase) throw new Error('Supabase is not configured');
   const { data, error } = await supabase.rpc('upsert_quest_admin', {
     p_household_id: input.householdId,
-    p_child_id: input.childId,
+    p_child_id: null,
     p_template_id: input.templateId ?? null,
     p_title: input.title,
     p_description: input.description ?? '',
@@ -40,7 +40,18 @@ export async function saveQuest(input: QuestAdminInput) {
     p_catalog_quest_id: input.catalogQuestId ?? null,
   });
   if (error) throw error;
-  return data;
+  const savedQuest = Array.isArray(data) ? data[0] : data;
+  if (!savedQuest?.id) throw new Error('The quest was saved but could not be assigned');
+  if (input.childIds.length > 0) {
+    const { error: assignmentError } = await supabase.rpc('set_quest_assignments', {
+      p_template_id: savedQuest.id,
+      p_child_ids: input.childIds,
+      p_days_of_week: input.daysOfWeek,
+      p_local_cutoff: input.localCutoff ?? null,
+    });
+    if (assignmentError) throw assignmentError;
+  }
+  return savedQuest;
 }
 
 export async function archiveQuest(templateId: string) {

@@ -132,6 +132,8 @@ export function useHomeHeroData() {
         setParentDashboard(emptyParentDashboard);
         setQuestCatalog([]);
         setRewardCatalog([]);
+        const { error: syncError } = await supabase.rpc('sync_my_quest_assignments');
+        if (syncError) throw syncError;
         const today = dateKey(new Date(), household.timezone);
         const { data, error: questError } = await supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('child_id',childId).eq('occurrence_date',today).order('available_at');
         if (questError) throw questError;

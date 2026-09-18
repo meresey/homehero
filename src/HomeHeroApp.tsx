@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Panel, Pill, ProgressBar, QuestCard } from './components';
+import { AppFrame, Panel, Pill, ProgressBar, QuestCard } from './components';
 import { heroBadges, questCatalog, rewards } from './data';
 import { colors } from './theme';
 import { Quest, QuestCompletion, Reward, StreakAward } from './types';
@@ -17,6 +17,7 @@ import { useHouseholdState } from './useHouseholdState';
 import { HouseholdDashboard } from './HouseholdDashboard';
 import { HouseholdReview } from './HouseholdReview';
 import { usePersistentState } from './usePersistentState';
+import { supabase } from './lib/supabase';
 
 type Role = 'child' | 'parent';
 type ChildTab = 'today' | 'week' | 'store' | 'hero';
@@ -31,6 +32,7 @@ export function HomeHeroApp() {
   const [childTab, setChildTab] = useState<ChildTab>('today');
   const [parentTab, setParentTab] = useState<ParentTab>('home');
   const [timerQuest, setTimerQuest] = useState<Quest | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const [localRewards, setLocalRewards, rewardsHydrated] = usePersistentState<Reward[]>('home-hero.rewards.v1', rewards);
   const [levelDefinitions, setLevelDefinitions, levelsHydrated] = usePersistentState<HeroLevel[]>('home-hero.levels.v1', heroLevels);
   const activeRole = data.backendEnabled && data.family ? data.family.role : role;
@@ -120,20 +122,32 @@ export function HomeHeroApp() {
 
   const removeReward = (id: string) => setLocalRewards(current => current.filter(item => item.id !== id));
 
-  if ((data.backendEnabled && data.loading) || (!data.backendEnabled && (!householdData.hydrated || !rewardsHydrated || !levelsHydrated))) return <SafeAreaView style={[styles.safe, styles.loading]}><ActivityIndicator size="large" color={colors.green} /><Text style={styles.muted}>Loading your hero party…</Text></SafeAreaView>;
+  const signOut = async () => {
+    if (!supabase || signingOut) return;
+    setSigningOut(true);
+    const { error } = await supabase.auth.signOut();
+    setSigningOut(false);
+    if (error) showError(error);
+  };
+
+  if ((data.backendEnabled && data.loading) || (!data.backendEnabled && (!householdData.hydrated || !rewardsHydrated || !levelsHydrated))) return <SafeAreaView style={styles.safe}><AppFrame><View style={styles.loading}><ActivityIndicator size="large" color={colors.green} /><Text style={styles.muted}>Loading your hero party…</Text></View></AppFrame></SafeAreaView>;
   if (data.backendEnabled && !data.session) return <AuthScreen />;
   if (data.backendEnabled && !data.family) return <OnboardingScreen refresh={data.refresh} />;
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AppFrame>
       <View style={styles.roleBar}>
         <Text style={styles.logo}>HOME <Text style={{ color: colors.green }}>HERO</Text></Text>
-        <View style={styles.switcher}>
-          {(data.backendEnabled ? [activeRole] : ['child', 'parent'] as Role[]).map(item => (
-            <Pressable key={item} onPress={() => setRole(item)} style={[styles.switchButton, role === item && styles.switchActive]}>
-              <Text style={[styles.switchText, role === item && styles.switchTextActive]}>{item === 'child' ? 'Hero' : 'Party Leader'}</Text>
-            </Pressable>
-          ))}
+        <View style={styles.headerActions}>
+          <View style={styles.switcher}>
+            {(data.backendEnabled ? [activeRole] : ['child', 'parent'] as Role[]).map(item => (
+              <Pressable key={item} onPress={() => setRole(item)} style={[styles.switchButton, role === item && styles.switchActive]}>
+                <Text style={[styles.switchText, role === item && styles.switchTextActive]}>{item === 'child' ? 'Hero' : 'Party Leader'}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {data.backendEnabled && <Pressable accessibilityRole="button" accessibilityLabel="Sign out" disabled={signingOut} onPress={signOut} style={({ pressed }) => [styles.signOutButton, pressed && styles.signOutPressed, signingOut && styles.signOutDisabled]}><Ionicons name="log-out-outline" size={18} color={colors.navy} /><Text style={styles.signOutText}>{signingOut ? 'Signing out…' : 'Sign out'}</Text></Pressable>}
         </View>
       </View>
 
@@ -164,6 +178,7 @@ export function HomeHeroApp() {
           ]} />
         </>
       )}
+      </AppFrame>
       <TimerModal quest={timerQuest} onClose={() => setTimerQuest(null)} onFinish={async () => { if (!timerQuest) return; try { if (data.backendEnabled) await data.finishTimer(timerQuest); else householdData.finishTimerQuest(timerQuest); setTimerQuest(null); Alert.alert('Timer complete!', `${timerQuest.title} was sent to your Party Leader for approval.`); } catch (cause) { showError(cause); } }} />
     </SafeAreaView>
   );
@@ -297,10 +312,12 @@ function currentStreak(history: QuestCompletion[], questId: string, now: Date) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.cream }, screen: { flex: 1 }, loading: { alignItems: 'center', justifyContent: 'center', gap: 14 }, content: { padding: 18, paddingBottom: 110, gap: 16 },
-  roleBar: { paddingHorizontal: 18, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.cream },
+  safe: { flex: 1, backgroundColor: colors.cream }, screen: { flex: 1 }, loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }, content: { padding: 18, paddingBottom: 110, gap: 16 },
+  roleBar: { paddingHorizontal: 18, paddingVertical: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.cream },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logo: { color: colors.navy, fontSize: 19, fontWeight: '900', letterSpacing: 1 }, switcher: { flexDirection: 'row', backgroundColor: '#EAE5D9', borderRadius: 12, padding: 3 },
   switchButton: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 9 }, switchActive: { backgroundColor: colors.white }, switchText: { fontSize: 11, color: colors.muted, fontWeight: '700' }, switchTextActive: { color: colors.navy },
+  signOutButton: { minHeight: 36, paddingHorizontal: 10, borderRadius: 11, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', gap: 5 }, signOutPressed: { opacity: .75 }, signOutDisabled: { opacity: .55 }, signOutText: { color: colors.navy, fontSize: 11, fontWeight: '800' },
   sharedHeroHeader: { marginHorizontal: 18, marginBottom: 2, borderRadius: 22, padding: 14, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 13 }, levelShield: { width: 58, height: 66, backgroundColor: colors.green, borderWidth: 3, borderColor: colors.gold, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, levelSmall: { color: colors.white, fontSize: 8, fontWeight: '900' }, levelNumber: { color: colors.white, fontSize: 31, lineHeight: 34, fontWeight: '900' }, heroHeaderCopy: { flexGrow: 1, flexBasis: 150, minWidth: 120 }, heroStats: { flexGrow: 1, flexBasis: 220, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 7 }, heroStat: { minWidth: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 13, backgroundColor: 'rgba(255,255,255,.13)' }, heroStatIcon: { fontSize: 16 }, heroStatValue: { color: colors.white, fontSize: 15, lineHeight: 17, fontWeight: '900' }, heroStatLabel: { color: '#CBD7EA', fontSize: 7, fontWeight: '900', letterSpacing: 0.5 },
   eyebrow: { color: '#CBD7EA', fontSize: 9, fontWeight: '900', letterSpacing: 1 }, eyebrowDark: { color: colors.purple, fontSize: 10, fontWeight: '900', letterSpacing: 1 }, greeting: { color: colors.white, fontSize: 21, fontWeight: '900' }, heroSub: { color: '#DCE5F2', fontSize: 10, lineHeight: 15 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }, cardTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' }, inviteCode: { color: colors.green, fontSize: 28, fontWeight: '900', letterSpacing: 4, marginVertical: 8 }, questTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' }, muted: { color: colors.muted, fontSize: 12, lineHeight: 18 }, sectionTitle: { fontSize: 21, color: colors.navy, fontWeight: '900' }, pageTitle: { fontSize: 27, color: colors.navy, fontWeight: '900' }, pageLead: { fontSize: 13, color: colors.muted, marginTop: -12 }, tipTitle: { color: '#7A5700', fontWeight: '900', marginBottom: 4 },

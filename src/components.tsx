@@ -8,6 +8,10 @@ export function Panel({ children, style }: { children: ReactNode; style?: object
   return <View style={[styles.panel, style]}>{children}</View>;
 }
 
+export function AppFrame({ children }: { children: ReactNode }) {
+  return <View style={styles.appFrame}>{children}</View>;
+}
+
 export function Pill({ children, tone = 'green' }: { children: ReactNode; tone?: 'green' | 'gold' | 'purple' | 'navy' }) {
   const bg = { green: colors.greenSoft, gold: '#FFF3C9', purple: '#EFE8FA', navy: '#E6ECF6' }[tone];
   const fg = { green: colors.green, gold: '#8A6300', purple: colors.purple, navy: colors.navy }[tone];
@@ -65,6 +69,7 @@ function formatTimer(totalSeconds: number) {
 }
 
 const styles = StyleSheet.create({
+  appFrame: { flex: 1, width: '100%', maxWidth: 1200, alignSelf: 'center' },
   panel: { backgroundColor: colors.white, borderRadius: 22, padding: 18, ...shadow },
   pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99 },
   pillText: { fontSize: 10, fontWeight: '900', letterSpacing: .8 },

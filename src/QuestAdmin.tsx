@@ -12,7 +12,7 @@ type Draft = { title: string; description: string; emoji: string; cadence: Exclu
 
 const emptyDraft: Draft = { title: '', description: '', emoji: '✨', cadence: 'daily', scheduleLabel: 'Every day', stars: '1', xp: '1', timerMinutes: '', minimumAge: '', maximumAge: '' };
 
-type QuestAdminProps = { quests: Quest[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; householdName?: string; onSave: (quest: Quest, heroIds: string[]) => void; onRemove: (id: string) => void };
+type QuestAdminProps = { quests: Quest[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; householdName?: string; onSave: (quest: Quest, heroIds: string[]) => boolean | Promise<boolean>; onRemove: (id: string) => void };
 
 export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = [], householdName, onSave, onRemove }: QuestAdminProps) {
   const [category, setCategory] = useState<Category>('all');
@@ -70,11 +70,11 @@ export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = []
         </View>
       </Panel>)}
     </ScrollView>
-    <QuestEditor value={editing} heroes={heroes} selectedHeroIds={editingHeroIds} onSelectedHeroIds={setEditingHeroIds} isExisting={editing !== null && editing !== 'new' && quests.some(item => item.id === editing.id)} onClose={() => setEditing(null)} onSave={(quest, heroIds) => { onSave(quest, heroIds); setEditing(null); }} />
+    <QuestEditor value={editing} heroes={heroes} selectedHeroIds={editingHeroIds} onSelectedHeroIds={setEditingHeroIds} isExisting={editing !== null && editing !== 'new' && quests.some(item => item.id === editing.id)} onClose={() => setEditing(null)} onSave={async (quest, heroIds) => { if (await onSave(quest, heroIds)) setEditing(null); }} />
   </>;
 }
 
-function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExisting, onClose, onSave }: { value: Quest | null | 'new'; heroes: HeroProfile[]; selectedHeroIds: string[]; onSelectedHeroIds: (ids: string[]) => void; isExisting: boolean; onClose: () => void; onSave: (quest: Quest, heroIds: string[]) => void }) {
+function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExisting, onClose, onSave }: { value: Quest | null | 'new'; heroes: HeroProfile[]; selectedHeroIds: string[]; onSelectedHeroIds: (ids: string[]) => void; isExisting: boolean; onClose: () => void; onSave: (quest: Quest, heroIds: string[]) => void | Promise<void> }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   useEffect(() => {
     if (!value || value === 'new') return setDraft(emptyDraft);
@@ -82,7 +82,7 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
   }, [value]);
   if (!value) return null;
   const set = <K extends keyof Draft>(key: K, next: Draft[K]) => setDraft(old => ({ ...old, [key]: next }));
-  const submit = () => {
+  const submit = async () => {
     if (!draft.title.trim()) return Alert.alert('Quest name required', 'Give this quest a short, encouraging name.');
     const stars = Math.max(0, Number.parseInt(draft.stars, 10) || 0); const xp = Math.max(0, Number.parseInt(draft.xp, 10) || 0); const timer = Number.parseInt(draft.timerMinutes, 10) || undefined;
     const minimumAge = draft.minimumAge.trim() ? Number.parseInt(draft.minimumAge, 10) : undefined;
@@ -93,7 +93,7 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
     const quest = { id: value === 'new' ? `quest-${Date.now()}` : value.id, templateId: undefined, catalogQuestId: value === 'new' ? undefined : value.catalogQuestId, title: draft.title.trim(), description: draft.description.trim() || 'A new heroic challenge', emoji: draft.emoji.trim() || '✨', cadence: draft.cadence, scheduleLabel: draft.scheduleLabel.trim() || 'Every day', kind, cutoffLabel: value === 'new' ? undefined : value.cutoffLabel, status: 'available' as const, stars, xp, timerMinutes: timer, minimumAge, maximumAge };
     const eligible = selectedHeroIds.filter(id => { const hero = heroes.find(item => item.id === id); return hero && isAgeEligible(quest, hero); });
     if (heroes.length && !eligible.length) return Alert.alert('Choose an eligible Hero', 'Assign this quest to at least one Hero whose age matches the quest range.');
-    onSave(quest, eligible);
+    await onSave(quest, eligible);
   };
   const previewQuest = { minimumAge: draft.minimumAge ? Number(draft.minimumAge) : undefined, maximumAge: draft.maximumAge ? Number(draft.maximumAge) : undefined };
   return <Modal animationType="slide" visible onRequestClose={onClose}><SafeAreaView style={styles.modalSafe}><View style={styles.modalHeader}><Pressable onPress={onClose}><Text style={styles.cancel}>Cancel</Text></Pressable><Text style={styles.modalTitle}>{isExisting ? 'Edit quest' : 'Add quest'}</Text><Pressable onPress={submit}><Text style={styles.save}>Save</Text></Pressable></View>

@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 
 export type QuestAdminInput = {
   householdId: string;
-  childId: string;
+  childId: string | null;
   templateId?: string;
   catalogQuestId?: string;
   title: string;
@@ -37,14 +37,9 @@ export async function saveQuest(input: QuestAdminInput) {
     p_schedule_label: input.scheduleLabel ?? null,
     p_minimum_age: input.minimumAge ?? null,
     p_maximum_age: input.maximumAge ?? null,
+    p_catalog_quest_id: input.catalogQuestId ?? null,
   });
   if (error) throw error;
-  if (input.catalogQuestId) {
-    const templateId = typeof data === 'string' ? data : data?.id;
-    if (!templateId) throw new Error('Quest was saved, but its template ID was not returned');
-    const { error: linkError } = await supabase.from('quest_templates').update({ catalog_quest_id: input.catalogQuestId }).eq('id', templateId);
-    if (linkError) throw linkError;
-  }
   return data;
 }
 

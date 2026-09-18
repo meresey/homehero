@@ -26,6 +26,8 @@ export type Quest = {
   householdId?: string;
   catalogQuestId?: string;
   visibility?: 'household';
+  childId?: string;
+  heroName?: string;
 };
 
 export type QuestCatalogItem = Quest & { catalogQuestId: string };
@@ -85,7 +87,7 @@ export type GuildApproval = {
   questId: string;
   submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
-  kind?: 'guild' | 'timer';
+  kind?: QuestKind;
   note?: string;
 };
 

@@ -160,9 +160,9 @@ export function useHomeHeroData() {
         const { data, error: questError } = await supabase.from('quest_templates').select('id,catalog_quest_id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('household_id',membership.household_id).eq('is_active',true).order('created_at');
         if (questError) throw questError;
         setQuests((data ?? []).map(mapTemplate));
-        const { data: pending, error: pendingError } = await supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('household_id', membership.household_id).eq('status', 'pending_approval').order('completed_at', { ascending: false });
+        const { data: pending, error: pendingError } = await supabase.from('quest_instances').select('id,child_id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('household_id', membership.household_id).eq('status', 'pending_approval').order('completed_at', { ascending: false });
         if (pendingError) throw pendingError;
-        setPendingQuests((pending ?? []).map(mapInstance));
+        setPendingQuests((pending ?? []).map(row => ({ ...mapInstance(row), childId: row.child_id, heroName: heroNamesById.get(row.child_id) ?? 'Hero' })));
       } else {
         setParentDashboard(emptyParentDashboard);
         setQuestCatalog([]);
@@ -255,7 +255,7 @@ export function useHomeHeroData() {
     completeQuest: (q: Quest) => rpc(q.kind === 'guild' ? 'submit_guild_quest' : 'complete_quest', { p_instance_id: q.instanceId }),
     startTimer: (q: Quest) => rpc('start_timer', { p_instance_id: q.instanceId }),
     finishTimer: (q: Quest) => rpc('finish_timer', { p_instance_id: q.instanceId }),
-    approveGuild: (q: Quest) => rpc('review_guild_quest', { p_instance_id: q.instanceId, p_approve: true, p_note: null }),
+    reviewQuest: (q: Quest, approve: boolean) => rpc('review_quest', { p_instance_id: q.instanceId, p_approve: approve, p_note: null }),
     redeemReward: (rewardId: string) => rpc('redeem_reward', { p_reward_id: rewardId, p_idempotency_key: `${rewardId}-${Date.now()}` }),
     reviewReward: (redemptionId: string, approve: boolean) => rpc('review_reward_redemption', { p_redemption_id: redemptionId, p_approve: approve }),
   };

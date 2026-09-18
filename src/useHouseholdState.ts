@@ -38,27 +38,14 @@ export function useHouseholdState() {
     const heroId = current.selectedHero.heroId ?? current.heroes[0]?.id;
     return { ...current, heroQuests: { ...current.heroQuests, [heroId]: (current.heroQuests[heroId] ?? []).map(item => item.id === quest.id ? { ...item, status: 'in_progress', timerStartedAt: startedAt, timerEndsAt: endsAt, timerCompletedAt: undefined } : item) } };
   });
-  const awardQuest = (quest: Quest) => setState(current => {
-    const heroId = current.selectedHero.heroId ?? current.heroes[0]?.id;
-    const storedQuest = (current.heroQuests[heroId] ?? []).find(item => item.id === quest.id);
-    if (!storedQuest || storedQuest.status === 'rewarded') return current;
-    const completedAt = new Date().toISOString();
-    const questId = storedQuest.templateId ?? storedQuest.id;
-    return {
-      ...current,
-      heroQuests: { ...current.heroQuests, [heroId]: (current.heroQuests[heroId] ?? []).map(item => item.id === quest.id ? { ...item, status: 'rewarded', completedAt, timerEndsAt: undefined } : item) },
-      balances: current.balances.map(item => item.heroId === heroId ? { ...item, stars: item.stars + storedQuest.stars, lifetimeXp: item.lifetimeXp + storedQuest.xp } : item),
-      completionHistory: current.completionHistory.some(item => item.heroId === heroId && item.questId === questId && localDate(item.completedAt) === localDate(completedAt)) ? current.completionHistory : [...current.completionHistory, { id: `completion-${heroId}-${questId}-${Date.now()}`, heroId, questId, questTitle: storedQuest.title, questEmoji: storedQuest.emoji, questKind: storedQuest.kind, stars: storedQuest.stars, xp: storedQuest.xp, completedAt }],
-    };
-  });
-  const submitGuildQuest = (quest: Quest) => setState(current => {
+  const submitQuestForApproval = (quest: Quest) => setState(current => {
     const heroId = current.selectedHero.heroId ?? current.heroes[0]?.id;
     const templateId = quest.templateId ?? quest.id;
     const alreadyPending = current.guildApprovals.some(item => item.heroId === heroId && item.questId === templateId && item.status === 'pending');
     return {
       ...current,
       heroQuests: { ...current.heroQuests, [heroId]: (current.heroQuests[heroId] ?? []).map(item => item.id === quest.id ? { ...item, status: 'pending_approval' } : item) },
-      guildApprovals: alreadyPending ? current.guildApprovals : [...current.guildApprovals, { id: `approval-${heroId}-${templateId}-${Date.now()}`, householdId: current.household.id, heroId, questId: templateId, submittedAt: new Date().toISOString(), status: 'pending', kind: 'guild' }],
+      guildApprovals: alreadyPending ? current.guildApprovals : [...current.guildApprovals, { id: `approval-${heroId}-${templateId}-${Date.now()}`, householdId: current.household.id, heroId, questId: templateId, submittedAt: new Date().toISOString(), status: 'pending', kind: quest.kind }],
     };
   });
   const finishTimerQuest = (quest: Quest) => setState(current => submitFinishedTimer(current, current.selectedHero.heroId ?? current.heroes[0]?.id, quest.id, new Date()));
@@ -166,8 +153,7 @@ export function useHouseholdState() {
     setSelectedHeroQuests,
     startTimerQuest,
     finishTimerQuest,
-    awardQuest,
-    submitGuildQuest,
+    submitQuestForApproval,
     requestReward,
     reviewRewardRequest,
     reviewGuildApproval,

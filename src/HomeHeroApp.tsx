@@ -67,27 +67,15 @@ export function HomeHeroApp() {
       return;
     }
     if (data.backendEnabled) {
-      try { await data.completeQuest(quest); if (quest.kind === 'guild') Alert.alert('Guild quest submitted!', 'Your Party Leader has been asked to approve it.'); } catch (cause) { showError(cause); }
+      try { await data.completeQuest(quest); Alert.alert('Quest submitted!', 'Your Party Leader has been asked to approve it. Stars and XP will be awarded after approval.'); } catch (cause) { showError(cause); }
       return;
     }
-    if (quest.kind === 'guild') {
-      householdData.submitGuildQuest(quest);
-      return Alert.alert('Guild quest submitted!', 'Your Party Leader has been asked to approve it.');
-    }
-    award(quest);
+    householdData.submitQuestForApproval(quest);
+    Alert.alert('Quest submitted!', 'Your Party Leader has been asked to approve it. Stars and XP will be awarded after approval.');
   };
 
-  const award = (quest: Quest) => {
-    householdData.awardQuest(quest);
-    setTimerQuest(null);
-  };
-
-  const approveGuild = async (selected?: Quest) => {
-    const quest = selected ?? (data.backendEnabled ? data.pendingQuests[0] : quests.find(q => q.status === 'pending_approval'));
-    if (!quest) return;
-    if (data.backendEnabled) { try { await data.approveGuild(quest); Alert.alert('Quest approved', `${quest.stars} stars and ${quest.xp} XP awarded.`); } catch (cause) { showError(cause); } return; }
-    award(quest);
-    Alert.alert('Quest approved', `${quest.stars} stars and ${quest.xp} XP awarded.`);
+  const reviewQuest = async (selected: Quest, approve: boolean) => {
+    if (data.backendEnabled) { try { await data.reviewQuest(selected, approve); Alert.alert(approve ? 'Quest approved' : 'Try again requested', approve ? `${selected.stars} stars and ${selected.xp} XP awarded.` : `${selected.heroName ?? 'The Hero'} can now try this quest again.`); } catch (cause) { showError(cause); } }
   };
 
   const reviewReward = async (request: RewardRedemption, approve: boolean) => {
@@ -199,7 +187,7 @@ export function HomeHeroApp() {
           {parentTab === 'home' && data.backendEnabled && <ParentHome dashboard={data.parentDashboard} pendingQuestCount={data.pendingQuests.length} pendingRewardCount={data.pendingRewards.length} onEnrollHero={() => setEnrollingHero(true)} onManageHero={setManagedHero} onOpenReview={() => setParentTab('approvals')} />}
           {parentTab === 'quests' && <QuestAdmin quests={quests} heroes={data.backendEnabled ? data.heroes : householdData.state.heroes} assignments={data.backendEnabled ? data.questAssignments : householdData.state.questAssignments} catalog={data.backendEnabled ? data.questCatalog : demoQuestCatalog} householdName={data.backendEnabled ? data.family?.householdName : householdData.state.household.name} onSave={saveQuest} onRemove={removeQuest} />}
           {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} />}
-          {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} rewards={data.pendingRewards} approveQuest={approveGuild} reviewReward={reviewReward} />}
+          {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} rewards={data.pendingRewards} reviewQuest={reviewQuest} reviewReward={reviewReward} />}
           {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} catalog={data.backendEnabled ? data.rewardCatalog : demoRewardCatalog} onSave={saveReward} onRemove={removeReward} />}
           {parentTab === 'levels' && <LevelAdmin levels={levelDefinitions} onSave={updated => setLevelDefinitions(current => current.map(level => level.level === updated.level ? updated : level))} />}
           <BottomNav value={parentTab} onChange={value => setParentTab(value as ParentTab)} items={[
@@ -293,7 +281,7 @@ function ParentHome({ dashboard, pendingQuestCount, pendingRewardCount, onEnroll
   return <ScrollView contentContainerStyle={styles.content}><Text style={styles.pageTitle}>{greeting()}, {dashboard.leaderName}</Text><Text style={styles.pageLead}>{summary}</Text>
     <Panel><View style={styles.enrollmentCard}><View style={styles.enrollmentCopy}><Text style={styles.cardTitle}>{dashboard.heroNames.length === 0 ? 'Enroll your first Hero' : 'Hero access'}</Text><Text style={styles.muted}>Create or manage the child-safe usernames and PINs your Heroes use to sign in.</Text></View><Pressable accessibilityRole="button" onPress={onEnrollHero} style={styles.enrollButton}><Ionicons name="person-add-outline" size={18} color={colors.white} /><Text style={styles.enrollButtonText}>Enroll Hero</Text></Pressable></View>{dashboard.managedHeroes.length > 0 && <View style={styles.heroLoginList}>{dashboard.managedHeroes.map(hero => <View key={hero.userId} style={styles.heroLoginRow}><View style={styles.heroLoginIcon}><Ionicons name="person-outline" size={20} color={colors.navy} /></View><View style={styles.heroLoginCopy}><Text style={styles.heroLoginName}>{hero.displayName}</Text><Text style={styles.heroLoginUsername}>@{hero.username}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Manage ${hero.displayName}'s login`} onPress={() => onManageHero(hero)} style={styles.manageLoginButton}><Ionicons name="key-outline" size={16} color={colors.navy} /><Text style={styles.manageLoginText}>Manage login</Text></Pressable></View>)}</View>}</Panel>
     <View style={styles.dashboardMetricGrid}><TodayProgress heroes={dashboard.todayProgress} /><Panel style={styles.reviewMetric}><Text style={[styles.metricValue, { color: colors.purple }]}>{pending}</Text><Text style={styles.muted}>Needs review</Text></Panel></View>
-    {pending > 0 && <Pressable onPress={onOpenReview}><LinearGradient colors={[colors.purple, '#9274BD']} style={styles.approvalBanner}><Text style={styles.approvalTitle}>🔔 {pending} item{pending === 1 ? '' : 's'} need review</Text><Text style={styles.approvalText}>{pendingQuestCount > 0 && pendingRewardCount > 0 ? 'Guild quests and reward requests are waiting.' : pendingRewardCount > 0 ? 'A Hero requested a reward.' : 'A Hero submitted a co-op quest.'}</Text><Text style={styles.approvalAction}>Open review inbox →</Text></LinearGradient></Pressable>}
+    {pending > 0 && <Pressable onPress={onOpenReview}><LinearGradient colors={[colors.purple, '#9274BD']} style={styles.approvalBanner}><Text style={styles.approvalTitle}>🔔 {pending} item{pending === 1 ? '' : 's'} need review</Text><Text style={styles.approvalText}>{pendingQuestCount > 0 && pendingRewardCount > 0 ? 'Quest completions and reward requests are waiting.' : pendingRewardCount > 0 ? 'A Hero requested a reward.' : 'A Hero submitted a quest.'}</Text><Text style={styles.approvalAction}>Open review inbox →</Text></LinearGradient></Pressable>}
     <WeeklyProgress heroes={dashboard.weeklyProgress} />
     {dashboard.safeZone && <Panel><Text style={styles.cardTitle}>Tonight’s Safe Zone</Text><View style={styles.statRow}><Text style={styles.statEmoji}>🌙</Text><View style={{ flex: 1 }}><Text style={styles.statName}>{dashboard.safeZone.title}</Text><Text style={styles.muted}>{dashboard.safeZone.heroName} · Closes at {formatCutoff(dashboard.safeZone.cutoffAt)}</Text></View><Pill tone="gold">{formatTimeRemaining(dashboard.safeZone.cutoffAt)}</Pill></View></Panel>}
   </ScrollView>;
@@ -330,18 +318,20 @@ function greeting() { const hour = new Date().getHours(); return hour < 12 ? 'Go
 function formatCutoff(value: string) { return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
 function formatTimeRemaining(value: string) { const minutes = Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 60_000)); return minutes ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : 'Due now'; }
 
-function Approvals({ quests, rewards: rewardRequests, approveQuest, reviewReward }: { quests: Quest[]; rewards: RewardRedemption[]; approveQuest: (q: Quest) => void; reviewReward: (request: RewardRedemption, approve: boolean) => void }) {
+function Approvals({ quests, rewards: rewardRequests, reviewQuest, reviewReward }: { quests: Quest[]; rewards: RewardRedemption[]; reviewQuest: (q: Quest, approve: boolean) => void; reviewReward: (request: RewardRedemption, approve: boolean) => void }) {
   const pending = quests.filter(q => q.status === 'pending_approval');
   return <ScrollView contentContainerStyle={styles.content}><Text style={styles.pageTitle}>Approval inbox</Text><Text style={styles.pageLead}>Celebrate effort, then award points.</Text>
-    {pending.length === 0 && rewardRequests.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>✅</Text><Text style={styles.cardTitle}>All caught up!</Text><Text style={styles.muted}>New Guild Quests and reward requests will appear here.</Text></Panel> : <>
+    {pending.length === 0 && rewardRequests.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>✅</Text><Text style={styles.cardTitle}>All caught up!</Text><Text style={styles.muted}>Quest completions and reward requests will appear here.</Text></Panel> : <>
       {rewardRequests.map(request => {
         const enoughStars = request.availableStars >= request.cost;
         return <Panel key={request.id}><Text style={styles.eyebrowDark}>REWARD REQUEST</Text><Text style={styles.approvalQuest}>{request.emoji} {request.heroName} wants {request.title}</Text><Text style={styles.muted}>{request.subtitle}</Text><Text style={styles.rewardBalance}>{request.cost} stars · {request.availableStars} available</Text>{!enoughStars && <View style={styles.balanceError}><Text style={styles.balanceErrorTitle}>Not enough stars</Text><Text style={styles.balanceErrorText}>{request.heroName} needs {request.cost - request.availableStars} more stars before this reward can be approved.</Text></View>}<View style={styles.reviewActions}><Pressable style={styles.secondaryButton} onPress={() => reviewReward(request, false)}><Text style={styles.secondaryText}>Decline</Text></Pressable><Pressable accessibilityState={{ disabled: !enoughStars }} disabled={!enoughStars} style={[styles.primaryButton, !enoughStars && styles.primaryButtonDisabled]} onPress={() => reviewReward(request, true)}><Text style={[styles.primaryText, !enoughStars && styles.primaryTextDisabled]}>Approve · −{request.cost} ⭐</Text></Pressable></View></Panel>;
       })}
-      {pending.map(q => <Panel key={q.id}><Text style={styles.eyebrowDark}>QUEST READY FOR REVIEW</Text><Text style={styles.approvalQuest}>{q.emoji} {q.title}</Text><Text style={styles.muted}>{q.description}</Text><View style={styles.reviewActions}><Pressable style={styles.secondaryButton}><Text style={styles.secondaryText}>Try again</Text></Pressable><Pressable style={styles.primaryButton} onPress={() => approveQuest(q)}><Text style={styles.primaryText}>Approve · +{q.stars} ⭐</Text></Pressable></View></Panel>)}
+      {pending.map(q => <Panel key={q.id}><Text style={styles.eyebrowDark}>{questKindLabel(q.kind)} · READY FOR REVIEW</Text><Text style={styles.approvalQuest}>{q.emoji} {q.heroName ? `${q.heroName} submitted ` : ''}{q.title}</Text><Text style={styles.muted}>{q.description}</Text><View style={styles.reviewActions}><Pressable style={styles.secondaryButton} onPress={() => reviewQuest(q, false)}><Text style={styles.secondaryText}>Try again</Text></Pressable><Pressable style={styles.primaryButton} onPress={() => reviewQuest(q, true)}><Text style={styles.primaryText}>Approve · +{q.stars} ⭐ · +{q.xp} XP</Text></Pressable></View></Panel>)}
     </>}
   </ScrollView>;
 }
+
+function questKindLabel(kind: Quest['kind']) { return kind === 'timer' ? 'TIMED QUEST' : kind === 'guild' ? 'GUILD QUEST' : kind === 'bedtime' ? 'BEDTIME QUEST' : 'DAILY QUEST'; }
 
 function BottomNav({ value, onChange, items }: { value: string; onChange: (v: string) => void; items: string[][] }) {
   return <View style={styles.nav}>{items.map(([id, icon, label]) => <Pressable key={id} onPress={() => onChange(id)} style={styles.navItem}><Ionicons name={icon as never} size={23} color={value === id ? colors.green : colors.muted} /><Text style={[styles.navText, value === id && styles.navActive]}>{label}</Text></Pressable>)}</View>;

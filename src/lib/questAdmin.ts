@@ -42,15 +42,13 @@ export async function saveQuest(input: QuestAdminInput) {
   if (error) throw error;
   const savedQuest = Array.isArray(data) ? data[0] : data;
   if (!savedQuest?.id) throw new Error('The quest was saved but could not be assigned');
-  if (input.childIds.length > 0) {
-    const { error: assignmentError } = await supabase.rpc('set_quest_assignments', {
-      p_template_id: savedQuest.id,
-      p_child_ids: input.childIds,
-      p_days_of_week: input.daysOfWeek,
-      p_local_cutoff: input.localCutoff ?? null,
-    });
-    if (assignmentError) throw assignmentError;
-  }
+  const { error: assignmentError } = await supabase.rpc('set_quest_assignments', {
+    p_template_id: savedQuest.id,
+    p_child_ids: input.childIds,
+    p_days_of_week: input.daysOfWeek,
+    p_local_cutoff: input.localCutoff ?? null,
+  });
+  if (assignmentError) throw assignmentError;
   return savedQuest;
 }
 

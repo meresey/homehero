@@ -12,9 +12,9 @@ type Draft = { title: string; description: string; emoji: string; cadence: Exclu
 
 const emptyDraft: Draft = { title: '', description: '', emoji: '✨', cadence: 'daily', scheduleLabel: 'Every day', stars: '1', xp: '1', timerMinutes: '', minimumAge: '', maximumAge: '' };
 
-type QuestAdminProps = { quests: Quest[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; householdName?: string; onSave: (quest: Quest, heroIds: string[]) => boolean | Promise<boolean>; onRemove: (id: string) => boolean | Promise<boolean> };
+type QuestAdminProps = { quests: Quest[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; onSave: (quest: Quest, heroIds: string[]) => boolean | Promise<boolean>; onRemove: (id: string) => boolean | Promise<boolean> };
 
-export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = [], householdName, onSave, onRemove }: QuestAdminProps) {
+export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = [], onSave, onRemove }: QuestAdminProps) {
   const [category, setCategory] = useState<Category>('all');
   const [editing, setEditing] = useState<Quest | null | 'new'>(null);
   const [view, setView] = useState<'household' | 'library'>('household');
@@ -58,7 +58,7 @@ export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = []
         <Pressable onPress={() => setView('household')} style={[styles.viewTab, view === 'household' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'household' && styles.viewTabTextActive]}>My quests</Text></Pressable>
         <Pressable onPress={() => setView('library')} style={[styles.viewTab, view === 'library' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'library' && styles.viewTabTextActive]}>Quest library</Text></Pressable>
       </View>
-      <Text style={styles.privacy}>{view === 'household' ? `🔒 Private to ${householdName ?? 'your household'}` : '✨ Ready-made quests you can customise before adding'}</Text>
+      <Text style={styles.privacy}>{view === 'household' ? '🔒 Private to your household' : '✨ Ready-made quests you can customise before adding'}</Text>
 
       <View style={styles.summaryRow}>
         {(['daily','weekly','guild'] as const).map(key => <Panel key={key} style={styles.summaryCard}><Text style={styles.summaryNumber}>{counts(key)}</Text><Text style={styles.summaryLabel}>{key}</Text></Panel>)}

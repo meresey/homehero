@@ -30,3 +30,9 @@ export async function archiveReward(rewardId: string) {
   const { error } = await supabase.rpc('archive_reward_admin', { p_reward_id: rewardId });
   if (error) throw error;
 }
+
+export async function restoreReward(rewardId: string) {
+  if (!supabase) throw new Error('Supabase is not configured');
+  const { error } = await supabase.rpc('restore_reward_admin', { p_reward_id: rewardId });
+  if (error) throw error;
+}

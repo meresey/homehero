@@ -11,8 +11,8 @@ import { RewardAdmin } from './RewardAdmin';
 import { AuthScreen, OnboardingScreen } from './AuthFlow';
 import { useHomeHeroData } from './useHomeHeroData';
 import type { HeroTodayProgress, HeroWeeklyProgress, ManagedHeroAccount, ParentDashboardSummary } from './useHomeHeroData';
-import { archiveQuest, saveQuest as saveQuestToDatabase } from './lib/questAdmin';
-import { archiveReward, saveReward as saveRewardToDatabase } from './lib/rewardAdmin';
+import { archiveQuest, restoreQuest as restoreQuestInDatabase, saveQuest as saveQuestToDatabase } from './lib/questAdmin';
+import { archiveReward, restoreReward as restoreRewardInDatabase, saveReward as saveRewardToDatabase } from './lib/rewardAdmin';
 import { getHeroLevelProgress, HeroLevel, heroLevels } from './levels';
 import { LevelAdmin } from './LevelAdmin';
 import { useHouseholdState } from './useHouseholdState';
@@ -42,7 +42,11 @@ export function HomeHeroApp() {
   const [localRewards, setLocalRewards, rewardsHydrated] = usePersistentState<Reward[]>('home-hero.rewards.v1', rewards);
   const [levelDefinitions, setLevelDefinitions, levelsHydrated] = usePersistentState<HeroLevel[]>('home-hero.levels.v1', heroLevels);
   const activeRole = data.backendEnabled && data.family ? data.family.role : role;
-  const quests = data.backendEnabled ? data.quests : activeRole === 'child' ? householdData.selectedQuests : householdData.questTemplates;
+  const localActiveQuests = householdData.questTemplates.filter(quest => !quest.archived);
+  const localRetiredQuests = householdData.questTemplates.filter(quest => quest.archived);
+  const activeLocalRewards = localRewards.filter(reward => !reward.archived);
+  const retiredLocalRewards = localRewards.filter(reward => reward.archived);
+  const quests = data.backendEnabled ? data.quests : activeRole === 'child' ? householdData.selectedQuests : localActiveQuests;
   const stars = data.backendEnabled ? data.stars : householdData.selectedBalance.stars;
   const xp = data.backendEnabled ? data.xp : householdData.selectedBalance.lifetimeXp;
   const heroName = data.backendEnabled ? data.family?.displayName ?? 'Hero' : householdData.selectedHero.displayName;
@@ -118,6 +122,12 @@ export function HomeHeroApp() {
     return true;
   };
 
+  const restoreQuest = async (id: string) => {
+    if (data.backendEnabled) { try { await restoreQuestInDatabase(id); await data.refresh(); return true; } catch (cause) { showError(cause); return false; } }
+    householdData.restoreHouseholdQuest(id);
+    return true;
+  };
+
   const saveReward = async (reward: Reward) => {
     if (data.backendEnabled) {
       if (!data.family) return false;
@@ -129,15 +139,22 @@ export function HomeHeroApp() {
       } catch (cause) { showError(cause); return false; }
     }
     setLocalRewards(current => current.some(item => item.id === reward.id)
-      ? current.map(item => item.id === reward.id ? reward : item)
-      : [...current, reward].sort((a, b) => a.cost - b.cost));
+      ? current.map(item => item.id === reward.id ? { ...reward, archived: false } : item)
+      : [...current, { ...reward, archived: false }].sort((a, b) => a.cost - b.cost));
     Alert.alert('Reward saved', `“${reward.title}” is now available in the Star Store.`);
     return true;
   };
 
   const removeReward = async (id: string) => {
-    if (data.backendEnabled) { try { await archiveReward(id); await data.refresh(); } catch (cause) { showError(cause); } return; }
-    setLocalRewards(current => current.filter(item => item.id !== id));
+    if (data.backendEnabled) { try { await archiveReward(id); await data.refresh(); return true; } catch (cause) { showError(cause); return false; } }
+    setLocalRewards(current => current.map(item => item.id === id ? { ...item, archived: true } : item));
+    return true;
+  };
+
+  const restoreReward = async (id: string) => {
+    if (data.backendEnabled) { try { await restoreRewardInDatabase(id); await data.refresh(); return true; } catch (cause) { showError(cause); return false; } }
+    setLocalRewards(current => current.map(item => item.id === id ? { ...item, archived: false } : item));
+    return true;
   };
 
   const signOut = async () => {
@@ -175,7 +192,7 @@ export function HomeHeroApp() {
           <View style={styles.screen}>
             {childTab === 'today' && <ChildToday quests={quests} xp={xp} levels={levelDefinitions} onQuest={complete} />}
             {childTab === 'week' && <WeeklyBoard history={data.backendEnabled ? [] : householdData.state.completionHistory.filter(item => item.heroId === householdData.selectedHero.id)} quests={quests} streakAwards={data.backendEnabled ? [] : householdData.state.streakAwards.filter(item => item.heroId === householdData.selectedHero.id)} />}
-            {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : localRewards} stars={stars} pendingRewardIds={data.backendEnabled ? data.pendingRewardIds : householdData.state.rewardRequests.filter(item => item.heroId === householdData.selectedHero.id && item.status === 'pending').map(item => item.rewardId)} onRedeem={redeem} />}
+            {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : activeLocalRewards} stars={stars} pendingRewardIds={data.backendEnabled ? data.pendingRewardIds : householdData.state.rewardRequests.filter(item => item.heroId === householdData.selectedHero.id && item.status === 'pending').map(item => item.rewardId)} onRedeem={redeem} />}
             {childTab === 'hero' && <HeroProfile name={heroName} stars={stars} xp={xp} levels={levelDefinitions} badges={earnedBadges} />}
           </View>
           <BottomNav value={childTab} onChange={value => setChildTab(value as ChildTab)} items={[
@@ -186,10 +203,10 @@ export function HomeHeroApp() {
         <>
           {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} onOpenAttention={heroId => { householdData.setSelectedHero(heroId); setParentTab('approvals'); }} />}
           {parentTab === 'home' && data.backendEnabled && <ParentHome dashboard={data.parentDashboard} pendingQuestCount={data.pendingQuests.length} pendingRewardCount={data.pendingRewards.length} onEnrollHero={() => setEnrollingHero(true)} onManageHero={setManagedHero} onOpenReview={() => setParentTab('approvals')} />}
-          {parentTab === 'quests' && <QuestAdmin quests={quests} heroes={data.backendEnabled ? data.heroes : householdData.state.heroes} assignments={data.backendEnabled ? data.questAssignments : householdData.state.questAssignments} catalog={data.backendEnabled ? data.questCatalog : demoQuestCatalog} onSave={saveQuest} onRemove={removeQuest} />}
+          {parentTab === 'quests' && <QuestAdmin quests={quests} retiredQuests={data.backendEnabled ? data.retiredQuests : localRetiredQuests} heroes={data.backendEnabled ? data.heroes : householdData.state.heroes} assignments={data.backendEnabled ? data.questAssignments : householdData.state.questAssignments} catalog={data.backendEnabled ? data.questCatalog : demoQuestCatalog} onSave={saveQuest} onRemove={removeQuest} onRestore={restoreQuest} />}
           {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} />}
           {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} rewards={data.pendingRewards} reviewQuest={reviewQuest} reviewReward={reviewReward} />}
-          {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : localRewards} catalog={data.backendEnabled ? data.rewardCatalog : demoRewardCatalog} onSave={saveReward} onRemove={removeReward} />}
+          {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : activeLocalRewards} retiredRewards={data.backendEnabled ? data.retiredRewards : retiredLocalRewards} catalog={data.backendEnabled ? data.rewardCatalog : demoRewardCatalog} onSave={saveReward} onRemove={removeReward} onRestore={restoreReward} />}
           {parentTab === 'levels' && <LevelAdmin levels={levelDefinitions} onSave={updated => setLevelDefinitions(current => current.map(level => level.level === updated.level ? updated : level))} />}
           <BottomNav value={parentTab} onChange={value => setParentTab(value as ParentTab)} items={[
             ['home', 'home-outline', 'Home'], ['quests', 'list-outline', 'Quests'], ['approvals', 'checkmark-done-outline', 'Review'], ['rewards', 'gift-outline', 'Rewards'], ['levels', 'trophy-outline', 'Levels'],

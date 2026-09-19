@@ -50,3 +50,9 @@ export async function archiveQuest(templateId: string) {
   const { error } = await supabase.rpc('archive_quest_admin', { p_template_id: templateId });
   if (error) throw error;
 }
+
+export async function restoreQuest(templateId: string) {
+  if (!supabase) throw new Error('Supabase is not configured');
+  const { error } = await supabase.rpc('restore_quest_admin', { p_template_id: templateId });
+  if (error) throw error;
+}

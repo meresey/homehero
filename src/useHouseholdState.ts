@@ -85,7 +85,7 @@ export function useHouseholdState() {
   };
   const saveHouseholdQuest = (quest: Quest, heroIds: string[]) => setState(current => {
     const templateId = quest.templateId ?? quest.id;
-    const template: Quest = { ...quest, id: templateId, templateId: undefined, instanceId: undefined, householdId: current.household.id, visibility: 'household', status: 'available', timerStartedAt: undefined, timerEndsAt: undefined, timerCompletedAt: undefined, completedAt: undefined, expiredAt: undefined };
+    const template: Quest = { ...quest, id: templateId, templateId: undefined, instanceId: undefined, householdId: current.household.id, visibility: 'household', status: 'available', archived: false, timerStartedAt: undefined, timerEndsAt: undefined, timerCompletedAt: undefined, completedAt: undefined, expiredAt: undefined };
     const eligibleIds = new Set(current.heroes.filter(hero => heroIds.includes(hero.id) && isQuestAgeAppropriate(template, hero.dateOfBirth)).map(hero => hero.id));
     const now = new Date().toISOString();
     const questTemplates = current.questTemplates.some(item => item.id === templateId)
@@ -107,11 +107,21 @@ export function useHouseholdState() {
   });
   const removeHouseholdQuest = (questId: string) => setState(current => ({
     ...current,
-    questTemplates: current.questTemplates.filter(item => item.id !== questId),
-    questAssignments: current.questAssignments.filter(item => item.questId !== questId),
-    guildApprovals: current.guildApprovals.filter(item => item.questId !== questId || item.status !== 'pending'),
-    heroQuests: Object.fromEntries(Object.entries(current.heroQuests).map(([heroId, quests]) => [heroId, quests.filter(item => (item.templateId ?? item.id) !== questId)])),
+    questTemplates: current.questTemplates.map(item => item.id === questId ? { ...item, archived: true } : item),
+    questAssignments: current.questAssignments.map(item => item.questId === questId ? { ...item, active: false } : item),
   }));
+  const restoreHouseholdQuest = (questId: string) => setState(current => {
+    const template = current.questTemplates.find(item => item.id === questId);
+    return {
+      ...current,
+      questTemplates: current.questTemplates.map(item => item.id === questId ? { ...item, archived: false } : item),
+      questAssignments: current.questAssignments.map(item => {
+        if (item.questId !== questId) return item;
+        const hero = current.heroes.find(candidate => candidate.id === item.heroId);
+        return { ...item, active: Boolean(template && hero && isQuestAgeAppropriate(template, hero.dateOfBirth)) };
+      }),
+    };
+  });
 
   useEffect(() => {
     AsyncStorage.getItem(HOUSEHOLD_STORAGE_KEY)
@@ -159,6 +169,7 @@ export function useHouseholdState() {
     reviewGuildApproval,
     saveHouseholdQuest,
     removeHouseholdQuest,
+    restoreHouseholdQuest,
     setSelectedStars: (update: SetStateAction<number>) => updateSelectedBalance('stars', update),
     setSelectedXp: (update: SetStateAction<number>) => updateSelectedBalance('lifetimeXp', update),
   };

@@ -12,17 +12,19 @@ type Draft = { title: string; description: string; emoji: string; cadence: Exclu
 
 const emptyDraft: Draft = { title: '', description: '', emoji: '✨', cadence: 'daily', scheduleLabel: 'Every day', stars: '1', xp: '1', timerMinutes: '', minimumAge: '', maximumAge: '' };
 
-type QuestAdminProps = { quests: Quest[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; onSave: (quest: Quest, heroIds: string[]) => boolean | Promise<boolean>; onRemove: (id: string) => boolean | Promise<boolean> };
+type QuestAdminProps = { quests: Quest[]; retiredQuests?: Quest[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; onSave: (quest: Quest, heroIds: string[]) => boolean | Promise<boolean>; onRemove: (id: string) => boolean | Promise<boolean>; onRestore: (id: string) => boolean | Promise<boolean> };
 
-export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = [], onSave, onRemove }: QuestAdminProps) {
+export function QuestAdmin({ quests, retiredQuests = [], heroes = [], assignments = [], catalog = [], onSave, onRemove, onRestore }: QuestAdminProps) {
   const [category, setCategory] = useState<Category>('all');
   const [editing, setEditing] = useState<Quest | null | 'new'>(null);
-  const [view, setView] = useState<'household' | 'library'>('household');
+  const [view, setView] = useState<'household' | 'library' | 'retired'>('household');
   const [editingHeroIds, setEditingHeroIds] = useState<string[]>([]);
   const [removing, setRemoving] = useState<Quest | null>(null);
   const [removalBusy, setRemovalBusy] = useState(false);
   const [removalError, setRemovalError] = useState<string | null>(null);
-  const source = view === 'household' ? quests : catalog.filter(item => !quests.some(quest => quest.catalogQuestId === item.catalogQuestId));
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const householdQuestIds = [...quests, ...retiredQuests].map(quest => quest.catalogQuestId);
+  const source = view === 'household' ? quests : view === 'retired' ? retiredQuests : catalog.filter(item => !householdQuestIds.includes(item.catalogQuestId));
   const filtered = source.filter(q => category === 'all' || (q.cadence ?? (q.kind === 'guild' ? 'guild' : 'daily')) === category);
   const counts = (key: Category) => key === 'all' ? source.length : source.filter(q => (q.cadence ?? (q.kind === 'guild' ? 'guild' : 'daily')) === key).length;
   const assignmentIds = (questId: string) => assignments.filter(item => item.questId === questId && item.active).map(item => item.heroId);
@@ -46,6 +48,12 @@ export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = []
       setRemovalError(cause instanceof Error ? cause.message : 'The quest could not be removed. Please try again.');
     } finally { setRemovalBusy(false); }
   };
+  const restore = async (quest: Quest) => {
+    if (restoringId) return;
+    setRestoringId(quest.id);
+    try { await onRestore(quest.templateId ?? quest.id); }
+    finally { setRestoringId(null); }
+  };
 
   return <>
     <ScrollView contentContainerStyle={styles.content}>
@@ -57,8 +65,9 @@ export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = []
       <View style={styles.viewTabs}>
         <Pressable onPress={() => setView('household')} style={[styles.viewTab, view === 'household' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'household' && styles.viewTabTextActive]}>My quests</Text></Pressable>
         <Pressable onPress={() => setView('library')} style={[styles.viewTab, view === 'library' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'library' && styles.viewTabTextActive]}>Quest library</Text></Pressable>
+        <Pressable onPress={() => setView('retired')} style={[styles.viewTab, view === 'retired' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'retired' && styles.viewTabTextActive]}>Retired</Text></Pressable>
       </View>
-      <Text style={styles.privacy}>{view === 'household' ? '🔒 Private to your household' : '✨ Ready-made quests you can customise before adding'}</Text>
+      <Text style={styles.privacy}>{view === 'library' ? '✨ Ready-made quests you can customise before adding' : view === 'retired' ? '🗃️ Hidden from Heroes · history is preserved' : '🔒 Private to your household'}</Text>
 
       <View style={styles.summaryRow}>
         {(['daily','weekly','guild'] as const).map(key => <Panel key={key} style={styles.summaryCard}><Text style={styles.summaryNumber}>{counts(key)}</Text><Text style={styles.summaryLabel}>{key}</Text></Panel>)}
@@ -68,16 +77,17 @@ export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = []
         {(['all','daily','weekly','guild'] as Category[]).map(key => <Pressable key={key} onPress={() => setCategory(key)} style={[styles.filter, category === key && styles.filterActive]}><Text style={[styles.filterText, category === key && styles.filterTextActive]}>{key[0].toUpperCase()+key.slice(1)} · {counts(key)}</Text></Pressable>)}
       </ScrollView>
 
-      {filtered.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>🗺️</Text><Text style={styles.cardTitle}>{view === 'library' ? 'Every library quest is already added' : `No ${category} quests yet`}</Text>{view === 'household' && <Pressable onPress={create}><Text style={styles.link}>Create the first one</Text></Pressable>}</Panel> : filtered.map(q => <Panel key={q.id} style={styles.questCard}>
+      {filtered.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>{view === 'retired' ? '🗃️' : '🗺️'}</Text><Text style={styles.cardTitle}>{view === 'library' ? 'Every library quest is already added' : view === 'retired' ? 'No retired quests' : `No ${category} quests yet`}</Text>{view === 'household' && <Pressable onPress={create}><Text style={styles.link}>Create the first one</Text></Pressable>}</Panel> : filtered.map(q => <Panel key={q.id} style={styles.questCard}>
         <View style={styles.emojiBox}><Text style={styles.emoji}>{q.emoji}</Text></View>
         <View style={styles.questCopy}>
           <View style={styles.titleRow}><Text style={styles.questTitle}>{q.title}</Text><Pill tone={q.cadence === 'guild' ? 'purple' : q.cadence === 'weekly' ? 'gold' : 'green'}>{(q.cadence ?? 'daily').toUpperCase()}</Pill></View>
           <Text style={styles.description}>{q.description}</Text>
           <Text style={styles.meta}>{q.scheduleLabel ?? 'Every day'}  ·  {formatQuestAgeRange(q)}  ·  ⭐ {q.stars}  ·  ✦ {q.xp} XP{q.timerMinutes ? `  ·  ◷ ${q.timerMinutes} min` : ''}</Text>
           {view === 'household' && <Text style={styles.assigned}>{assignmentIds(q.id).length ? `Assigned to ${heroes.filter(hero => assignmentIds(q.id).includes(hero.id)).map(hero => `${hero.avatarEmoji} ${hero.displayName}`).join(', ')}` : 'Not assigned to a Hero'}</Text>}
+          {view === 'retired' && <Text style={styles.retiredNote}>Past completions and earned points are preserved.</Text>}
         </View>
         <View style={styles.actions}>
-          {view === 'household' ? <><Pressable accessibilityLabel={`Edit ${q.title}`} onPress={() => edit(q)} style={styles.iconButton}><Ionicons name="create-outline" size={20} color={colors.navy} /></Pressable><Pressable accessibilityLabel={`Remove ${q.title}`} onPress={() => remove(q)} style={styles.iconButton}><Ionicons name="trash-outline" size={19} color={colors.coral} /></Pressable></> : <Pressable accessibilityLabel={`Add ${q.title}`} onPress={() => addFromLibrary(q)} style={styles.libraryAdd}><Text style={styles.libraryAddText}>ADD</Text></Pressable>}
+          {view === 'household' ? <><Pressable accessibilityLabel={`Edit ${q.title}`} onPress={() => edit(q)} style={styles.iconButton}><Ionicons name="create-outline" size={20} color={colors.navy} /></Pressable><Pressable accessibilityLabel={`Retire ${q.title}`} onPress={() => remove(q)} style={styles.iconButton}><Ionicons name="archive-outline" size={19} color={colors.coral} /></Pressable></> : view === 'retired' ? <Pressable disabled={Boolean(restoringId)} accessibilityLabel={`Restore ${q.title}`} onPress={() => restore(q)} style={styles.restoreButton}><Text style={styles.restoreText}>{restoringId === q.id ? 'RESTORING…' : 'RESTORE'}</Text></Pressable> : <Pressable accessibilityLabel={`Add ${q.title}`} onPress={() => addFromLibrary(q)} style={styles.libraryAdd}><Text style={styles.libraryAddText}>ADD</Text></Pressable>}
         </View>
       </Panel>)}
     </ScrollView>
@@ -85,13 +95,13 @@ export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = []
     <Modal visible={Boolean(removing)} transparent animationType="fade" onRequestClose={() => { if (!removalBusy) setRemoving(null); }}>
       <View style={styles.confirmOverlay}>
         <View accessibilityRole="alert" style={styles.confirmCard}>
-          <View style={styles.confirmIcon}><Ionicons name="trash-outline" size={24} color={colors.coral} /></View>
-          <Text style={styles.confirmTitle}>Remove quest?</Text>
-          <Text style={styles.confirmText}>“{removing?.title}” will stop appearing in future schedules. Existing completion history will be kept.</Text>
+          <View style={styles.confirmIcon}><Ionicons name="archive-outline" size={24} color={colors.coral} /></View>
+          <Text style={styles.confirmTitle}>Retire quest?</Text>
+          <Text style={styles.confirmText}>“{removing?.title}” will stop appearing in future schedules. Existing completions, stars, and XP will be kept. You can restore it later.</Text>
           {removalError && <View style={styles.removeError}><Text style={styles.removeErrorText}>{removalError}</Text></View>}
           <View style={styles.confirmActions}>
             <Pressable disabled={removalBusy} onPress={() => setRemoving(null)} style={styles.confirmCancel}><Text style={styles.confirmCancelText}>Cancel</Text></Pressable>
-            <Pressable accessibilityRole="button" disabled={removalBusy} onPress={confirmRemove} style={[styles.confirmRemove, removalBusy && styles.confirmDisabled]}><Text style={styles.confirmRemoveText}>{removalBusy ? 'Removing…' : 'Remove quest'}</Text></Pressable>
+            <Pressable accessibilityRole="button" disabled={removalBusy} onPress={confirmRemove} style={[styles.confirmRemove, removalBusy && styles.confirmDisabled]}><Text style={styles.confirmRemoveText}>{removalBusy ? 'Retiring…' : 'Retire quest'}</Text></Pressable>
           </View>
         </View>
       </View>
@@ -162,7 +172,7 @@ const styles = StyleSheet.create({
   viewTabs: { flexDirection: 'row', padding: 4, borderRadius: 15, backgroundColor: '#EAE5D9' }, viewTab: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 12 }, viewTabActive: { backgroundColor: colors.navy }, viewTabText: { color: colors.muted, fontWeight: '900', fontSize: 12 }, viewTabTextActive: { color: colors.white }, privacy: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   summaryRow: { flexDirection: 'row', gap: 9 }, summaryCard: { flex: 1, alignItems: 'center', paddingVertical: 13, paddingHorizontal: 5 }, summaryNumber: { color: colors.navy, fontSize: 22, fontWeight: '900' }, summaryLabel: { color: colors.muted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
   filters: { gap: 8 }, filter: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white }, filterActive: { backgroundColor: colors.navy, borderColor: colors.navy }, filterText: { color: colors.muted, fontSize: 12, fontWeight: '800' }, filterTextActive: { color: colors.white },
-  questCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13 }, emojiBox: { width: 48, height: 48, borderRadius: 15, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }, emoji: { fontSize: 25 }, questCopy: { flex: 1, gap: 4 }, titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' }, questTitle: { color: colors.ink, fontSize: 15, fontWeight: '900' }, description: { color: colors.muted, fontSize: 11 }, meta: { color: colors.green, fontSize: 10, fontWeight: '800' }, assigned: { color: colors.navy, fontSize: 10, fontWeight: '800', marginTop: 2 }, actions: { gap: 7 }, iconButton: { width: 34, height: 34, borderRadius: 10, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }, libraryAdd: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.green }, libraryAddText: { color: colors.white, fontSize: 10, fontWeight: '900' },
+  questCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13 }, emojiBox: { width: 48, height: 48, borderRadius: 15, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }, emoji: { fontSize: 25 }, questCopy: { flex: 1, gap: 4 }, titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' }, questTitle: { color: colors.ink, fontSize: 15, fontWeight: '900' }, description: { color: colors.muted, fontSize: 11 }, meta: { color: colors.green, fontSize: 10, fontWeight: '800' }, assigned: { color: colors.navy, fontSize: 10, fontWeight: '800', marginTop: 2 }, retiredNote: { color: colors.purple, fontSize: 10, fontWeight: '800', marginTop: 2 }, actions: { gap: 7 }, iconButton: { width: 34, height: 34, borderRadius: 10, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }, libraryAdd: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.green }, libraryAddText: { color: colors.white, fontSize: 10, fontWeight: '900' }, restoreButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.navy }, restoreText: { color: colors.white, fontSize: 10, fontWeight: '900' },
   empty: { alignItems: 'center', paddingVertical: 38 }, emptyIcon: { fontSize: 42 }, cardTitle: { color: colors.ink, fontSize: 17, fontWeight: '900', marginTop: 8 }, link: { color: colors.green, fontWeight: '900', marginTop: 10 }, modalSafe: { flex: 1, backgroundColor: colors.cream }, modalSurface: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', backgroundColor: colors.cream, borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.border }, modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderColor: colors.border }, cancel: { color: colors.muted, fontWeight: '700' }, save: { color: colors.green, fontWeight: '900' }, modalTitle: { color: colors.navy, fontWeight: '900', fontSize: 17 }, form: { padding: 18, gap: 17, paddingBottom: 50 }, field: { gap: 7 }, fieldHint: { color: colors.muted, fontSize: 11, lineHeight: 16 }, label: { color: colors.navy, fontWeight: '800', fontSize: 12 }, input: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, color: colors.ink, fontSize: 15 }, multiline: { minHeight: 86, textAlignVertical: 'top' }, segment: { flexDirection: 'row', backgroundColor: '#EAE5D9', padding: 4, borderRadius: 14 }, segmentItem: { flex: 1, padding: 11, alignItems: 'center', borderRadius: 11 }, segmentActive: { backgroundColor: colors.navy }, segmentText: { color: colors.muted, fontWeight: '800', fontSize: 12 }, segmentTextActive: { color: colors.white }, twoColumns: { flexDirection: 'row', gap: 12 }, half: { flex: 1 }, smallField: { width: 82 }, wideField: { flex: 1 }, heroChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, heroChoice: { minWidth: 105, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 13, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white }, heroChoiceSelected: { borderColor: colors.green, backgroundColor: '#EAF5DF' }, heroChoiceDisabled: { opacity: 0.35 }, heroChoiceEmoji: { fontSize: 18 }, heroChoiceText: { color: colors.navy, fontWeight: '900', fontSize: 12 }, heroChoiceTextSelected: { color: colors.green }, heroAge: { color: colors.muted, fontSize: 9 }, notice: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 14, backgroundColor: '#EFE8FA', alignItems: 'center' }, noticeText: { color: colors.purple, flex: 1, fontSize: 12, lineHeight: 17, fontWeight: '700' }, primary: { backgroundColor: colors.green, borderRadius: 15, padding: 16, alignItems: 'center', marginTop: 5 }, primaryText: { color: colors.white, fontWeight: '900' },
   confirmOverlay: { flex: 1, padding: 20, backgroundColor: 'rgba(14, 35, 69, .45)', alignItems: 'center', justifyContent: 'center' }, confirmCard: { width: '100%', maxWidth: 440, borderRadius: 22, backgroundColor: colors.white, padding: 22, alignItems: 'center' }, confirmIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#FFF0ED', alignItems: 'center', justifyContent: 'center', marginBottom: 13 }, confirmTitle: { color: colors.navy, fontSize: 21, fontWeight: '900' }, confirmText: { color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 8 }, removeError: { alignSelf: 'stretch', borderRadius: 12, padding: 11, marginTop: 14, backgroundColor: '#FFF0ED', borderWidth: 1, borderColor: colors.coral }, removeErrorText: { color: colors.coral, fontSize: 11, lineHeight: 16, fontWeight: '800' }, confirmActions: { alignSelf: 'stretch', flexDirection: 'row', gap: 10, marginTop: 20 }, confirmCancel: { flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }, confirmCancelText: { color: colors.navy, fontWeight: '900' }, confirmRemove: { flex: 1, minHeight: 46, borderRadius: 13, backgroundColor: colors.coral, alignItems: 'center', justifyContent: 'center' }, confirmRemoveText: { color: colors.white, fontWeight: '900' }, confirmDisabled: { opacity: .55 },
   formError: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 13, padding: 12, backgroundColor: '#FFF0ED', borderWidth: 1, borderColor: colors.coral }, formErrorTop: { marginHorizontal: 18, marginTop: 14 }, formErrorText: { flex: 1, color: colors.coral, fontSize: 12, lineHeight: 17, fontWeight: '800' },

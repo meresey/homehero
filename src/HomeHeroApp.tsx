@@ -104,7 +104,7 @@ export function HomeHeroApp() {
         await saveQuestToDatabase({ householdId: data.family.householdId, childIds: heroIds, templateId: quest.templateId, catalogQuestId: quest.catalogQuestId, title: quest.title, description: quest.description, iconKey: quest.emoji, cadence: quest.cadence ?? 'daily', stars: quest.stars, xp: quest.xp, timerMinutes: quest.timerMinutes, daysOfWeek: quest.cadence === 'weekly' ? [1] : [1,2,3,4,5,6,7], scheduleLabel: quest.scheduleLabel, minimumAge: quest.minimumAge, maximumAge: quest.maximumAge });
         await data.refresh(); Alert.alert('Quest saved', `“${quest.title}” is ready.`);
         return true;
-      } catch (cause) { showError(cause); return false; }
+      } catch (cause) { throw cause; }
     }
     householdData.saveHouseholdQuest(quest, heroIds);
     const names = householdData.state.heroes.filter(hero => heroIds.includes(hero.id)).map(hero => hero.displayName);

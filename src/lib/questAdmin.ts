@@ -21,9 +21,9 @@ export type QuestAdminInput = {
 
 export async function saveQuest(input: QuestAdminInput) {
   if (!supabase) throw new Error('Supabase is not configured');
-  const { data, error } = await supabase.rpc('upsert_quest_admin', {
+  const { data, error } = await supabase.rpc('save_quest_admin', {
     p_household_id: input.householdId,
-    p_child_id: null,
+    p_child_ids: input.childIds,
     p_template_id: input.templateId ?? null,
     p_title: input.title,
     p_description: input.description ?? '',
@@ -41,14 +41,7 @@ export async function saveQuest(input: QuestAdminInput) {
   });
   if (error) throw error;
   const savedQuest = Array.isArray(data) ? data[0] : data;
-  if (!savedQuest?.id) throw new Error('The quest was saved but could not be assigned');
-  const { error: assignmentError } = await supabase.rpc('set_quest_assignments', {
-    p_template_id: savedQuest.id,
-    p_child_ids: input.childIds,
-    p_days_of_week: input.daysOfWeek,
-    p_local_cutoff: input.localCutoff ?? null,
-  });
-  if (assignmentError) throw assignmentError;
+  if (!savedQuest?.id) throw new Error('The quest could not be saved');
   return savedQuest;
 }
 

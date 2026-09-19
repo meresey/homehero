@@ -113,8 +113,9 @@ export function HomeHeroApp() {
   };
 
   const removeQuest = async (id: string) => {
-    if (data.backendEnabled) { try { await archiveQuest(id); await data.refresh(); } catch (cause) { showError(cause); } return; }
+    if (data.backendEnabled) { try { await archiveQuest(id); await data.refresh(); return true; } catch (cause) { showError(cause); return false; } }
     householdData.removeHouseholdQuest(id);
+    return true;
   };
 
   const saveReward = async (reward: Reward) => {

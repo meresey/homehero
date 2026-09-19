@@ -12,13 +12,16 @@ type Draft = { title: string; description: string; emoji: string; cadence: Exclu
 
 const emptyDraft: Draft = { title: '', description: '', emoji: '✨', cadence: 'daily', scheduleLabel: 'Every day', stars: '1', xp: '1', timerMinutes: '', minimumAge: '', maximumAge: '' };
 
-type QuestAdminProps = { quests: Quest[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; householdName?: string; onSave: (quest: Quest, heroIds: string[]) => boolean | Promise<boolean>; onRemove: (id: string) => void };
+type QuestAdminProps = { quests: Quest[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; householdName?: string; onSave: (quest: Quest, heroIds: string[]) => boolean | Promise<boolean>; onRemove: (id: string) => boolean | Promise<boolean> };
 
 export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = [], householdName, onSave, onRemove }: QuestAdminProps) {
   const [category, setCategory] = useState<Category>('all');
   const [editing, setEditing] = useState<Quest | null | 'new'>(null);
   const [view, setView] = useState<'household' | 'library'>('household');
   const [editingHeroIds, setEditingHeroIds] = useState<string[]>([]);
+  const [removing, setRemoving] = useState<Quest | null>(null);
+  const [removalBusy, setRemovalBusy] = useState(false);
+  const [removalError, setRemovalError] = useState<string | null>(null);
   const source = view === 'household' ? quests : catalog.filter(item => !quests.some(quest => quest.catalogQuestId === item.catalogQuestId));
   const filtered = source.filter(q => category === 'all' || (q.cadence ?? (q.kind === 'guild' ? 'guild' : 'daily')) === category);
   const counts = (key: Category) => key === 'all' ? source.length : source.filter(q => (q.cadence ?? (q.kind === 'guild' ? 'guild' : 'daily')) === key).length;
@@ -31,10 +34,18 @@ export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = []
     setEditing({ ...quest, id, templateId: undefined, catalogQuestId: quest.catalogQuestId ?? quest.id, householdId: undefined, visibility: 'household' });
   };
 
-  const remove = (quest: Quest) => Alert.alert('Remove quest?', `“${quest.title}” will stop appearing in future schedules. Existing history will be kept.`, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Remove', style: 'destructive', onPress: () => onRemove(quest.id) },
-  ]);
+  const remove = (quest: Quest) => { setRemovalError(null); setRemoving(quest); };
+  const confirmRemove = async () => {
+    if (!removing || removalBusy) return;
+    setRemovalBusy(true); setRemovalError(null);
+    try {
+      const removed = await onRemove(removing.id);
+      if (removed) setRemoving(null);
+      else setRemovalError('The quest could not be removed. Please try again.');
+    } catch (cause) {
+      setRemovalError(cause instanceof Error ? cause.message : 'The quest could not be removed. Please try again.');
+    } finally { setRemovalBusy(false); }
+  };
 
   return <>
     <ScrollView contentContainerStyle={styles.content}>
@@ -71,6 +82,20 @@ export function QuestAdmin({ quests, heroes = [], assignments = [], catalog = []
       </Panel>)}
     </ScrollView>
     <QuestEditor value={editing} heroes={heroes} selectedHeroIds={editingHeroIds} onSelectedHeroIds={setEditingHeroIds} isExisting={editing !== null && editing !== 'new' && quests.some(item => item.id === editing.id)} onClose={() => setEditing(null)} onSave={async (quest, heroIds) => { if (await onSave(quest, heroIds)) setEditing(null); }} />
+    <Modal visible={Boolean(removing)} transparent animationType="fade" onRequestClose={() => { if (!removalBusy) setRemoving(null); }}>
+      <View style={styles.confirmOverlay}>
+        <View accessibilityRole="alert" style={styles.confirmCard}>
+          <View style={styles.confirmIcon}><Ionicons name="trash-outline" size={24} color={colors.coral} /></View>
+          <Text style={styles.confirmTitle}>Remove quest?</Text>
+          <Text style={styles.confirmText}>“{removing?.title}” will stop appearing in future schedules. Existing completion history will be kept.</Text>
+          {removalError && <View style={styles.removeError}><Text style={styles.removeErrorText}>{removalError}</Text></View>}
+          <View style={styles.confirmActions}>
+            <Pressable disabled={removalBusy} onPress={() => setRemoving(null)} style={styles.confirmCancel}><Text style={styles.confirmCancelText}>Cancel</Text></Pressable>
+            <Pressable accessibilityRole="button" disabled={removalBusy} onPress={confirmRemove} style={[styles.confirmRemove, removalBusy && styles.confirmDisabled]}><Text style={styles.confirmRemoveText}>{removalBusy ? 'Removing…' : 'Remove quest'}</Text></Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
   </>;
 }
 
@@ -127,4 +152,5 @@ const styles = StyleSheet.create({
   filters: { gap: 8 }, filter: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white }, filterActive: { backgroundColor: colors.navy, borderColor: colors.navy }, filterText: { color: colors.muted, fontSize: 12, fontWeight: '800' }, filterTextActive: { color: colors.white },
   questCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13 }, emojiBox: { width: 48, height: 48, borderRadius: 15, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }, emoji: { fontSize: 25 }, questCopy: { flex: 1, gap: 4 }, titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' }, questTitle: { color: colors.ink, fontSize: 15, fontWeight: '900' }, description: { color: colors.muted, fontSize: 11 }, meta: { color: colors.green, fontSize: 10, fontWeight: '800' }, assigned: { color: colors.navy, fontSize: 10, fontWeight: '800', marginTop: 2 }, actions: { gap: 7 }, iconButton: { width: 34, height: 34, borderRadius: 10, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }, libraryAdd: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.green }, libraryAddText: { color: colors.white, fontSize: 10, fontWeight: '900' },
   empty: { alignItems: 'center', paddingVertical: 38 }, emptyIcon: { fontSize: 42 }, cardTitle: { color: colors.ink, fontSize: 17, fontWeight: '900', marginTop: 8 }, link: { color: colors.green, fontWeight: '900', marginTop: 10 }, modalSafe: { flex: 1, backgroundColor: colors.cream }, modalSurface: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', backgroundColor: colors.cream, borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.border }, modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderColor: colors.border }, cancel: { color: colors.muted, fontWeight: '700' }, save: { color: colors.green, fontWeight: '900' }, modalTitle: { color: colors.navy, fontWeight: '900', fontSize: 17 }, form: { padding: 18, gap: 17, paddingBottom: 50 }, field: { gap: 7 }, fieldHint: { color: colors.muted, fontSize: 11, lineHeight: 16 }, label: { color: colors.navy, fontWeight: '800', fontSize: 12 }, input: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, color: colors.ink, fontSize: 15 }, multiline: { minHeight: 86, textAlignVertical: 'top' }, segment: { flexDirection: 'row', backgroundColor: '#EAE5D9', padding: 4, borderRadius: 14 }, segmentItem: { flex: 1, padding: 11, alignItems: 'center', borderRadius: 11 }, segmentActive: { backgroundColor: colors.navy }, segmentText: { color: colors.muted, fontWeight: '800', fontSize: 12 }, segmentTextActive: { color: colors.white }, twoColumns: { flexDirection: 'row', gap: 12 }, half: { flex: 1 }, smallField: { width: 82 }, wideField: { flex: 1 }, heroChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, heroChoice: { minWidth: 105, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 13, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white }, heroChoiceSelected: { borderColor: colors.green, backgroundColor: '#EAF5DF' }, heroChoiceDisabled: { opacity: 0.35 }, heroChoiceEmoji: { fontSize: 18 }, heroChoiceText: { color: colors.navy, fontWeight: '900', fontSize: 12 }, heroChoiceTextSelected: { color: colors.green }, heroAge: { color: colors.muted, fontSize: 9 }, notice: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 14, backgroundColor: '#EFE8FA', alignItems: 'center' }, noticeText: { color: colors.purple, flex: 1, fontSize: 12, lineHeight: 17, fontWeight: '700' }, primary: { backgroundColor: colors.green, borderRadius: 15, padding: 16, alignItems: 'center', marginTop: 5 }, primaryText: { color: colors.white, fontWeight: '900' },
+  confirmOverlay: { flex: 1, padding: 20, backgroundColor: 'rgba(14, 35, 69, .45)', alignItems: 'center', justifyContent: 'center' }, confirmCard: { width: '100%', maxWidth: 440, borderRadius: 22, backgroundColor: colors.white, padding: 22, alignItems: 'center' }, confirmIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#FFF0ED', alignItems: 'center', justifyContent: 'center', marginBottom: 13 }, confirmTitle: { color: colors.navy, fontSize: 21, fontWeight: '900' }, confirmText: { color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 8 }, removeError: { alignSelf: 'stretch', borderRadius: 12, padding: 11, marginTop: 14, backgroundColor: '#FFF0ED', borderWidth: 1, borderColor: colors.coral }, removeErrorText: { color: colors.coral, fontSize: 11, lineHeight: 16, fontWeight: '800' }, confirmActions: { alignSelf: 'stretch', flexDirection: 'row', gap: 10, marginTop: 20 }, confirmCancel: { flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }, confirmCancelText: { color: colors.navy, fontWeight: '900' }, confirmRemove: { flex: 1, minHeight: 46, borderRadius: 13, backgroundColor: colors.coral, alignItems: 'center', justifyContent: 'center' }, confirmRemoveText: { color: colors.white, fontWeight: '900' }, confirmDisabled: { opacity: .55 },
 });

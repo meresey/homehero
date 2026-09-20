@@ -61,7 +61,12 @@ export function HomeHeroApp() {
         const now = new Date();
         const startedAt = quest.timerStartedAt ?? now.toISOString();
         const endsAt = quest.timerEndsAt ?? new Date(now.getTime() + (quest.timerMinutes ?? 20) * 60_000).toISOString();
-        if (new Date(endsAt).getTime() <= now.getTime()) { if (!data.backendEnabled) householdData.finishTimerQuest(quest); return; }
+        if (new Date(endsAt).getTime() <= now.getTime()) {
+          if (data.backendEnabled) await data.finishTimer(quest);
+          else householdData.finishTimerQuest(quest);
+          Alert.alert('Timer complete!', `${quest.title} was sent to your Party Leader for approval.`);
+          return;
+        }
         if (quest.status !== 'in_progress') {
           if (data.backendEnabled) await data.startTimer(quest);
           else householdData.startTimerQuest(quest, startedAt, endsAt);
@@ -207,7 +212,7 @@ export function HomeHeroApp() {
           {parentTab === 'home' && data.backendEnabled && <ParentHome dashboard={data.parentDashboard} pendingQuestCount={data.pendingQuests.length} pendingRewardCount={data.pendingRewards.length} onEnrollHero={() => setEnrollingHero(true)} onManageHero={setManagedHero} onOpenReview={() => setParentTab('approvals')} />}
           {parentTab === 'quests' && <QuestAdmin quests={quests} retiredQuests={data.backendEnabled ? data.retiredQuests : localRetiredQuests} pendingTemplateIds={data.backendEnabled ? data.pendingQuests.map(item => item.templateId ?? item.id) : householdData.state.guildApprovals.filter(item => item.status === 'pending').map(item => item.questId)} heroes={data.backendEnabled ? data.heroes : householdData.state.heroes} assignments={data.backendEnabled ? data.questAssignments : householdData.state.questAssignments} catalog={data.backendEnabled ? data.questCatalog : demoQuestCatalog} onSave={saveQuest} onRemove={removeQuest} onRestore={restoreQuest} />}
           {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} />}
-          {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} rewards={data.pendingRewards} reviewQuest={reviewQuest} reviewReward={reviewReward} />}
+          {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} runningTimers={data.runningTimers} rewards={data.pendingRewards} reviewQuest={reviewQuest} reviewReward={reviewReward} />}
           {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : activeLocalRewards} retiredRewards={data.backendEnabled ? data.retiredRewards : retiredLocalRewards} pendingRewardIds={data.backendEnabled ? data.pendingRewards.map(item => item.rewardId) : householdData.state.rewardRequests.filter(item => item.status === 'pending').map(item => item.rewardId)} catalog={data.backendEnabled ? data.rewardCatalog : demoRewardCatalog} onSave={saveReward} onRemove={removeReward} onRestore={restoreReward} />}
           {parentTab === 'levels' && <LevelAdmin levels={levelDefinitions} onSave={updated => setLevelDefinitions(current => current.map(level => level.level === updated.level ? updated : level))} />}
           <BottomNav value={parentTab} onChange={value => setParentTab(value as ParentTab)} items={[
@@ -338,17 +343,21 @@ function greeting() { const hour = new Date().getHours(); return hour < 12 ? 'Go
 function formatCutoff(value: string) { return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
 function formatTimeRemaining(value: string) { const minutes = Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 60_000)); return minutes ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : 'Due now'; }
 
-function Approvals({ quests, rewards: rewardRequests, reviewQuest, reviewReward }: { quests: Quest[]; rewards: RewardRedemption[]; reviewQuest: (q: Quest, approve: boolean) => void; reviewReward: (request: RewardRedemption, approve: boolean) => void }) {
+function Approvals({ quests, runningTimers, rewards: rewardRequests, reviewQuest, reviewReward }: { quests: Quest[]; runningTimers: Quest[]; rewards: RewardRedemption[]; reviewQuest: (q: Quest, approve: boolean) => void; reviewReward: (request: RewardRedemption, approve: boolean) => void }) {
   const [now, setNow] = useState(Date.now());
   const pending = quests.filter(q => q.status === 'pending_approval');
-  const runningTimerEnd = pending.find(q => q.kind === 'timer' && q.timerEndsAt && new Date(q.timerEndsAt).getTime() > now)?.timerEndsAt;
+  const runningTimerEnd = [...runningTimers, ...pending].find(q => q.kind === 'timer' && q.timerEndsAt && new Date(q.timerEndsAt).getTime() > now)?.timerEndsAt;
   useEffect(() => {
     if (!runningTimerEnd) return;
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [runningTimerEnd]);
   return <ScrollView contentContainerStyle={styles.content}><Text style={styles.pageTitle}>Approval inbox</Text><Text style={styles.pageLead}>Celebrate effort, then award points.</Text>
-    {pending.length === 0 && rewardRequests.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>✅</Text><Text style={styles.cardTitle}>All caught up!</Text><Text style={styles.muted}>Quest completions and reward requests will appear here.</Text></Panel> : <>
+    {pending.length === 0 && runningTimers.length === 0 && rewardRequests.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>✅</Text><Text style={styles.cardTitle}>All caught up!</Text><Text style={styles.muted}>Quest completions, active timers, and reward requests will appear here.</Text></Panel> : <>
+      {runningTimers.map(q => {
+        const remainingSeconds = q.timerEndsAt ? Math.max(0, Math.ceil((new Date(q.timerEndsAt).getTime() - now) / 1000)) : 0;
+        return <Panel key={`running-${q.id}`}><Text style={styles.eyebrowDark}>TIMED QUEST · IN PROGRESS</Text><Text style={styles.approvalQuest}>{q.emoji} {q.heroName ? `${q.heroName} is doing ` : ''}{q.title}</Text><Text style={styles.muted}>{q.description}</Text><View style={styles.timerApprovalNotice}><Text style={styles.timerApprovalTitle}>⏱️ {remainingSeconds > 0 ? `Time remaining · ${formatCountdown(remainingSeconds)}` : 'Countdown complete'}</Text><Text style={styles.timerApprovalText}>{remainingSeconds > 0 ? 'This quest is visible for monitoring. Approval becomes available after the Hero submits it.' : 'Waiting for the Hero to reopen the quest and submit the completed timer.'}</Text></View></Panel>;
+      })}
       {rewardRequests.map(request => {
         const enoughStars = request.availableStars >= request.cost;
         return <Panel key={request.id}><Text style={styles.eyebrowDark}>REWARD REQUEST</Text><Text style={styles.approvalQuest}>{request.emoji} {request.heroName} wants {request.title}</Text><Text style={styles.muted}>{request.subtitle}</Text><Text style={styles.rewardBalance}>{request.cost} stars · {request.availableStars} available</Text>{!enoughStars && <View style={styles.balanceError}><Text style={styles.balanceErrorTitle}>Not enough stars</Text><Text style={styles.balanceErrorText}>{request.heroName} needs {request.cost - request.availableStars} more stars before this reward can be approved.</Text></View>}<View style={styles.reviewActions}><Pressable style={styles.secondaryButton} onPress={() => reviewReward(request, false)}><Text style={styles.secondaryText}>Decline</Text></Pressable><Pressable accessibilityState={{ disabled: !enoughStars }} disabled={!enoughStars} style={[styles.primaryButton, !enoughStars && styles.primaryButtonDisabled]} onPress={() => reviewReward(request, true)}><Text style={[styles.primaryText, !enoughStars && styles.primaryTextDisabled]}>Approve · −{request.cost} ⭐</Text></Pressable></View></Panel>;

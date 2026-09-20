@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 // Expo replaces direct EXPO_PUBLIC_* references when it creates the web/native bundle.
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const key = process.env.EXPO_PUBLIC_SUPABASE_KEY;
+const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_KEY;
 const useSupabase = process.env.EXPO_PUBLIC_USE_SUPABASE === 'true';
 
 // Core-feature development runs locally by default. Re-enable the backend only

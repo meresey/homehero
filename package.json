@@ -8,6 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "deploy:staging": "npx eas-cli env:exec preview \"EXPO_NO_DOTENV=1 npx expo export --platform web --output-dir dist-staging --clear\" --non-interactive && npx eas-cli deploy --environment preview --export-dir dist-staging --alias staging --non-interactive",
+    "deploy:production": "npx eas-cli env:exec production \"EXPO_NO_DOTENV=1 npx expo export --platform web --output-dir dist --clear\" --non-interactive && npx eas-cli deploy --environment production --export-dir dist --prod --non-interactive",
     "typecheck": "tsc --noEmit",
     "test": "jest"
   },

@@ -65,6 +65,33 @@ Do not enable `EXPO_PUBLIC_USE_SUPABASE` until every item below is complete:
 
 Re-enabling the frontend flag never applies migrations automatically. Database migrations must be deployed before the application is rebuilt.
 
+## Staging and production environments
+
+Home Hero uses separate Supabase projects and Expo environments:
+
+| Environment | Expo environment | Supabase project |
+| --- | --- | --- |
+| Staging | `preview` | `hqwwqpnmrzonutnqlxhw` |
+| Production | `production` | `qufmceawkyuritfyfffa` |
+
+Deploy a testable staging web build with `npm run deploy:staging`. Promote a separately rebuilt production bundle with `npm run deploy:production`. Each command injects the corresponding Expo environment before exporting, preventing a staging build from accidentally using production data.
+
+Apply database changes to staging first:
+
+```bash
+npx supabase db push --project-ref hqwwqpnmrzonutnqlxhw
+npx supabase functions deploy --project-ref hqwwqpnmrzonutnqlxhw
+```
+
+After validation, apply the same committed migrations and functions to production:
+
+```bash
+npx supabase db push --project-ref qufmceawkyuritfyfffa
+npx supabase functions deploy --project-ref qufmceawkyuritfyfffa
+```
+
+Authentication users and household data are intentionally independent between the two projects. Never copy production user or household data into staging.
+
 ## Server command mapping
 
 | User action | RPC |

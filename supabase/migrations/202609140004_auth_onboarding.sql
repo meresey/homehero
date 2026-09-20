@@ -1,5 +1,5 @@
 alter table public.households
-  add column invite_code text unique default upper(substr(encode(gen_random_bytes(6), 'hex'), 1, 8));
+  add column invite_code text unique default upper(substr(encode(extensions.gen_random_bytes(6), 'hex'), 1, 8));
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public

@@ -2,6 +2,7 @@ node_modules/
 .pnpm-store/
 .expo/
 dist/
+dist-staging/
 .env
 .env.local
 *.log

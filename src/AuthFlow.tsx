@@ -131,6 +131,8 @@ function friendlyAuthError(message: string, signup = false) {
 function confirmationRedirect() { if (Platform.OS === 'web' && typeof window !== 'undefined') return window.location.origin; return 'homehero://'; }
 
 export function OnboardingScreen({ refresh, backendError }: { refresh: () => Promise<void>; backendError?: string | null }) {
+  const { width } = useWindowDimensions();
+  const wide = width >= 760;
   const [familyName, setFamilyName] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<Message>(null);
@@ -147,7 +149,34 @@ export function OnboardingScreen({ refresh, backendError }: { refresh: () => Pro
     finally { setBusy(false); }
   };
   const visibleMessage = message ?? (backendError ? { tone: 'error' as const, text: backendError } : null);
-  return <SafeAreaView style={styles.safe}><AppFrame><View style={styles.onboard}><Text style={styles.shield}>🛡️</Text><Text style={styles.heading}>Create your hero party</Text><Text style={styles.copy}>Start with your household. Once it’s ready, you’ll enroll each Hero with a username and PIN.</Text>{visibleMessage && <View accessibilityRole="alert" style={[styles.message, visibleMessage.tone === 'success' ? styles.successMessage : styles.errorMessage]}><Text style={[styles.messageText, visibleMessage.tone === 'success' ? styles.successText : styles.errorText]}>{visibleMessage.text}</Text></View>}<TextInput editable={!busy} value={familyName} onChangeText={text => { setFamilyName(text); setMessage(null); }} autoCapitalize="words" placeholder="Family name" style={styles.input} /><Pressable onPress={submit} disabled={busy} style={[styles.primary, busy && styles.primaryDisabled]}><Text style={styles.primaryText}>{busy ? 'Creating family…' : 'Create family'}</Text></Pressable><Pressable disabled={busy} onPress={() => supabase?.auth.signOut()}><Text style={styles.link}>Sign out</Text></Pressable></View></AppFrame></SafeAreaView>;
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={styles.authPage} keyboardShouldPersistTaps="handled">
+    <View style={[styles.onboardingShell, !wide && styles.onboardingShellStacked]}>
+      <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.onboardingGuide, !wide && styles.onboardingGuideCompact]}>
+        <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
+        <View style={styles.brandTop}><View style={styles.brandShield}><Ionicons name="shield-checkmark" size={31} color={colors.white} /></View><Text style={styles.authTitle}>HOME <Text style={styles.authTitleAccent}>HERO</Text></Text></View>
+        <View style={styles.onboardingGuideCopy}><Text style={styles.onboardingEyebrow}>YOUR FAMILY ADVENTURE</Text><Text style={[styles.onboardingGuideTitle, !wide && styles.onboardingGuideTitleCompact]}>A heroic home starts here.</Text><Text style={styles.brandLead}>Create your household, then invite your Heroes into a safe space built for encouragement and progress.</Text></View>
+        {wide && <View style={styles.onboardingSteps}>
+          <OnboardingStep number="1" title="Create your household" detail="Give your family hub a familiar name." active />
+          <OnboardingStep number="2" title="Enrol your Heroes" detail="Create a username and PIN for each child." />
+          <OnboardingStep number="3" title="Choose your quests" detail="Pick age-appropriate habits and rewards." />
+        </View>}
+      </LinearGradient>
+      <View style={[styles.onboardingForm, !wide && styles.onboardingFormStacked]}>
+        <View style={styles.onboardingFormHeader}><View style={styles.onboardingStepBadge}><Text style={styles.onboardingStepBadgeText}>STEP 1 OF 3</Text></View><Text style={styles.authHeading}>Create your household</Text><Text style={styles.authCopy}>This name will appear across your Party Leader dashboard and your Heroes’ accounts.</Text></View>
+        {visibleMessage && <View accessibilityRole="alert" style={[styles.message, styles.authMessage, visibleMessage.tone === 'success' ? styles.successMessage : styles.errorMessage]}><Ionicons name={visibleMessage.tone === 'success' ? 'checkmark-circle-outline' : 'alert-circle-outline'} size={19} color={visibleMessage.tone === 'success' ? '#315D1A' : '#9A3528'} /><Text style={[styles.messageText, styles.authMessageText, visibleMessage.tone === 'success' ? styles.successText : styles.errorText]}>{visibleMessage.text}</Text></View>}
+        <AuthField label="Household name" icon="home-outline"><TextInput editable={!busy} value={familyName} onChangeText={text => { setFamilyName(text); setMessage(null); }} autoCapitalize="words" placeholder="e.g. The Meresey Family" placeholderTextColor="#9298A8" onSubmitEditing={submit} style={styles.authInput} /></AuthField>
+        <View style={styles.timezoneCard}><View style={styles.timezoneIcon}><Ionicons name="globe-outline" size={19} color={colors.green} /></View><View style={{ flex: 1 }}><Text style={styles.timezoneLabel}>YOUR LOCAL TIME ZONE</Text><Text style={styles.timezoneValue}>{timezone}</Text></View><Ionicons name="checkmark-circle" size={20} color={colors.green} /></View>
+        <View style={styles.onboardingNotice}><Ionicons name="lock-closed-outline" size={18} color={colors.purple} /><Text style={styles.onboardingNoticeText}>Your household is private. Only Heroes you enrol can join it.</Text></View>
+        <Pressable accessibilityRole="button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.authPrimary, pressed && styles.authPrimaryPressed, busy && styles.primaryDisabled]}><Text style={styles.authPrimaryText}>{busy ? 'Creating household…' : 'Create household'}</Text><Ionicons name="arrow-forward" size={18} color={colors.white} /></Pressable>
+        <Pressable disabled={busy} onPress={() => supabase?.auth.signOut()} style={styles.onboardingSignOut}><Ionicons name="log-out-outline" size={16} color={colors.muted} /><Text style={styles.onboardingSignOutText}>Sign out and use another account</Text></Pressable>
+      </View>
+    </View>
+  </ScrollView></AppFrame></SafeAreaView>;
+}
+
+function OnboardingStep({ number, title, detail, active = false }: { number: string; title: string; detail: string; active?: boolean }) {
+  return <View style={styles.onboardingStep}><View style={[styles.onboardingStepNumber, active && styles.onboardingStepNumberActive]}><Text style={[styles.onboardingStepNumberText, active && styles.onboardingStepNumberTextActive]}>{number}</Text></View><View style={{ flex: 1 }}><Text style={[styles.onboardingStepTitle, active && styles.onboardingStepTitleActive]}>{title}</Text><Text style={styles.onboardingStepDetail}>{detail}</Text></View></View>;
 }
 
 const styles = StyleSheet.create({
@@ -207,6 +236,36 @@ const styles = StyleSheet.create({
   heroHelpText: { color: colors.muted, fontSize: 10, lineHeight: 15 },
   authMessage: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginBottom: 14 },
   authMessageText: { flex: 1 },
+  onboardingShell: { width: '100%', maxWidth: 960, minHeight: 570, borderRadius: 30, overflow: 'hidden', backgroundColor: colors.white, flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(17,36,73,.08)', shadowColor: colors.navy, shadowOffset: { width: 0, height: 18 }, shadowOpacity: .15, shadowRadius: 36, elevation: 7 },
+  onboardingShellStacked: { maxWidth: 560, minHeight: 0, flexDirection: 'column' },
+  onboardingGuide: { flex: .9, padding: 38, justifyContent: 'space-between', overflow: 'hidden' },
+  onboardingGuideCompact: { flex: 0, minHeight: 250, padding: 26 },
+  onboardingGuideCopy: { gap: 10, maxWidth: 360 },
+  onboardingEyebrow: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.3 },
+  onboardingGuideTitle: { color: colors.white, fontSize: 34, lineHeight: 41, fontWeight: '900', letterSpacing: -.6 },
+  onboardingGuideTitleCompact: { fontSize: 27, lineHeight: 33 },
+  onboardingSteps: { gap: 17 },
+  onboardingStep: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  onboardingStepNumber: { width: 31, height: 31, borderRadius: 11, borderWidth: 1, borderColor: 'rgba(255,255,255,.25)', backgroundColor: 'rgba(255,255,255,.08)', alignItems: 'center', justifyContent: 'center' },
+  onboardingStepNumberActive: { backgroundColor: colors.gold, borderColor: colors.gold },
+  onboardingStepNumberText: { color: '#C4D1E3', fontSize: 11, fontWeight: '900' },
+  onboardingStepNumberTextActive: { color: colors.navy },
+  onboardingStepTitle: { color: '#D7E3F2', fontSize: 12, fontWeight: '800' },
+  onboardingStepTitleActive: { color: colors.white },
+  onboardingStepDetail: { color: '#AFC1D9', fontSize: 9, lineHeight: 14, marginTop: 2 },
+  onboardingForm: { flex: 1.1, paddingHorizontal: 48, paddingVertical: 42, justifyContent: 'center' },
+  onboardingFormStacked: { flex: 0, paddingHorizontal: 24, paddingVertical: 31 },
+  onboardingFormHeader: { gap: 7, marginBottom: 23 },
+  onboardingStepBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: colors.greenSoft },
+  onboardingStepBadgeText: { color: colors.green, fontSize: 8, fontWeight: '900', letterSpacing: .9 },
+  timezoneCard: { marginTop: 14, padding: 13, borderRadius: 14, backgroundColor: '#F8F7F2', borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  timezoneIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.greenSoft, alignItems: 'center', justifyContent: 'center' },
+  timezoneLabel: { color: colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: .8 },
+  timezoneValue: { color: colors.ink, fontSize: 11, fontWeight: '800', marginTop: 2 },
+  onboardingNotice: { marginTop: 12, padding: 12, borderRadius: 13, backgroundColor: '#F3EEFA', flexDirection: 'row', alignItems: 'center', gap: 9 },
+  onboardingNoticeText: { flex: 1, color: colors.purple, fontSize: 10, lineHeight: 15, fontWeight: '700' },
+  onboardingSignOut: { marginTop: 16, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  onboardingSignOutText: { color: colors.muted, fontSize: 10, fontWeight: '700' },
   onboard: { width: '100%', maxWidth: 620, alignSelf: 'center', flex: 1, padding: 28, justifyContent: 'center', alignItems: 'stretch', gap: 16 },
   shield: { fontSize: 58 },
   heading: { fontSize: 25, color: colors.navy, fontWeight: '900', textAlign: 'center' },

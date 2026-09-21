@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Panel, Pill, ProgressBar } from './components';
+import { EmptyState, PageHeading, Panel, Pill, ProgressBar } from './components';
 import { getHeroLevelProgress, HeroLevel } from './levels';
 import { GuildApproval, HeroSummary, Household, RewardRequest } from './types';
 import { colors } from './theme';
@@ -28,8 +28,8 @@ export function HouseholdDashboard({ household, heroes, levels, guildApprovals, 
 
     {attention.length > 0 && <Panel><View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Needs your attention</Text><Pill tone="purple">{attention.length}</Pill></View><View style={styles.attentionList}>{attention.map(item => <Pressable key={item.id} onPress={() => onOpenAttention(item.heroId, item.type)} style={styles.attentionItem}><Text style={styles.attentionIcon}>{item.icon}</Text><Text style={styles.attentionText}><Text style={styles.attentionName}>{heroName(item.heroId)}</Text> {item.text}</Text><Ionicons name="chevron-forward" size={18} color={colors.muted} /></Pressable>)}</View></Panel>}
 
-    <View style={styles.sectionHeader}><View><Text style={styles.pageTitle}>Your Heroes</Text><Text style={styles.pageLead}>Choose a Hero to see their dashboard.</Text></View></View>
-    <View style={styles.heroGrid}>{heroes.map(hero => <HeroCard key={hero.heroId} hero={hero} levels={levels} onView={() => onViewHero(hero.heroId)} />)}</View>
+    <PageHeading eyebrow="YOUR PARTY" title="Your Heroes" subtitle="Choose a Hero to see their dashboard." />
+    {heroes.length === 0 ? <EmptyState icon="people-outline" title="Your party is waiting" description="Enrol your first Hero to see their quests and progress here." /> : <View style={styles.heroGrid}>{heroes.map(hero => <HeroCard key={hero.heroId} hero={hero} levels={levels} onView={() => onViewHero(hero.heroId)} />)}</View>}
   </ScrollView>;
 }
 

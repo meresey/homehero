@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AppFrame, Panel, Pill, ProgressBar, QuestCard } from './components';
+import { AppFrame, EmptyState, PageHeading, Panel, Pill, ProgressBar, QuestCard } from './components';
 import { questCatalog as demoQuestCatalog, rewardCatalog as demoRewardCatalog, rewards } from './data';
 import { colors } from './theme';
 import { Quest, QuestCompletion, Reward, RewardRedemption, StreakAward } from './types';
@@ -180,7 +180,7 @@ export function HomeHeroApp() {
     <SafeAreaView style={styles.safe}>
       <AppFrame>
       <View style={styles.roleBar}>
-        <Text style={styles.logo}>HOME <Text style={{ color: colors.green }}>HERO</Text></Text>
+        <View style={styles.wordmark}><View style={styles.wordmarkIcon}><Ionicons name="shield-checkmark" size={17} color={colors.white} /></View><Text style={styles.logo}>HOME <Text style={{ color: colors.green }}>HERO</Text></Text></View>
         <View style={styles.headerActions}>
           <View style={styles.switcher}>
             {(data.backendEnabled ? [activeRole] : ['child', 'parent'] as Role[]).map(item => (
@@ -273,7 +273,7 @@ function WeeklyBoard({ history, quests, streakAwards }: { history: QuestCompleti
   const questStreaks = quests.filter(quest => quest.kind !== 'guild').map(quest => ({ quest, days: currentStreak(history, quest.templateId ?? quest.id, now) })).filter(item => item.days > 0).sort((a, b) => b.days - a.days).slice(0, 3);
   const dateRange = `${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(monday)}–${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(sunday)}`;
   const bonuses = streakAwards.filter(item => item.weekStart === localDateKey(monday)).reduce((sum, item) => sum + item.xpAwarded, 0);
-  return <ScrollView contentContainerStyle={styles.content}><Text style={styles.pageTitle}>Weekly adventure</Text><Text style={styles.pageLead}>Monday to Sunday · {dateRange}</Text>
+  return <ScrollView contentContainerStyle={styles.content}><PageHeading eyebrow="HERO JOURNEY" title="Weekly adventure" subtitle={`Monday to Sunday · ${dateRange}`} />
     <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Weekend bonus</Text><Text style={styles.muted}>{total} of {target} stars</Text></View><Text style={styles.bigStar}>⭐</Text></View><ProgressBar value={total} max={target} /><Text style={styles.encourage}>{total >= target ? 'Weekend reward unlocked!' : `${target - total} more stars unlock the weekend reward.`}</Text></Panel>
     <Panel><Text style={styles.cardTitle}>Your quest trail</Text><View style={styles.weekRow}>{days.map(item => <View key={item.dateKey} style={styles.day}><Text style={styles.dayLabel}>{item.label}</Text><View style={[styles.dayDot, item.done && styles.dayDone, item.today && styles.dayToday]}><Text style={styles.dayValue}>{item.done ? '✓' : item.today ? '•' : ''}</Text></View><Text style={styles.dayStars}>{item.stars ? `⭐${item.stars}` : '—'}</Text></View>)}</View></Panel>
     <Panel><View style={styles.sectionHeader}><Text style={styles.cardTitle}>Quest streaks</Text>{bonuses > 0 && <Pill tone="gold">+{bonuses} XP</Pill>}</View>{questStreaks.length === 0 ? <Text style={[styles.muted, { marginTop: 12 }]}>Complete the same daily quest on consecutive days to start a streak.</Text> : questStreaks.map(item => <View key={item.quest.id} style={styles.statRow}><Text style={styles.statEmoji}>{item.quest.emoji}</Text><Text style={styles.statName}>{item.quest.title}</Text><Pill tone="gold">🔥 {item.days} day{item.days === 1 ? '' : 's'}</Pill></View>)}</Panel>
@@ -281,8 +281,8 @@ function WeeklyBoard({ history, quests, streakAwards }: { history: QuestCompleti
 }
 
 function StarStore({ rewards: storeRewards, stars, pendingRewardIds, onRedeem }: { rewards: typeof rewards; stars: number; pendingRewardIds: string[]; onRedeem: (cost: number, title: string, id: string) => void }) {
-  return <ScrollView contentContainerStyle={styles.content}><View style={styles.sectionHeader}><View style={styles.storeHeading}><Text style={styles.pageTitle}>Star Store</Text><Text style={styles.storeLead}>Real rewards for heroic habits</Text></View><View style={styles.starBalance}><Text style={styles.starBalanceText}>⭐ {stars}</Text></View></View>
-    {storeRewards.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>🎁</Text><Text style={styles.cardTitle}>Store opening soon</Text><Text style={styles.muted}>Your Party Leader has not added rewards yet.</Text></Panel> : storeRewards.map(reward => {
+  return <ScrollView contentContainerStyle={styles.content}><PageHeading eyebrow="HERO JOURNEY" title="Star Store" subtitle="Real rewards for heroic habits" action={<View style={styles.starBalance}><Text style={styles.starBalanceText}>⭐ {stars}</Text></View>} />
+    {storeRewards.length === 0 ? <EmptyState icon="gift-outline" title="Store opening soon" description="Your Party Leader has not added rewards yet." /> : storeRewards.map(reward => {
       const pending = pendingRewardIds.includes(reward.id);
       const canBuy = stars >= reward.cost && !pending;
       return <View key={reward.id} style={styles.storeCard}><Text style={styles.storeEmoji}>{reward.emoji}</Text><View style={{ flex: 1 }}><Text style={styles.questTitle}>{reward.title}</Text><Text style={styles.muted}>{reward.subtitle}</Text>{pending ? <Text style={styles.pendingReward}>Waiting for Party Leader</Text> : stars < reward.cost && <Text style={styles.starsNeeded}>{reward.cost - stars} more stars needed</Text>}</View><Pressable accessibilityRole="button" accessibilityLabel={pending ? `${reward.title} awaiting approval` : `Buy ${reward.title} for ${reward.cost} stars`} accessibilityState={{ disabled: !canBuy }} disabled={!canBuy} onPress={() => onRedeem(reward.cost, reward.title, reward.id)} style={[styles.buyButton, !canBuy && styles.buyButtonDisabled]}><Text style={[styles.buyButtonText, !canBuy && styles.buyButtonTextDisabled]}>{pending ? 'Awaiting approval' : `Buy · ${reward.cost} ⭐`}</Text></Pressable></View>;
@@ -396,8 +396,8 @@ function Approvals({ quests, runningTimers, rewards: rewardRequests, reviewQuest
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [runningTimerEnd]);
-  return <ScrollView contentContainerStyle={styles.content}><Text style={styles.pageTitle}>Approval inbox</Text><Text style={styles.pageLead}>Celebrate effort, then award points.</Text>
-    {pending.length === 0 && runningTimers.length === 0 && rewardRequests.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>✅</Text><Text style={styles.cardTitle}>All caught up!</Text><Text style={styles.muted}>Quest completions, active timers, and reward requests will appear here.</Text></Panel> : <>
+  return <ScrollView contentContainerStyle={styles.content}><PageHeading eyebrow="PARTY LEADER" title="Approval inbox" subtitle="Celebrate effort, then award points." />
+    {pending.length === 0 && runningTimers.length === 0 && rewardRequests.length === 0 ? <EmptyState icon="checkmark-circle-outline" title="All caught up!" description="Quest completions, active timers, and reward requests will appear here." /> : <>
       {runningTimers.map(q => {
         const remainingSeconds = q.timerEndsAt ? Math.max(0, Math.ceil((new Date(q.timerEndsAt).getTime() - now) / 1000)) : 0;
         return <Panel key={`running-${q.id}`}><Text style={styles.eyebrowDark}>TIMED QUEST · IN PROGRESS</Text><Text style={styles.approvalQuest}>{q.emoji} {q.heroName ? `${q.heroName} is doing ` : ''}{q.title}</Text><Text style={styles.muted}>{q.description}</Text><View style={styles.timerApprovalNotice}><Text style={styles.timerApprovalTitle}>⏱️ {remainingSeconds > 0 ? `Time remaining · ${formatCountdown(remainingSeconds)}` : 'Countdown complete'}</Text><Text style={styles.timerApprovalText}>{remainingSeconds > 0 ? 'This quest is visible for monitoring. Approval becomes available after the Hero submits it.' : 'Waiting for the Hero to reopen the quest and submit the completed timer.'}</Text></View></Panel>;
@@ -459,6 +459,7 @@ function currentStreak(history: QuestCompletion[], questId: string, now: Date) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream }, screen: { flex: 1 }, loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }, content: { padding: 18, paddingBottom: 110, gap: 16 },
   roleBar: { paddingHorizontal: 18, paddingVertical: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.cream },
+  wordmark: { flexDirection: 'row', alignItems: 'center', gap: 8 }, wordmarkIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logo: { color: colors.navy, fontSize: 19, fontWeight: '900', letterSpacing: 1 }, switcher: { flexDirection: 'row', backgroundColor: '#EAE5D9', borderRadius: 12, padding: 3 },
   switchButton: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 9 }, switchActive: { backgroundColor: colors.white }, switchText: { fontSize: 11, color: colors.muted, fontWeight: '700' }, switchTextActive: { color: colors.navy },

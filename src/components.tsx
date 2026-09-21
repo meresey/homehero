@@ -12,6 +12,14 @@ export function AppFrame({ children }: { children: ReactNode }) {
   return <View style={styles.appFrame}>{children}</View>;
 }
 
+export function PageHeading({ title, subtitle, eyebrow, action }: { title: string; subtitle?: string; eyebrow?: string; action?: ReactNode }) {
+  return <View style={styles.pageHeading}><View style={styles.pageHeadingCopy}>{eyebrow && <Text style={styles.pageEyebrow}>{eyebrow}</Text>}<Text style={styles.pageTitle}>{title}</Text>{subtitle && <Text style={styles.pageSubtitle}>{subtitle}</Text>}</View>{action}</View>;
+}
+
+export function EmptyState({ icon, title, description, action }: { icon: keyof typeof Ionicons.glyphMap; title: string; description?: string; action?: ReactNode }) {
+  return <Panel style={styles.emptyState}><View style={styles.emptyIcon}><Ionicons name={icon} size={25} color={colors.green} /></View><Text style={styles.emptyTitle}>{title}</Text>{description && <Text style={styles.emptyDescription}>{description}</Text>}{action && <View style={styles.emptyAction}>{action}</View>}</Panel>;
+}
+
 export function Pill({ children, tone = 'green' }: { children: ReactNode; tone?: 'green' | 'gold' | 'purple' | 'navy' }) {
   const bg = { green: colors.greenSoft, gold: '#FFF3C9', purple: '#EFE8FA', navy: '#E6ECF6' }[tone];
   const fg = { green: colors.green, gold: '#8A6300', purple: colors.purple, navy: colors.navy }[tone];
@@ -70,7 +78,17 @@ function formatTimer(totalSeconds: number) {
 
 const styles = StyleSheet.create({
   appFrame: { flex: 1, width: '100%', maxWidth: 1200, alignSelf: 'center' },
-  panel: { backgroundColor: colors.white, borderRadius: 22, padding: 18, ...shadow },
+  panel: { backgroundColor: colors.white, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: 'rgba(17,36,73,.055)', ...shadow },
+  pageHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, paddingVertical: 4 },
+  pageHeadingCopy: { flex: 1, gap: 4 },
+  pageEyebrow: { color: colors.green, fontSize: 10, fontWeight: '900', letterSpacing: 1.3 },
+  pageTitle: { color: colors.navy, fontSize: 29, lineHeight: 35, fontWeight: '900', letterSpacing: -.6 },
+  pageSubtitle: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  emptyState: { alignItems: 'center', paddingHorizontal: 25, paddingVertical: 38 },
+  emptyIcon: { width: 52, height: 52, borderRadius: 17, backgroundColor: colors.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  emptyTitle: { color: colors.navy, fontSize: 17, fontWeight: '900', textAlign: 'center' },
+  emptyDescription: { color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 5, maxWidth: 340 },
+  emptyAction: { marginTop: 16 },
   pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99 },
   pillText: { fontSize: 10, fontWeight: '900', letterSpacing: .8 },
   track: { height: 11, borderRadius: 99, backgroundColor: '#E8E4DA', overflow: 'hidden' },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Panel, Pill } from './components';
+import { PageHeading, Panel, Pill } from './components';
 import { HeroLevel } from './levels';
 import { colors } from './theme';
 
@@ -11,7 +11,7 @@ export function LevelAdmin({ levels, onSave }: { levels: HeroLevel[]; onSave: (l
   const [editing, setEditing] = useState<HeroLevel | null>(null);
   return <>
     <ScrollView contentContainerStyle={styles.content}>
-      <View><Text style={styles.pageTitle}>Level configuration</Text><Text style={styles.lead}>Set XP milestones, titles, and qualities Heroes build.</Text></View>
+      <PageHeading eyebrow="PARTY LEADER" title="Level configuration" subtitle="Set XP milestones, titles, and qualities Heroes build." />
       <Panel style={styles.notice}><Ionicons name="information-circle-outline" size={23} color={colors.green} /><Text style={styles.noticeText}>Level 1 always starts at 0 XP. Every later milestone must remain higher than the previous one.</Text></Panel>
       {levels.map((level, index) => {
         const next = levels[index + 1];
@@ -43,7 +43,7 @@ function LevelEditor({ value, levels, onClose, onSave }: { value: HeroLevel | nu
     if (characteristics.length !== 3) return Alert.alert('Three qualities required', 'Enter exactly three comma-separated qualities.');
     onSave({ ...value, title: draft.title.trim(), minimumXp, characteristics });
   };
-  return <Modal visible animationType="slide" onRequestClose={onClose}><SafeAreaView style={styles.modalSafe}>
+  return <Modal visible animationType="slide" onRequestClose={onClose}><SafeAreaView style={styles.modalSafe}><View style={styles.modalSurface}>
     <View style={styles.modalHeader}><Pressable onPress={onClose}><Text style={styles.cancel}>Cancel</Text></Pressable><Text style={styles.modalTitle}>Edit Level {value.level}</Text><Pressable onPress={submit}><Text style={styles.save}>Save</Text></Pressable></View>
     <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
       <Field label="Level title"><TextInput value={draft.title} onChangeText={text => update('title', text)} placeholder="e.g. Home Hero" style={styles.input} /></Field>
@@ -52,12 +52,12 @@ function LevelEditor({ value, levels, onClose, onSave }: { value: HeroLevel | nu
       <View style={styles.preview}><Text style={styles.previewLabel}>HERO PREVIEW</Text><Text style={styles.previewTitle}>Alex the {draft.title || 'Hero'}</Text><Text style={styles.previewTraits}>{draft.characteristics.split(',').map(item => item.trim()).filter(Boolean).join(' · ')}</Text></View>
       <Pressable style={styles.primary} onPress={submit}><Text style={styles.primaryText}>Save level</Text></Pressable>
     </ScrollView>
-  </SafeAreaView></Modal>;
+  </View></SafeAreaView></Modal>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <View style={styles.field}><Text style={styles.label}>{label}</Text>{children}</View>; }
 
 const styles = StyleSheet.create({
   content: { padding: 18, paddingBottom: 110, gap: 14 }, pageTitle: { color: colors.navy, fontSize: 27, fontWeight: '900' }, lead: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 3 }, notice: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#EAF3DD' }, noticeText: { flex: 1, color: colors.green, fontSize: 12, lineHeight: 17, fontWeight: '700' }, levelCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13 }, shield: { width: 51, height: 58, backgroundColor: colors.navy, borderWidth: 3, borderColor: colors.gold, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, shieldSmall: { color: colors.white, fontSize: 7, fontWeight: '900' }, shieldNumber: { color: colors.white, fontSize: 25, lineHeight: 28, fontWeight: '900' }, copy: { flex: 1, gap: 4 }, titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }, levelTitle: { color: colors.ink, fontSize: 15, fontWeight: '900' }, traits: { color: colors.purple, fontSize: 11, fontWeight: '800' }, range: { color: colors.muted, fontSize: 10 }, editButton: { width: 36, height: 36, borderRadius: 11, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
-  modalSafe: { flex: 1, backgroundColor: colors.cream }, modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, borderBottomWidth: 1, borderColor: colors.border }, modalTitle: { color: colors.navy, fontSize: 17, fontWeight: '900' }, cancel: { color: colors.muted, fontWeight: '700' }, save: { color: colors.green, fontWeight: '900' }, form: { padding: 18, gap: 18 }, field: { gap: 7 }, label: { color: colors.navy, fontSize: 12, fontWeight: '800' }, input: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, color: colors.ink, fontSize: 15 }, disabled: { backgroundColor: '#E9E5DC', color: colors.muted }, hint: { color: colors.muted, fontSize: 11 }, preview: { alignItems: 'center', padding: 22, borderRadius: 18, backgroundColor: '#EAF3DD', gap: 5 }, previewLabel: { color: colors.green, fontSize: 9, fontWeight: '900', letterSpacing: 1 }, previewTitle: { color: colors.navy, fontSize: 20, fontWeight: '900', textAlign: 'center' }, previewTraits: { color: colors.muted, fontSize: 12, textAlign: 'center' }, primary: { backgroundColor: colors.green, borderRadius: 15, padding: 16, alignItems: 'center' }, primaryText: { color: colors.white, fontWeight: '900' },
+  modalSafe: { flex: 1, backgroundColor: colors.cream }, modalSurface: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', backgroundColor: colors.cream, borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.border }, modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, borderBottomWidth: 1, borderColor: colors.border }, modalTitle: { color: colors.navy, fontSize: 17, fontWeight: '900' }, cancel: { color: colors.muted, fontWeight: '700' }, save: { color: colors.green, fontWeight: '900' }, form: { padding: 18, gap: 18 }, field: { gap: 7 }, label: { color: colors.navy, fontSize: 12, fontWeight: '800' }, input: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, color: colors.ink, fontSize: 15 }, disabled: { backgroundColor: '#E9E5DC', color: colors.muted }, hint: { color: colors.muted, fontSize: 11 }, preview: { alignItems: 'center', padding: 22, borderRadius: 18, backgroundColor: '#EAF3DD', gap: 5 }, previewLabel: { color: colors.green, fontSize: 9, fontWeight: '900', letterSpacing: 1 }, previewTitle: { color: colors.navy, fontSize: 20, fontWeight: '900', textAlign: 'center' }, previewTraits: { color: colors.muted, fontSize: 12, textAlign: 'center' }, primary: { backgroundColor: colors.green, borderRadius: 15, padding: 16, alignItems: 'center' }, primaryText: { color: colors.white, fontWeight: '900' },
 });

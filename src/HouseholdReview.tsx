@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Panel, Pill } from './components';
+import { EmptyState, PageHeading, Panel, Pill } from './components';
 import { GuildApproval, HeroSummary, Quest, Reward, RewardRequest } from './types';
 import { colors } from './theme';
 
@@ -24,8 +24,8 @@ export function HouseholdReview({ heroes, heroQuests, rewards, guildApprovals, r
   }, [pendingGuild, heroQuests, now]);
 
   return <ScrollView contentContainerStyle={styles.content}>
-    <View style={styles.heading}><View><Text style={styles.pageTitle}>Review inbox</Text><Text style={styles.lead}>Approve effort and reward requests across your household.</Text></View><Pill tone="purple">{total}</Pill></View>
-    {total === 0 && <Panel style={styles.empty}><Text style={styles.emptyIcon}>✅</Text><Text style={styles.cardTitle}>All caught up!</Text><Text style={styles.lead}>Quest completions and reward requests will appear here.</Text></Panel>}
+    <PageHeading eyebrow="PARTY LEADER" title="Review inbox" subtitle="Approve effort and reward requests across your household." action={<Pill tone="purple">{total}</Pill>} />
+    {total === 0 && <EmptyState icon="checkmark-circle-outline" title="All caught up!" description="Quest completions and reward requests will appear here." />}
     {pendingRewards.length > 0 && <View style={styles.section}><Text style={styles.sectionTitle}>Reward requests</Text>{pendingRewards.map(item => {
       const owner = hero(item.heroId); const requested = reward(item);
       const availableStars = owner?.stars ?? 0;

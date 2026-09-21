@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Panel } from './components';
+import { EmptyState, PageHeading, Panel } from './components';
 import { colors } from './theme';
 import { Reward } from './types';
 import { EmojiPickerField } from './EmojiPicker';
@@ -39,10 +39,7 @@ export function RewardAdmin({ rewards, retiredRewards = [], pendingRewardIds = [
 
   return <>
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.heading}>
-        <View><Text style={styles.pageTitle}>Rewards</Text><Text style={styles.lead}>Set privileges and star prices</Text></View>
-        <Pressable accessibilityLabel="Add reward" style={styles.addButton} onPress={() => setEditing('new')}><Ionicons name="add" size={25} color={colors.white} /></Pressable>
-      </View>
+      <PageHeading eyebrow="PARTY LEADER" title="Rewards" subtitle="Set privileges and star prices" action={<Pressable accessibilityLabel="Add reward" style={styles.addButton} onPress={() => setEditing('new')}><Ionicons name="add" size={25} color={colors.white} /></Pressable>} />
       <View style={styles.viewTabs}>
         <Pressable onPress={() => setView('household')} style={[styles.viewTab, view === 'household' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'household' && styles.viewTabTextActive]}>My rewards</Text></Pressable>
         <Pressable onPress={() => setView('library')} style={[styles.viewTab, view === 'library' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'library' && styles.viewTabTextActive]}>Reward library</Text></Pressable>
@@ -50,7 +47,7 @@ export function RewardAdmin({ rewards, retiredRewards = [], pendingRewardIds = [
       </View>
       <Text style={styles.privacy}>{view === 'library' ? '✨ Ready-made rewards you can customise before adding' : view === 'retired' ? '🗃️ Hidden from Heroes · redemption history is preserved' : '🔒 Private to your household'}</Text>
       <Panel style={styles.summary}><Text style={styles.summaryValue}>{source.length}</Text><View><Text style={styles.cardTitle}>{view === 'household' ? 'Active rewards' : view === 'retired' ? 'Retired rewards' : 'Available ideas'}</Text><Text style={styles.lead}>{view === 'household' ? 'Changes appear instantly in the Hero’s store.' : view === 'retired' ? 'Restore a reward to return it to the Star Store.' : 'Choose one, then adjust its details and price.'}</Text></View></Panel>
-      {source.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>{view === 'retired' ? '🗃️' : '🎁'}</Text><Text style={styles.cardTitle}>{view === 'library' ? 'Every library reward is already added' : view === 'retired' ? 'No retired rewards' : 'No rewards yet'}</Text>{view === 'household' && <Pressable onPress={() => setEditing('new')}><Text style={styles.link}>Add the first reward</Text></Pressable>}</Panel> : source.map(reward =>
+      {source.length === 0 ? <EmptyState icon={view === 'retired' ? 'archive-outline' : 'gift-outline'} title={view === 'library' ? 'Every library reward is already added' : view === 'retired' ? 'No retired rewards' : 'No rewards yet'} description={view === 'household' ? 'Add a reward to make your Heroes’ stars meaningful.' : undefined} action={view === 'household' ? <Pressable onPress={() => setEditing('new')}><Text style={styles.link}>Add the first reward</Text></Pressable> : undefined} /> : source.map(reward =>
         <Panel key={reward.id} style={styles.rewardCard}>
           <View style={styles.emojiBox}><Text style={styles.emoji}>{reward.emoji}</Text></View>
           <View style={styles.copy}><Text style={styles.rewardTitle}>{reward.title}</Text><Text style={styles.lead}>{reward.subtitle}</Text><Text style={styles.cost}>⭐ {reward.cost} stars</Text>{view === 'household' && pendingRewardIds.includes(reward.rewardId ?? reward.id) && <Text style={styles.pendingNote}>Pending approval · review before retiring</Text>}</View>

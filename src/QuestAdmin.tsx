@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Panel, Pill } from './components';
+import { EmptyState, PageHeading, Panel, Pill } from './components';
 import { colors } from './theme';
 import { HeroProfile, Quest, QuestAssignment } from './types';
 import { EmojiPickerField } from './EmojiPicker';
@@ -57,10 +57,7 @@ export function QuestAdmin({ quests, retiredQuests = [], pendingTemplateIds = []
 
   return <>
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.heading}>
-        <View><Text style={styles.pageTitle}>Household quests</Text><Text style={styles.lead}>Choose adventures and assign them to one or more Heroes</Text></View>
-        <Pressable accessibilityLabel="Add custom quest" style={styles.addButton} onPress={create}><Ionicons name="add" size={25} color={colors.white} /></Pressable>
-      </View>
+      <PageHeading eyebrow="PARTY LEADER" title="Household quests" subtitle="Choose adventures and assign them to one or more Heroes" action={<Pressable accessibilityLabel="Add custom quest" style={styles.addButton} onPress={create}><Ionicons name="add" size={25} color={colors.white} /></Pressable>} />
 
       <View style={styles.viewTabs}>
         <Pressable onPress={() => setView('household')} style={[styles.viewTab, view === 'household' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'household' && styles.viewTabTextActive]}>My quests</Text></Pressable>
@@ -77,7 +74,7 @@ export function QuestAdmin({ quests, retiredQuests = [], pendingTemplateIds = []
         {(['all','daily','weekly','guild'] as Category[]).map(key => <Pressable key={key} onPress={() => setCategory(key)} style={[styles.filter, category === key && styles.filterActive]}><Text style={[styles.filterText, category === key && styles.filterTextActive]}>{key[0].toUpperCase()+key.slice(1)} · {counts(key)}</Text></Pressable>)}
       </ScrollView>
 
-      {filtered.length === 0 ? <Panel style={styles.empty}><Text style={styles.emptyIcon}>{view === 'retired' ? '🗃️' : '🗺️'}</Text><Text style={styles.cardTitle}>{view === 'library' ? 'Every library quest is already added' : view === 'retired' ? 'No retired quests' : `No ${category} quests yet`}</Text>{view === 'household' && <Pressable onPress={create}><Text style={styles.link}>Create the first one</Text></Pressable>}</Panel> : filtered.map(q => <Panel key={q.id} style={styles.questCard}>
+      {filtered.length === 0 ? <EmptyState icon={view === 'retired' ? 'archive-outline' : 'map-outline'} title={view === 'library' ? 'Every library quest is already added' : view === 'retired' ? 'No retired quests' : `No ${category} quests yet`} description={view === 'household' ? 'Create a quest for your Heroes or explore the library.' : undefined} action={view === 'household' ? <Pressable onPress={create}><Text style={styles.link}>Create the first one</Text></Pressable> : undefined} /> : filtered.map(q => <Panel key={q.id} style={styles.questCard}>
         <View style={styles.emojiBox}><Text style={styles.emoji}>{q.emoji}</Text></View>
         <View style={styles.questCopy}>
           <View style={styles.titleRow}><Text style={styles.questTitle}>{q.title}</Text><Pill tone={q.cadence === 'guild' ? 'purple' : q.cadence === 'weekly' ? 'gold' : 'green'}>{(q.cadence ?? 'daily').toUpperCase()}</Pill></View>

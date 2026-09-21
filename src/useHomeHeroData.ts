@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { initialQuests } from './data';
 import { backendEnabled, supabase } from './lib/supabase';
@@ -34,6 +34,7 @@ export type HeroWeeklyProgress = {
 const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader', heroNames: [], managedHeroes: [], todayProgress: [], weeklyProgress: [], safeZone: null };
 
 export function useHomeHeroData() {
+  const loadedUserId = useRef<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [family, setFamily] = useState<FamilyContext | null>(null);
   const [quests, setQuests] = useState<Quest[]>(backendEnabled ? [] : initialQuests);
@@ -59,8 +60,11 @@ export function useHomeHeroData() {
     if (!supabase) return;
     const current = activeSession === undefined ? (await supabase.auth.getSession()).data.session : activeSession;
     setSession(current);
-    if (!current) { setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
-    setLoading(true); setError(null);
+    if (!current) { loadedUserId.current = null; setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
+    // Keep the existing screen visible when refreshing data for the same account.
+    // A full-screen loader is only needed before we have loaded this account.
+    if (loadedUserId.current !== current.user.id) setLoading(true);
+    setError(null);
     try {
       const { data: membership, error: membershipError } = await supabase.from('household_members').select('household_id, role, households(name, invite_code, timezone)').eq('user_id', current.user.id).maybeSingle();
       if (membershipError) throw membershipError;
@@ -245,13 +249,17 @@ export function useHomeHeroData() {
         setPendingRewardIds((ownRequests ?? []).map(request => request.reward_id));
       }
     } catch (cause) { setError(errorMessage(cause)); }
-    finally { setLoading(false); }
+    finally { loadedUserId.current = current.user.id; setLoading(false); }
   }, []);
 
   useEffect(() => {
     if (!supabase) return;
     refresh();
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => refresh(next));
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      // The explicit startup refresh handles INITIAL_SESSION. Token renewal
+      // does not change the data we display, so neither needs another fetch.
+      if (event !== 'INITIAL_SESSION' && event !== 'TOKEN_REFRESHED') refresh(next);
+    });
     return () => data.subscription.unsubscribe();
   }, [refresh]);
 

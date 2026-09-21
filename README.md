@@ -67,6 +67,10 @@ Re-enabling the frontend flag never applies migrations automatically. Database m
 
 ## Staging and production environments
 
+The branded Party Leader confirmation email has a separate
+[Supabase email setup runbook](supabase/templates/README.md). Expo deployments do
+not publish email templates or SMTP settings.
+
 Home Hero uses separate Supabase projects and Expo environments:
 
 | Environment | Expo environment | Supabase project |

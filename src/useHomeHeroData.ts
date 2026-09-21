@@ -35,6 +35,7 @@ const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader
 
 export function useHomeHeroData() {
   const loadedUserId = useRef<string | null>(null);
+  const activeUserId = useRef<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [family, setFamily] = useState<FamilyContext | null>(null);
   const [quests, setQuests] = useState<Quest[]>(backendEnabled ? [] : initialQuests);
@@ -59,6 +60,7 @@ export function useHomeHeroData() {
   const refresh = useCallback(async (activeSession?: Session | null) => {
     if (!supabase) return;
     const current = activeSession === undefined ? (await supabase.auth.getSession()).data.session : activeSession;
+    activeUserId.current = current?.user.id ?? null;
     setSession(current);
     if (!current) { loadedUserId.current = null; setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
     // Keep the existing screen visible when refreshing data for the same account.
@@ -258,7 +260,11 @@ export function useHomeHeroData() {
     const { data } = supabase.auth.onAuthStateChange((event, next) => {
       // The explicit startup refresh handles INITIAL_SESSION. Token renewal
       // does not change the data we display, so neither needs another fetch.
-      if (event !== 'INITIAL_SESSION' && event !== 'TOKEN_REFRESHED') refresh(next);
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') return;
+      // Supabase also emits SIGNED_IN when an existing browser tab regains
+      // focus. Re-fetch only when that event represents a different account.
+      if (event === 'SIGNED_IN' && next?.user.id === activeUserId.current) return;
+      void refresh(next);
     });
     return () => data.subscription.unsubscribe();
   }, [refresh]);

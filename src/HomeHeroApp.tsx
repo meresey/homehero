@@ -9,6 +9,7 @@ import { Quest, QuestCompletion, Reward, RewardRedemption, StreakAward } from '.
 import { QuestAdmin } from './QuestAdmin';
 import { RewardAdmin } from './RewardAdmin';
 import { AuthScreen, OnboardingScreen } from './AuthFlow';
+import { PartyLeaders } from './PartyLeaders';
 import { useHomeHeroData } from './useHomeHeroData';
 import type { HeroTodayProgress, HeroWeeklyProgress, ManagedHeroAccount, ParentDashboardSummary } from './useHomeHeroData';
 import { archiveQuest, restoreQuest as restoreQuestInDatabase, saveQuest as saveQuestToDatabase } from './lib/questAdmin';
@@ -209,7 +210,7 @@ export function HomeHeroApp() {
       ) : (
         <>
           {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} onOpenAttention={heroId => { householdData.setSelectedHero(heroId); setParentTab('approvals'); }} />}
-          {parentTab === 'home' && data.backendEnabled && <ParentHome householdName={data.family?.householdName ?? 'Your household'} dashboard={data.parentDashboard} pendingQuests={data.pendingQuests} pendingRewards={data.pendingRewards} runningTimers={data.runningTimers} onEnrollHero={() => setEnrollingHero(true)} onManageHero={setManagedHero} onOpenReview={() => setParentTab('approvals')} onOpenQuests={() => setParentTab('quests')} onOpenRewards={() => setParentTab('rewards')} />}
+          {parentTab === 'home' && data.backendEnabled && <ParentHome householdName={data.family?.householdName ?? 'Your household'} householdId={data.family!.householdId} currentUserId={data.session!.user.id} dashboard={data.parentDashboard} pendingQuests={data.pendingQuests} pendingRewards={data.pendingRewards} runningTimers={data.runningTimers} onEnrollHero={() => setEnrollingHero(true)} onManageHero={setManagedHero} onOpenReview={() => setParentTab('approvals')} onOpenQuests={() => setParentTab('quests')} onOpenRewards={() => setParentTab('rewards')} />}
           {parentTab === 'quests' && <QuestAdmin quests={quests} retiredQuests={data.backendEnabled ? data.retiredQuests : localRetiredQuests} pendingTemplateIds={data.backendEnabled ? data.pendingQuests.map(item => item.templateId ?? item.id) : householdData.state.guildApprovals.filter(item => item.status === 'pending').map(item => item.questId)} heroes={data.backendEnabled ? data.heroes : householdData.state.heroes} assignments={data.backendEnabled ? data.questAssignments : householdData.state.questAssignments} catalog={data.backendEnabled ? data.questCatalog : demoQuestCatalog} onSave={saveQuest} onRemove={removeQuest} onRestore={restoreQuest} />}
           {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} />}
           {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} runningTimers={data.runningTimers} rewards={data.pendingRewards} reviewQuest={reviewQuest} reviewReward={reviewReward} />}
@@ -300,7 +301,7 @@ function HeroProfile({ name, stars, xp, levels, badges }: { name: string; stars:
   </ScrollView>;
 }
 
-function ParentHome({ householdName, dashboard, pendingQuests, pendingRewards, runningTimers, onEnrollHero, onManageHero, onOpenReview, onOpenQuests, onOpenRewards }: { householdName: string; dashboard: ParentDashboardSummary; pendingQuests: Quest[]; pendingRewards: RewardRedemption[]; runningTimers: Quest[]; onEnrollHero: () => void; onManageHero: (hero: ManagedHeroAccount) => void; onOpenReview: () => void; onOpenQuests: () => void; onOpenRewards: () => void }) {
+function ParentHome({ householdName, householdId, currentUserId, dashboard, pendingQuests, pendingRewards, runningTimers, onEnrollHero, onManageHero, onOpenReview, onOpenQuests, onOpenRewards }: { householdName: string; householdId: string; currentUserId: string; dashboard: ParentDashboardSummary; pendingQuests: Quest[]; pendingRewards: RewardRedemption[]; runningTimers: Quest[]; onEnrollHero: () => void; onManageHero: (hero: ManagedHeroAccount) => void; onOpenReview: () => void; onOpenQuests: () => void; onOpenRewards: () => void }) {
   const pendingCount = pendingQuests.length + pendingRewards.length;
   const todayTotal = dashboard.todayProgress.reduce((sum, hero) => sum + hero.totalQuests, 0);
   const todayCompleted = dashboard.todayProgress.reduce((sum, hero) => sum + hero.completedQuests, 0);
@@ -332,6 +333,7 @@ function ParentHome({ householdName, dashboard, pendingQuests, pendingRewards, r
     </View>
 
     {dashboard.managedHeroes.length > 0 && <Panel><View style={styles.enrollmentCard}><View style={styles.enrollmentCopy}><Text style={styles.cardTitle}>Hero access</Text><Text style={styles.muted}>Manage the child-safe usernames and PINs your Heroes use to sign in.</Text></View></View><View style={styles.heroLoginList}>{dashboard.managedHeroes.map(hero => <View key={hero.userId} style={styles.heroLoginRow}><View style={styles.heroLoginIcon}><Ionicons name="person-outline" size={20} color={colors.navy} /></View><View style={styles.heroLoginCopy}><Text style={styles.heroLoginName}>{hero.displayName}</Text><Text style={styles.heroLoginUsername}>@{hero.username}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Manage ${hero.displayName}'s login`} onPress={() => onManageHero(hero)} style={styles.manageLoginButton}><Ionicons name="key-outline" size={16} color={colors.navy} /><Text style={styles.manageLoginText}>Manage login</Text></Pressable></View>)}</View></Panel>}
+    <PartyLeaders householdId={householdId} currentUserId={currentUserId} />
   </ScrollView>;
 }
 

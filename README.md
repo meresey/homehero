@@ -96,6 +96,12 @@ npx supabase functions deploy --project-ref qufmceawkyuritfyfffa
 
 Authentication users and household data are intentionally independent between the two projects. Never copy production user or household data into staging.
 
+### Additional Party Leaders
+
+The household owner can create an email-bound, one-time Party Leader invitation from the Party Leaders panel on the home dashboard. Share its 32-character code privately; it is shown only when created, expires after seven days, and can be revoked. The invited adult creates or signs in to their own confirmed account, then selects **Join household** during onboarding and enters the code. Existing Heroes become visible to the new leader automatically. The owner can remove another leader without deleting their account or historical activity. The Hero family join code cannot grant Party Leader access.
+
+Apply `202609210001_party_leader_invitations.sql` to staging before testing this flow there. As with other migrations, a frontend deploy alone does not create the database functions. Apply to production only during an explicitly requested production release.
+
 ## Server command mapping
 
 | User action | RPC |

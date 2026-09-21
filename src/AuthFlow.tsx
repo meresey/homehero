@@ -77,7 +77,7 @@ export function AuthScreen() {
       </LinearGradient>
 
       <View style={[styles.authFormPanel, !wide && styles.authFormPanelStacked]}>
-        <View style={styles.authFormHeader}><Text style={styles.authEyebrow}>{signup ? 'BEGIN YOUR ADVENTURE' : 'WELCOME BACK'}</Text><Text style={styles.authHeading}>{role === 'hero' ? 'Ready for your quests?' : signup ? 'Create your family hub' : 'Sign in to Home Hero'}</Text><Text style={styles.authCopy}>{role === 'hero' ? 'Use the username and PIN your Party Leader created.' : signup ? 'Set up your Party Leader account in a few moments.' : 'Manage quests, celebrate progress, and keep your family moving.'}</Text></View>
+        <View style={styles.authFormHeader}><Text style={styles.authEyebrow}>{signup ? 'BEGIN YOUR ADVENTURE' : 'WELCOME BACK'}</Text><Text style={styles.authHeading}>{role === 'hero' ? 'Ready for your quests?' : signup ? 'Create your Party Leader account' : 'Sign in to Home Hero'}</Text><Text style={styles.authCopy}>{role === 'hero' ? 'Use the username and PIN your Party Leader created.' : signup ? 'Create a household or join one with an invitation after confirming your email.' : 'Manage quests, celebrate progress, and keep your family moving.'}</Text></View>
 
         <View style={styles.roleCards}>{(['parent', 'hero'] as const).map(item => {
           const active = role === item;
@@ -134,18 +134,23 @@ export function OnboardingScreen({ refresh, backendError }: { refresh: () => Pro
   const { width } = useWindowDimensions();
   const wide = width >= 760;
   const [familyName, setFamilyName] = useState('');
+  const [mode, setMode] = useState<'create' | 'join'>('create');
+  const [inviteCode, setInviteCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const submit = async () => {
     if (!supabase) return setMessage({ tone: 'error', text: 'Home Hero could not connect to the server. Please reload and try again.' });
-    if (!familyName.trim()) return setMessage({ tone: 'error', text: 'Enter a family name.' });
+    if (mode === 'create' && !familyName.trim()) return setMessage({ tone: 'error', text: 'Enter a family name.' });
+    if (mode === 'join' && !/^[0-9A-F]{32}$/.test(inviteCode.toUpperCase().replace(/[\s-]/g, ''))) return setMessage({ tone: 'error', text: 'Enter the 32-character invitation code from your household owner.' });
     setBusy(true); setMessage(null);
     try {
-      const { error } = await supabase.rpc('create_parent_household', { p_name: familyName.trim(), p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+      const { error } = mode === 'create'
+        ? await supabase.rpc('create_parent_household', { p_name: familyName.trim(), p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
+        : await supabase.rpc('accept_parent_invitation', { p_token: inviteCode.toUpperCase().replace(/[\s-]/g, '') });
       if (error) throw error;
-      setMessage({ tone: 'success', text: 'Family created. Loading your Party Leader dashboard…' });
+      setMessage({ tone: 'success', text: mode === 'create' ? 'Family created. Loading your Party Leader dashboard…' : 'Invitation accepted. Loading your household…' });
       await refresh();
-    } catch (cause) { setMessage({ tone: 'error', text: cause instanceof Error ? cause.message : 'Could not create your family. Please try again.' }); }
+    } catch (cause) { setMessage({ tone: 'error', text: cause instanceof Error ? cause.message : 'Could not complete onboarding. Please try again.' }); }
     finally { setBusy(false); }
   };
   const visibleMessage = message ?? (backendError ? { tone: 'error' as const, text: backendError } : null);
@@ -155,20 +160,18 @@ export function OnboardingScreen({ refresh, backendError }: { refresh: () => Pro
       <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.onboardingGuide, !wide && styles.onboardingGuideCompact]}>
         <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
         <View style={styles.brandTop}><View style={styles.brandShield}><Ionicons name="shield-checkmark" size={31} color={colors.white} /></View><Text style={styles.authTitle}>HOME <Text style={styles.authTitleAccent}>HERO</Text></Text></View>
-        <View style={styles.onboardingGuideCopy}><Text style={styles.onboardingEyebrow}>YOUR FAMILY ADVENTURE</Text><Text style={[styles.onboardingGuideTitle, !wide && styles.onboardingGuideTitleCompact]}>A heroic home starts here.</Text><Text style={styles.brandLead}>Create your household, then invite your Heroes into a safe space built for encouragement and progress.</Text></View>
+        <View style={styles.onboardingGuideCopy}><Text style={styles.onboardingEyebrow}>YOUR FAMILY ADVENTURE</Text><Text style={[styles.onboardingGuideTitle, !wide && styles.onboardingGuideTitleCompact]}>A heroic home starts here.</Text><Text style={styles.brandLead}>Create a household or join one as a Party Leader, then support your Heroes together.</Text></View>
         {wide && <View style={styles.onboardingSteps}>
-          <OnboardingStep number="1" title="Create your household" detail="Give your family hub a familiar name." active />
-          <OnboardingStep number="2" title="Enrol your Heroes" detail="Create a username and PIN for each child." />
-          <OnboardingStep number="3" title="Choose your quests" detail="Pick age-appropriate habits and rewards." />
+          {mode === 'create' ? <><OnboardingStep number="1" title="Create your household" detail="Give your family hub a familiar name." active /><OnboardingStep number="2" title="Enrol your Heroes" detail="Create a username and PIN for each child." /><OnboardingStep number="3" title="Choose your quests" detail="Pick age-appropriate habits and rewards." /></> : <><OnboardingStep number="1" title="Accept your invitation" detail="Use the code from your household owner." active /><OnboardingStep number="2" title="Meet your Heroes" detail="See every Hero already in the household." /><OnboardingStep number="3" title="Lead together" detail="Share quests, rewards, and approvals." /></>}
         </View>}
       </LinearGradient>
       <View style={[styles.onboardingForm, !wide && styles.onboardingFormStacked]}>
-        <View style={styles.onboardingFormHeader}><View style={styles.onboardingStepBadge}><Text style={styles.onboardingStepBadgeText}>STEP 1 OF 3</Text></View><Text style={styles.authHeading}>Create your household</Text><Text style={styles.authCopy}>This name will appear across your Party Leader dashboard and your Heroes’ accounts.</Text></View>
+        <View style={styles.onboardingFormHeader}><View style={styles.onboardingStepBadge}><Text style={styles.onboardingStepBadgeText}>PARTY LEADER SETUP</Text></View><Text style={styles.authHeading}>{mode === 'create' ? 'Create your household' : 'Join your household'}</Text><Text style={styles.authCopy}>{mode === 'create' ? 'This name will appear across your Party Leader dashboard and your Heroes’ accounts.' : 'Enter the one-time invitation code shared by your household owner. You must be signed in with the invited email.'}</Text></View>
+        <View style={styles.onboardingModeRow}><Pressable accessibilityRole="button" onPress={() => { setMode('create'); setMessage(null); }} style={[styles.onboardingModeButton, mode === 'create' && styles.onboardingModeActive]}><Text style={[styles.onboardingModeText, mode === 'create' && styles.onboardingModeTextActive]}>Create household</Text></Pressable><Pressable accessibilityRole="button" onPress={() => { setMode('join'); setMessage(null); }} style={[styles.onboardingModeButton, mode === 'join' && styles.onboardingModeActive]}><Text style={[styles.onboardingModeText, mode === 'join' && styles.onboardingModeTextActive]}>Join household</Text></Pressable></View>
         {visibleMessage && <View accessibilityRole="alert" style={[styles.message, styles.authMessage, visibleMessage.tone === 'success' ? styles.successMessage : styles.errorMessage]}><Ionicons name={visibleMessage.tone === 'success' ? 'checkmark-circle-outline' : 'alert-circle-outline'} size={19} color={visibleMessage.tone === 'success' ? '#315D1A' : '#9A3528'} /><Text style={[styles.messageText, styles.authMessageText, visibleMessage.tone === 'success' ? styles.successText : styles.errorText]}>{visibleMessage.text}</Text></View>}
-        <AuthField label="Household name" icon="home-outline"><TextInput editable={!busy} value={familyName} onChangeText={text => { setFamilyName(text); setMessage(null); }} autoCapitalize="words" placeholder="e.g. The Meresey Family" placeholderTextColor="#9298A8" onSubmitEditing={submit} style={styles.authInput} /></AuthField>
-        <View style={styles.timezoneCard}><View style={styles.timezoneIcon}><Ionicons name="globe-outline" size={19} color={colors.green} /></View><View style={{ flex: 1 }}><Text style={styles.timezoneLabel}>YOUR LOCAL TIME ZONE</Text><Text style={styles.timezoneValue}>{timezone}</Text></View><Ionicons name="checkmark-circle" size={20} color={colors.green} /></View>
-        <View style={styles.onboardingNotice}><Ionicons name="lock-closed-outline" size={18} color={colors.purple} /><Text style={styles.onboardingNoticeText}>Your household is private. Only Heroes you enrol can join it.</Text></View>
-        <Pressable accessibilityRole="button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.authPrimary, pressed && styles.authPrimaryPressed, busy && styles.primaryDisabled]}><Text style={styles.authPrimaryText}>{busy ? 'Creating household…' : 'Create household'}</Text><Ionicons name="arrow-forward" size={18} color={colors.white} /></Pressable>
+        {mode === 'create' ? <><AuthField label="Household name" icon="home-outline"><TextInput editable={!busy} value={familyName} onChangeText={text => { setFamilyName(text); setMessage(null); }} autoCapitalize="words" placeholder="e.g. The Meresey Family" placeholderTextColor="#9298A8" onSubmitEditing={submit} style={styles.authInput} /></AuthField><View style={styles.timezoneCard}><View style={styles.timezoneIcon}><Ionicons name="globe-outline" size={19} color={colors.green} /></View><View style={{ flex: 1 }}><Text style={styles.timezoneLabel}>YOUR LOCAL TIME ZONE</Text><Text style={styles.timezoneValue}>{timezone}</Text></View><Ionicons name="checkmark-circle" size={20} color={colors.green} /></View></> : <AuthField label="Party Leader invitation code" icon="key-outline"><TextInput editable={!busy} value={inviteCode} onChangeText={text => { setInviteCode(text.toUpperCase().replace(/[^0-9A-F\s-]/g, '')); setMessage(null); }} autoCapitalize="characters" autoCorrect={false} placeholder="32-character code" placeholderTextColor="#9298A8" onSubmitEditing={submit} style={styles.authInput} /></AuthField>}
+        <View style={styles.onboardingNotice}><Ionicons name="lock-closed-outline" size={18} color={colors.purple} /><Text style={styles.onboardingNoticeText}>{mode === 'create' ? 'Your household is private. Only Heroes you enrol and Party Leaders you invite can join it.' : 'This code works once, expires after 7 days, and only works for the email address invited.'}</Text></View>
+        <Pressable accessibilityRole="button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.authPrimary, pressed && styles.authPrimaryPressed, busy && styles.primaryDisabled]}><Text style={styles.authPrimaryText}>{busy ? 'Please wait…' : mode === 'create' ? 'Create household' : 'Join household'}</Text><Ionicons name="arrow-forward" size={18} color={colors.white} /></Pressable>
         <Pressable disabled={busy} onPress={() => supabase?.auth.signOut()} style={styles.onboardingSignOut}><Ionicons name="log-out-outline" size={16} color={colors.muted} /><Text style={styles.onboardingSignOutText}>Sign out and use another account</Text></Pressable>
       </View>
     </View>
@@ -256,6 +259,11 @@ const styles = StyleSheet.create({
   onboardingForm: { flex: 1.1, paddingHorizontal: 48, paddingVertical: 42, justifyContent: 'center' },
   onboardingFormStacked: { flex: 0, paddingHorizontal: 24, paddingVertical: 31 },
   onboardingFormHeader: { gap: 7, marginBottom: 23 },
+  onboardingModeRow: { flexDirection: 'row', backgroundColor: '#F2EFE8', borderRadius: 13, padding: 4, marginBottom: 17 },
+  onboardingModeButton: { flex: 1, paddingVertical: 10, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center' },
+  onboardingModeActive: { backgroundColor: colors.navy },
+  onboardingModeText: { color: colors.muted, fontWeight: '800', fontSize: 11 },
+  onboardingModeTextActive: { color: colors.white },
   onboardingStepBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: colors.greenSoft },
   onboardingStepBadgeText: { color: colors.green, fontSize: 8, fontWeight: '900', letterSpacing: .9 },
   timezoneCard: { marginTop: 14, padding: 13, borderRadius: 14, backgroundColor: '#F8F7F2', borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 10 },

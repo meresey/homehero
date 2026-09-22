@@ -243,15 +243,16 @@ function HeroHeader({ name, level, stars, xp, badges }: { name: string; level: H
 }
 
 function ChildToday({ quests, xp, levels, onQuest }: { quests: Quest[]; xp: number; levels: HeroLevel[]; onQuest: (q: Quest) => void }) {
+  const compact = useWindowDimensions().width < 380;
   const earned = quests.filter(q => q.status === 'rewarded').length;
   const level = getHeroLevelProgress(xp, levels);
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Panel>
-        <View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Level {level.current.level} · {level.current.title}</Text><Text style={styles.muted}>{level.lifetimeXp} lifetime XP{level.next ? ` · ${level.earnedThisLevel} of ${level.levelRange} this level` : ''}</Text></View><Pill tone="gold">{level.next ? `${level.remainingXp} XP TO LEVEL ${level.next.level}` : 'MAX LEVEL'}</Pill></View>
+        <View style={[styles.sectionHeader, compact && styles.levelHeaderCompact]}><View style={[styles.levelHeaderCopy, compact && styles.levelHeaderCopyCompact]}><Text style={styles.cardTitle}>Level {level.current.level} · {level.current.title}</Text><Text style={styles.muted}>{level.lifetimeXp} lifetime XP{level.next ? ` · ${level.earnedThisLevel} of ${level.levelRange} this level` : ''}</Text></View><Pill tone="gold">{level.next ? `${level.remainingXp} XP TO LEVEL ${level.next.level}` : 'MAX LEVEL'}</Pill></View>
         <ProgressBar value={level.earnedThisLevel} max={level.levelRange} color={colors.gold} />
       </Panel>
-      <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Today's quests</Text><Text style={styles.muted}>{earned} of {quests.length} complete</Text></View><Pill>{Math.round(earned / quests.length * 100)}%</Pill></View>
+      <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Today's quests</Text><Text style={styles.muted}>{earned} of {quests.length} complete</Text></View><Pill>{quests.length ? Math.round(earned / quests.length * 100) : 0}%</Pill></View>
       {quests.map(quest => <QuestCard key={quest.id} quest={quest} onPress={() => onQuest(quest)} />)}
       <Panel style={{ backgroundColor: '#FFF7DE' }}><Text style={styles.tipTitle}>⚡ Perfect week in reach</Text><Text style={styles.muted}>Keep your daily quests going through Sunday to earn +5 bonus XP.</Text></Panel>
     </ScrollView>
@@ -459,6 +460,9 @@ function currentStreak(history: QuestCompletion[], questId: string, now: Date) {
 }
 
 const styles = StyleSheet.create({
+  levelHeaderCompact: { flexWrap: 'wrap' },
+  levelHeaderCopy: { flex: 1, minWidth: 0 },
+  levelHeaderCopyCompact: { flexBasis: '100%' },
   safe: { flex: 1, backgroundColor: colors.cream }, screen: { flex: 1 }, loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }, content: { padding: 18, paddingBottom: 110, gap: 16 },
   roleBar: { paddingHorizontal: 18, paddingVertical: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.cream },
   wordmark: { flexDirection: 'row', alignItems: 'center', gap: 8 }, wordmarkIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },

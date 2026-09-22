@@ -12,7 +12,7 @@ type Message = { tone: 'success' | 'error'; text: string } | null;
 
 export function AuthScreen() {
   const { width } = useWindowDimensions();
-  const wide = width >= 780;
+  const wide = width >= 900;
   const [role, setRole] = useState<LoginRole>('parent');
   const [signup, setSignup] = useState(false);
   const [email, setEmail] = useState('');
@@ -62,7 +62,7 @@ export function AuthScreen() {
     setMessage(error ? { tone: 'error', text: friendlyAuthError(error.message) } : { tone: 'success', text: `Password reset instructions were sent to ${email.trim()}.` });
   };
 
-  return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={styles.authPage} keyboardShouldPersistTaps="handled">
+  return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={[styles.authPage, width < 480 && styles.authPageNarrow]} keyboardShouldPersistTaps="handled">
     <View style={[styles.authShell, !wide && styles.authShellStacked]}>
       <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.brandPanel, !wide && styles.brandPanelCompact]}>
         <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
@@ -79,7 +79,7 @@ export function AuthScreen() {
       <View style={[styles.authFormPanel, !wide && styles.authFormPanelStacked]}>
         <View style={styles.authFormHeader}><Text style={styles.authEyebrow}>{signup ? 'BEGIN YOUR ADVENTURE' : 'WELCOME BACK'}</Text><Text style={styles.authHeading}>{role === 'hero' ? 'Ready for your quests?' : signup ? 'Create your Party Leader account' : 'Sign in to Home Hero'}</Text><Text style={styles.authCopy}>{role === 'hero' ? 'Use the username and PIN your Party Leader created.' : signup ? 'Create a household or join one with an invitation after confirming your email.' : 'Manage quests, celebrate progress, and keep your family moving.'}</Text></View>
 
-        <View style={styles.roleCards}>{(['parent', 'hero'] as const).map(item => {
+        <View style={[styles.roleCards, width < 480 && styles.roleCardsNarrow]}>{(['parent', 'hero'] as const).map(item => {
           const active = role === item;
           return <Pressable key={item} disabled={busy} onPress={() => changeRole(item)} style={[styles.roleCard, active && styles.roleCardActive]}><View style={[styles.roleIcon, active && styles.roleIconActive]}><Ionicons name={item === 'parent' ? 'people-outline' : 'flash-outline'} size={18} color={active ? colors.white : colors.navy} /></View><View style={{ flex: 1 }}><Text style={[styles.roleTitle, active && styles.roleTitleActive]}>{item === 'parent' ? 'Party Leader' : 'Hero'}</Text><Text style={[styles.roleDescription, active && styles.roleDescriptionActive]}>{item === 'parent' ? 'Manage the household' : 'Continue your quests'}</Text></View>{active && <Ionicons name="checkmark-circle" size={18} color={colors.gold} />}</Pressable>;
         })}</View>
@@ -132,7 +132,7 @@ function confirmationRedirect() { if (Platform.OS === 'web' && typeof window !==
 
 export function OnboardingScreen({ refresh, backendError }: { refresh: () => Promise<void>; backendError?: string | null }) {
   const { width } = useWindowDimensions();
-  const wide = width >= 760;
+  const wide = width >= 900;
   const [familyName, setFamilyName] = useState('');
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [inviteCode, setInviteCode] = useState('');
@@ -155,7 +155,7 @@ export function OnboardingScreen({ refresh, backendError }: { refresh: () => Pro
   };
   const visibleMessage = message ?? (backendError ? { tone: 'error' as const, text: backendError } : null);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={styles.authPage} keyboardShouldPersistTaps="handled">
+  return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={[styles.authPage, width < 480 && styles.authPageNarrow]} keyboardShouldPersistTaps="handled">
     <View style={[styles.onboardingShell, !wide && styles.onboardingShellStacked]}>
       <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.onboardingGuide, !wide && styles.onboardingGuideCompact]}>
         <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
@@ -185,10 +185,11 @@ function OnboardingStep({ number, title, detail, active = false }: { number: str
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream },
   authPage: { flexGrow: 1, padding: 22, alignItems: 'center', justifyContent: 'center' },
+  authPageNarrow: { padding: 12 },
   authShell: { width: '100%', maxWidth: 1040, minHeight: 650, borderRadius: 30, overflow: 'hidden', backgroundColor: colors.white, flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(17,36,73,.08)', shadowColor: colors.navy, shadowOffset: { width: 0, height: 18 }, shadowOpacity: .15, shadowRadius: 36, elevation: 7 },
   authShellStacked: { maxWidth: 560, minHeight: 0, flexDirection: 'column' },
   brandPanel: { flex: .92, padding: 42, justifyContent: 'space-between', overflow: 'hidden' },
-  brandPanelCompact: { flex: 0, minHeight: 245, padding: 26 },
+  brandPanelCompact: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', minHeight: 0, padding: 26, justifyContent: 'flex-start', gap: 22 },
   brandOrbOne: { position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: 'rgba(255,255,255,.055)', right: -75, top: -70 },
   brandOrbTwo: { position: 'absolute', width: 185, height: 185, borderRadius: 93, borderWidth: 1, borderColor: 'rgba(243,182,31,.18)', left: -70, bottom: -65 },
   brandTop: { flexDirection: 'row', alignItems: 'center', gap: 13 },
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
   authTitleAccent: { color: '#A7D66D' },
   brandCopy: { maxWidth: 390, gap: 13 },
   brandHeadline: { color: colors.white, fontSize: 39, lineHeight: 46, fontWeight: '900', letterSpacing: -.8 },
-  brandHeadlineCompact: { fontSize: 27, lineHeight: 33, marginTop: 24 },
+  brandHeadlineCompact: { fontSize: 27, lineHeight: 33 },
   brandLead: { color: '#D7E3F2', fontSize: 14, lineHeight: 23, maxWidth: 380 },
   benefitList: { gap: 13 },
   brandBenefit: { flexDirection: 'row', alignItems: 'center', gap: 11 },
@@ -207,12 +208,13 @@ const styles = StyleSheet.create({
   brandFooterLine: { width: 42, height: 3, borderRadius: 2, backgroundColor: colors.gold },
   brandFooterText: { color: '#AFC1D9', fontSize: 8, fontWeight: '900', letterSpacing: 1.3 },
   authFormPanel: { flex: 1.08, paddingHorizontal: 50, paddingVertical: 42, justifyContent: 'center' },
-  authFormPanelStacked: { flex: 0, paddingHorizontal: 24, paddingVertical: 31 },
+  authFormPanelStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', paddingHorizontal: 24, paddingVertical: 31 },
   authFormHeader: { gap: 6, marginBottom: 20 },
   authEyebrow: { color: colors.green, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   authHeading: { color: colors.navy, fontSize: 29, lineHeight: 35, fontWeight: '900', letterSpacing: -.4 },
   authCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, maxWidth: 440 },
   roleCards: { flexDirection: 'row', gap: 9, marginBottom: 18 },
+  roleCardsNarrow: { flexDirection: 'column' },
   roleCard: { flex: 1, minHeight: 67, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: '#FAF9F5', flexDirection: 'row', alignItems: 'center', gap: 9 },
   roleCardActive: { backgroundColor: colors.navy, borderColor: colors.navy },
   roleIcon: { width: 33, height: 33, borderRadius: 11, backgroundColor: '#E8EDF5', alignItems: 'center', justifyContent: 'center' },
@@ -242,7 +244,7 @@ const styles = StyleSheet.create({
   onboardingShell: { width: '100%', maxWidth: 960, minHeight: 570, borderRadius: 30, overflow: 'hidden', backgroundColor: colors.white, flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(17,36,73,.08)', shadowColor: colors.navy, shadowOffset: { width: 0, height: 18 }, shadowOpacity: .15, shadowRadius: 36, elevation: 7 },
   onboardingShellStacked: { maxWidth: 560, minHeight: 0, flexDirection: 'column' },
   onboardingGuide: { flex: .9, padding: 38, justifyContent: 'space-between', overflow: 'hidden' },
-  onboardingGuideCompact: { flex: 0, minHeight: 250, padding: 26 },
+  onboardingGuideCompact: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', minHeight: 0, padding: 26, justifyContent: 'flex-start', gap: 22 },
   onboardingGuideCopy: { gap: 10, maxWidth: 360 },
   onboardingEyebrow: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.3 },
   onboardingGuideTitle: { color: colors.white, fontSize: 34, lineHeight: 41, fontWeight: '900', letterSpacing: -.6 },
@@ -257,7 +259,7 @@ const styles = StyleSheet.create({
   onboardingStepTitleActive: { color: colors.white },
   onboardingStepDetail: { color: '#AFC1D9', fontSize: 9, lineHeight: 14, marginTop: 2 },
   onboardingForm: { flex: 1.1, paddingHorizontal: 48, paddingVertical: 42, justifyContent: 'center' },
-  onboardingFormStacked: { flex: 0, paddingHorizontal: 24, paddingVertical: 31 },
+  onboardingFormStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', paddingHorizontal: 24, paddingVertical: 31 },
   onboardingFormHeader: { gap: 7, marginBottom: 23 },
   onboardingModeRow: { flexDirection: 'row', backgroundColor: '#F2EFE8', borderRadius: 13, padding: 4, marginBottom: 17 },
   onboardingModeButton: { flex: 1, paddingVertical: 10, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center' },

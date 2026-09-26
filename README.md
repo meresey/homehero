@@ -119,6 +119,9 @@ Apply `202609210001_party_leader_invitations.sql` to staging before testing this
 
 ## Important production follow-ups
 
+- Apply and verify the production Supabase password policy alongside the
+  corresponding application release; follow
+  [`docs/password-policy.md`](docs/password-policy.md).
 - Add Party Leader PIN reset and managed-Hero archival controls.
 - Connect the included timezone-aware `generate_daily_quest_instances()` job to Supabase Cron.
 - Replace the local UI mutations with TanStack Query calls to the RPC layer.

@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { EmptyState, PageHeading, Panel, Pill, ProgressBar } from './components';
 import { getHeroLevelProgress, HeroLevel } from './levels';

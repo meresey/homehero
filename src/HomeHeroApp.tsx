@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppFrame, EmptyState, PageHeading, Panel, Pill, ProgressBar, QuestCard } from './components';
 import { questCatalog as demoQuestCatalog, rewardCatalog as demoRewardCatalog, rewards } from './data';
@@ -34,7 +34,7 @@ export function HomeHeroApp() {
   const { width } = useWindowDimensions();
   const mobile = width < 600;
   const data = useHomeHeroData();
-  const householdData = useHouseholdState();
+  const householdData = useHouseholdState(!data.backendEnabled);
   const [role, setRole] = useState<Role>('child');
   const [childTab, setChildTab] = useState<ChildTab>('today');
   const [parentTab, setParentTab] = useState<ParentTab>('home');

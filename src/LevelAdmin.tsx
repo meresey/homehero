@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PageHeading, Panel, Pill } from './components';
 import { HeroLevel } from './levels';
 import { colors } from './theme';

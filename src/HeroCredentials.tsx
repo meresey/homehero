@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { supabase } from './lib/supabase';
 import { isValidHeroPin, isValidHeroUsername, normalizeHeroUsername } from './managedHero';
 import { ManagedHeroAccount } from './useHomeHeroData';

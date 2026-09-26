@@ -6,7 +6,7 @@ import { isQuestAgeAppropriate } from './ageEligibility';
 
 const HOUSEHOLD_STORAGE_KEY = 'home-hero.household.v2';
 
-export function useHouseholdState() {
+export function useHouseholdState(enabled = true) {
   const [state, setState] = useState<HouseholdState>(initialHouseholdState);
   const [hydrated, setHydrated] = useState(false);
   const selectedHeroId = state.selectedHero.heroId ?? state.heroes[0]?.id;
@@ -124,28 +124,29 @@ export function useHouseholdState() {
   });
 
   useEffect(() => {
+    if (!enabled) { setHydrated(true); return; }
     AsyncStorage.getItem(HOUSEHOLD_STORAGE_KEY)
       .then(saved => { if (saved) { const parsed = JSON.parse(saved) as Partial<HouseholdState>; setState(normalizeHouseholdState({ ...initialHouseholdState, ...parsed } as HouseholdState, !parsed.questTemplates)); } })
       .finally(() => setHydrated(true));
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!enabled || !hydrated) return;
     AsyncStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(state));
-  }, [hydrated, state]);
+  }, [enabled, hydrated, state]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!enabled || !hydrated) return;
     const processDeadlines = () => setState(current => { const now = new Date(); return completeFinishedTimers(expireBedtimeQuests(rolloverDailyQuests(current, now), now), now); });
     processDeadlines();
     const interval = setInterval(processDeadlines, 1_000);
     return () => clearInterval(interval);
-  }, [hydrated]);
+  }, [enabled, hydrated]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!enabled || !hydrated) return;
     setState(current => awardCompletedStreaks(current));
-  }, [hydrated, state.completionHistory]);
+  }, [enabled, hydrated, state.completionHistory]);
 
   const summaries = useMemo(() => state.heroes.map(hero => buildSummary(state, hero)), [state]);
 

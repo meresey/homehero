@@ -72,13 +72,19 @@ export function useHomeHeroData() {
       if (membershipError) throw membershipError;
       if (!membership) { setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setParentDashboard(emptyParentDashboard); return; }
       const household = membership.households as unknown as { name: string; invite_code: string; timezone: string };
-      const { data: ownProfile, error: profileError } = await supabase.from('profiles').select('display_name').eq('id', current.user.id).single();
+      const [profileResult, linksResult] = await Promise.all([
+        supabase.from('profiles').select('display_name').eq('id', current.user.id).single(),
+        membership.role === 'parent'
+          ? supabase.from('parent_child_links').select('child_id').eq('household_id', membership.household_id).eq('parent_id', current.user.id)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      const { data: ownProfile, error: profileError } = profileResult;
       if (profileError) throw profileError;
       let childId: string | null = current.user.id;
       let childIds: string[] = [];
       if (membership.role === 'parent') {
         setEarnedBadges([]);
-        const { data: links, error: linkError } = await supabase.from('parent_child_links').select('child_id').eq('household_id', membership.household_id).eq('parent_id', current.user.id);
+        const { data: links, error: linkError } = linksResult;
         if (linkError) throw linkError;
         childIds = (links ?? []).map(link => link.child_id);
         childId = childIds[0] ?? null;
@@ -90,10 +96,34 @@ export function useHomeHeroData() {
         const today = dateKey(new Date(), household.timezone);
         const weekStart = startOfWeek(today);
         const weekEnd = addDays(weekStart, 6);
-        const { data: heroProfiles, error: heroesError } = childIds.length
-          ? await supabase.from('profiles').select('id,display_name,date_of_birth').in('id', childIds)
-          : { data: [], error: null };
+        const [heroesResult, managedResult, todayResult, weekResult, assignmentsResult, goalsResult] = await Promise.all([
+          childIds.length
+            ? supabase.from('profiles').select('id,display_name,date_of_birth').in('id', childIds)
+            : Promise.resolve({ data: [], error: null }),
+          childIds.length
+            ? supabase.from('managed_hero_accounts').select('user_id,username').eq('household_id', membership.household_id).in('user_id', childIds).order('created_at')
+            : Promise.resolve({ data: [], error: null }),
+          supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_templates(title,kind)').eq('household_id', membership.household_id).eq('occurrence_date', today),
+          supabase.from('quest_instances').select('child_id,star_reward_snapshot').eq('household_id', membership.household_id).eq('status', 'rewarded').gte('occurrence_date', weekStart).lte('occurrence_date', weekEnd),
+          childIds.length
+            ? supabase.from('quest_assignments').select('id,quest_template_id,child_id,created_at,starts_on,ends_on,days_of_week,quest_templates(star_reward,is_active,minimum_age,maximum_age)').in('child_id', childIds).eq('active', true)
+            : Promise.resolve({ data: [], error: null }),
+          childIds.length
+            ? supabase.from('weekly_goals').select('child_id,target_stars').eq('household_id', membership.household_id).eq('week_start', weekStart)
+            : Promise.resolve({ data: [], error: null }),
+        ]);
+        const { data: heroProfiles, error: heroesError } = heroesResult;
+        const { data: managedRows, error: managedError } = managedResult;
+        const { data: todayRows, error: todayError } = todayResult;
+        const { data: weekRows, error: weekError } = weekResult;
+        const { data: assignmentRows, error: assignmentsError } = assignmentsResult;
+        const { data: goals, error: goalsError } = goalsResult;
         if (heroesError) throw heroesError;
+        if (managedError) throw managedError;
+        if (todayError) throw todayError;
+        if (weekError) throw weekError;
+        if (assignmentsError) throw assignmentsError;
+        if (goalsError) throw goalsError;
         setHeroes((heroProfiles ?? []).map(profile => ({
           id: profile.id,
           householdId: membership.household_id,
@@ -104,18 +134,6 @@ export function useHomeHeroData() {
           joinedAt: '',
         })));
         const heroNamesById = new Map((heroProfiles ?? []).map(profile => [profile.id, profile.display_name]));
-        const { data: managedRows, error: managedError } = childIds.length
-          ? await supabase.from('managed_hero_accounts').select('user_id,username').eq('household_id', membership.household_id).in('user_id', childIds).order('created_at')
-          : { data: [], error: null };
-        if (managedError) throw managedError;
-        const { data: todayRows, error: todayError } = await supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_templates(title,kind)').eq('household_id', membership.household_id).eq('occurrence_date', today);
-        if (todayError) throw todayError;
-        const { data: weekRows, error: weekError } = await supabase.from('quest_instances').select('child_id,star_reward_snapshot').eq('household_id', membership.household_id).eq('status', 'rewarded').gte('occurrence_date', weekStart).lte('occurrence_date', weekEnd);
-        if (weekError) throw weekError;
-        const { data: assignmentRows, error: assignmentsError } = childIds.length
-          ? await supabase.from('quest_assignments').select('id,quest_template_id,child_id,created_at,starts_on,ends_on,days_of_week,quest_templates(star_reward,is_active,minimum_age,maximum_age)').in('child_id', childIds).eq('active', true)
-          : { data: [], error: null };
-        if (assignmentsError) throw assignmentsError;
         setQuestAssignments((assignmentRows ?? []).map(assignment => ({
           id: assignment.id,
           householdId: membership.household_id,
@@ -124,10 +142,6 @@ export function useHomeHeroData() {
           assignedAt: assignment.created_at,
           active: true,
         })));
-        const { data: goals, error: goalsError } = childIds.length
-          ? await supabase.from('weekly_goals').select('child_id,target_stars').eq('household_id', membership.household_id).eq('week_start', weekStart)
-          : { data: [], error: null };
-        if (goalsError) throw goalsError;
         const earnedByHero = new Map<string, number>();
         for (const row of weekRows ?? []) earnedByHero.set(row.child_id, (earnedByHero.get(row.child_id) ?? 0) + row.star_reward_snapshot);
         const goalByHero = new Map((goals ?? []).map(goal => [goal.child_id, goal.target_stars]));
@@ -160,23 +174,31 @@ export function useHomeHeroData() {
           weeklyProgress,
           safeZone: safeZoneRow && safeTemplate ? { title: safeTemplate.title, heroName: heroNamesById.get(safeZoneRow.child_id) ?? 'Hero', cutoffAt: safeZoneRow.cutoff_at as string } : null,
         });
-        const { data: catalogRows, error: catalogError } = await supabase.from('quest_catalog').select('id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('is_active', true).order('created_at');
+        const [catalogResult, rewardCatalogResult, questsResult, retiredQuestsResult, pendingResult, timersResult] = await Promise.all([
+          supabase.from('quest_catalog').select('id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('is_active', true).order('created_at'),
+          supabase.from('reward_catalog').select('id,title,description,icon_key,star_cost').eq('is_active', true).order('star_cost'),
+          supabase.from('quest_templates').select('id,catalog_quest_id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('household_id',membership.household_id).eq('is_active',true).order('created_at'),
+          supabase.from('quest_templates').select('id,catalog_quest_id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('household_id',membership.household_id).eq('is_active',false).order('archived_at', { ascending: false }),
+          supabase.from('quest_instances').select('id,child_id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('household_id', membership.household_id).eq('status', 'pending_approval').order('completed_at', { ascending: false }),
+          supabase.from('quest_instances').select('id,child_id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('household_id', membership.household_id).eq('status', 'in_progress').eq('quest_templates.kind', 'timer').order('timer_expected_end_at'),
+        ]);
+        const { data: catalogRows, error: catalogError } = catalogResult;
+        const { data: rewardCatalogRows, error: rewardCatalogError } = rewardCatalogResult;
+        const { data, error: questError } = questsResult;
+        const { data: retiredQuestRows, error: retiredQuestError } = retiredQuestsResult;
+        const { data: pending, error: pendingError } = pendingResult;
+        const { data: runningTimerRows, error: runningTimerError } = timersResult;
         if (catalogError) throw catalogError;
-        setQuestCatalog((catalogRows ?? []).map(mapCatalogQuest));
-        const { data: rewardCatalogRows, error: rewardCatalogError } = await supabase.from('reward_catalog').select('id,title,description,icon_key,star_cost').eq('is_active', true).order('star_cost');
         if (rewardCatalogError) throw rewardCatalogError;
-        setRewardCatalog((rewardCatalogRows ?? []).map(mapCatalogReward));
-        const { data, error: questError } = await supabase.from('quest_templates').select('id,catalog_quest_id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('household_id',membership.household_id).eq('is_active',true).order('created_at');
         if (questError) throw questError;
-        setQuests((data ?? []).map(mapTemplate));
-        const { data: retiredQuestRows, error: retiredQuestError } = await supabase.from('quest_templates').select('id,catalog_quest_id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('household_id',membership.household_id).eq('is_active',false).order('archived_at', { ascending: false });
         if (retiredQuestError) throw retiredQuestError;
-        setRetiredQuests((retiredQuestRows ?? []).map(row => ({ ...mapTemplate(row), archived: true })));
-        const { data: pending, error: pendingError } = await supabase.from('quest_instances').select('id,child_id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('household_id', membership.household_id).eq('status', 'pending_approval').order('completed_at', { ascending: false });
         if (pendingError) throw pendingError;
-        setPendingQuests((pending ?? []).map(row => ({ ...mapInstance(row), childId: row.child_id, heroName: heroNamesById.get(row.child_id) ?? 'Hero' })));
-        const { data: runningTimerRows, error: runningTimerError } = await supabase.from('quest_instances').select('id,child_id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('household_id', membership.household_id).eq('status', 'in_progress').eq('quest_templates.kind', 'timer').order('timer_expected_end_at');
         if (runningTimerError) throw runningTimerError;
+        setQuestCatalog((catalogRows ?? []).map(mapCatalogQuest));
+        setRewardCatalog((rewardCatalogRows ?? []).map(mapCatalogReward));
+        setQuests((data ?? []).map(mapTemplate));
+        setRetiredQuests((retiredQuestRows ?? []).map(row => ({ ...mapTemplate(row), archived: true })));
+        setPendingQuests((pending ?? []).map(row => ({ ...mapInstance(row), childId: row.child_id, heroName: heroNamesById.get(row.child_id) ?? 'Hero' })));
         setRunningTimers((runningTimerRows ?? []).map(row => ({ ...mapInstance(row), childId: row.child_id, heroName: heroNamesById.get(row.child_id) ?? 'Hero' })));
       } else {
         setParentDashboard(emptyParentDashboard);
@@ -189,11 +211,15 @@ export function useHomeHeroData() {
         const { error: syncError } = await supabase.rpc('sync_my_quest_assignments');
         if (syncError) throw syncError;
         const today = dateKey(new Date(), household.timezone);
-        const { data, error: questError } = await supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active)').eq('child_id',childId).eq('occurrence_date',today).eq('quest_templates.is_active',true).order('available_at');
+        const [questsResult, badgesResult] = await Promise.all([
+          supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active)').eq('child_id',childId).eq('occurrence_date',today).eq('quest_templates.is_active',true).order('available_at'),
+          supabase.from('hero_badges').select('badge_key,earned_at').eq('child_id', current.user.id).order('earned_at'),
+        ]);
+        const { data, error: questError } = questsResult;
+        const { data: badgeRows, error: badgeError } = badgesResult;
         if (questError) throw questError;
         setQuests((data ?? []).map(mapInstance));
         setPendingQuests([]);
-        const { data: badgeRows, error: badgeError } = await supabase.from('hero_badges').select('badge_key,earned_at').eq('child_id', current.user.id).order('earned_at');
         if (badgeError) {
           setEarnedBadges([]);
         } else {
@@ -214,30 +240,42 @@ export function useHomeHeroData() {
           }
         }
       }
+      const [balanceResult, rewardsResult] = await Promise.all([
+        childId
+          ? supabase.from('child_balances').select('stars,xp').eq('child_id',childId).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        supabase.from('rewards').select('id,catalog_reward_id,title,description,icon_key,star_cost').eq('household_id', membership.household_id).eq('active', true).order('star_cost'),
+      ]);
+      const { data: balance, error: balanceError } = balanceResult;
+      const { data: rewardRows, error: rewardError } = rewardsResult;
+      if (balanceError) throw balanceError;
+      if (rewardError) throw rewardError;
       if (childId) {
-        const { data: balance, error: balanceError } = await supabase.from('child_balances').select('stars,xp').eq('child_id',childId).maybeSingle();
-        if (balanceError) throw balanceError;
         setStars(balance?.stars ?? 0); setXp(balance?.xp ?? 0);
       } else {
         setStars(0); setXp(0);
       }
-      const { data: rewardRows, error: rewardError } = await supabase.from('rewards').select('id,catalog_reward_id,title,description,icon_key,star_cost').eq('household_id', membership.household_id).eq('active', true).order('star_cost');
-      if (rewardError) throw rewardError;
       setRewards((rewardRows ?? []).map(mapReward));
       if (membership.role === 'parent') {
-        const { data: retiredRewardRows, error: retiredRewardError } = await supabase.from('rewards').select('id,catalog_reward_id,title,description,icon_key,star_cost').eq('household_id', membership.household_id).eq('active', false).order('archived_at', { ascending: false });
+        const [retiredRewardsResult, redemptionsResult] = await Promise.all([
+          supabase.from('rewards').select('id,catalog_reward_id,title,description,icon_key,star_cost').eq('household_id', membership.household_id).eq('active', false).order('archived_at', { ascending: false }),
+          supabase.from('reward_redemptions').select('id,reward_id,child_id,star_cost_snapshot,requested_at,rewards!inner(title,description,icon_key,household_id)').eq('rewards.household_id', membership.household_id).eq('status', 'requested').order('requested_at'),
+        ]);
+        const { data: retiredRewardRows, error: retiredRewardError } = retiredRewardsResult;
+        const { data: redemptionRows, error: redemptionError } = redemptionsResult;
         if (retiredRewardError) throw retiredRewardError;
-        setRetiredRewards((retiredRewardRows ?? []).map(row => ({ ...mapReward(row), archived: true })));
-        const { data: redemptionRows, error: redemptionError } = await supabase.from('reward_redemptions').select('id,reward_id,child_id,star_cost_snapshot,requested_at,rewards!inner(title,description,icon_key,household_id)').eq('rewards.household_id', membership.household_id).eq('status', 'requested').order('requested_at');
         if (redemptionError) throw redemptionError;
+        setRetiredRewards((retiredRewardRows ?? []).map(row => ({ ...mapReward(row), archived: true })));
         const redemptionChildIds = [...new Set((redemptionRows ?? []).map(row => row.child_id))];
-        const { data: redemptionProfiles, error: redemptionProfilesError } = redemptionChildIds.length
-          ? await supabase.from('profiles').select('id,display_name').in('id', redemptionChildIds)
-          : { data: [], error: null };
+        const [redemptionProfilesResult, redemptionBalancesResult] = redemptionChildIds.length
+          ? await Promise.all([
+            supabase.from('profiles').select('id,display_name').in('id', redemptionChildIds),
+            supabase.from('child_balances').select('child_id,stars').in('child_id', redemptionChildIds),
+          ])
+          : [{ data: [], error: null }, { data: [], error: null }];
+        const { data: redemptionProfiles, error: redemptionProfilesError } = redemptionProfilesResult;
+        const { data: redemptionBalances, error: redemptionBalancesError } = redemptionBalancesResult;
         if (redemptionProfilesError) throw redemptionProfilesError;
-        const { data: redemptionBalances, error: redemptionBalancesError } = redemptionChildIds.length
-          ? await supabase.from('child_balances').select('child_id,stars').in('child_id', redemptionChildIds)
-          : { data: [], error: null };
         if (redemptionBalancesError) throw redemptionBalancesError;
         const names = new Map((redemptionProfiles ?? []).map(profile => [profile.id, profile.display_name]));
         const balances = new Map((redemptionBalances ?? []).map(balance => [balance.child_id, balance.stars]));

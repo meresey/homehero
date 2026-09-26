@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { EmptyState, PageHeading, Panel, Pill } from './components';
 import { colors } from './theme';
 import { HeroProfile, Quest, QuestAssignment } from './types';

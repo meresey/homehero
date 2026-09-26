@@ -12,16 +12,19 @@ export function HouseholdReview({ heroes, heroQuests, rewards, guildApprovals, r
   const hero = (id: string) => heroes.find(item => item.heroId === id);
   const quest = (item: GuildApproval) => (heroQuests[item.heroId] ?? []).find(candidate => (candidate.templateId ?? candidate.id) === item.questId);
   const reward = (item: RewardRequest) => rewards.find(candidate => candidate.id === item.rewardId);
+  const runningTimerEnd = pendingGuild
+    .map(item => quest(item))
+    .find(item => item?.kind === 'timer' && item.timerEndsAt && new Date(item.timerEndsAt).getTime() > now)?.timerEndsAt;
   const reviewReward = (id: string, approve: boolean) => {
     const result = onReviewReward(id, approve);
     if (result === 'insufficient') Alert.alert('Not enough stars', 'This Hero no longer has enough stars. Decline the request or let them earn more stars first.');
     else if (result === 'approved') Alert.alert('Reward approved', 'The stars have now been deducted from the Hero’s balance.');
   };
   useEffect(() => {
-    if (!pendingGuild.some(item => { const submitted = quest(item); return submitted?.kind === 'timer' && submitted.timerEndsAt && new Date(submitted.timerEndsAt).getTime() > now; })) return;
+    if (!runningTimerEnd) return;
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
-  }, [pendingGuild, heroQuests, now]);
+  }, [runningTimerEnd]);
 
   return <ScrollView contentContainerStyle={styles.content}>
     <PageHeading eyebrow="PARTY LEADER" title="Review inbox" subtitle="Approve effort and reward requests across your household." action={<Pill tone="purple">{total}</Pill>} />

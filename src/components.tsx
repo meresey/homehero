@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, shadow } from './theme';
 import { Quest } from './types';
@@ -32,6 +32,7 @@ export function ProgressBar({ value, max, color = colors.green }: { value: numbe
 }
 
 export function QuestCard({ quest, onPress }: { quest: Quest; onPress: () => void }) {
+  const mobile = useWindowDimensions().width < 600;
   const complete = quest.status === 'rewarded';
   const pending = quest.status === 'pending_approval';
   const timerRemaining = useQuestTimerRemaining(quest);
@@ -41,7 +42,7 @@ export function QuestCard({ quest, onPress }: { quest: Quest; onPress: () => voi
       <View style={styles.emoji}><Text style={styles.emojiText}>{quest.emoji}</Text></View>
       <View style={styles.questCopy}>
         <View style={styles.row}><Text style={[styles.questTitle, complete && styles.doneText]}>{quest.title}</Text>{quest.kind === 'guild' && <Pill tone="purple">GUILD</Pill>}{timerRunning && <Pill tone="purple">RUNNING</Pill>}</View>
-        <Text style={styles.questDescription}>{pending ? 'Waiting for Party Leader' : quest.description}</Text>
+        {(!mobile || pending) && <Text style={styles.questDescription}>{pending ? 'Waiting for Party Leader' : quest.description}</Text>}
         <View style={styles.rewardRow}>
           {quest.timerMinutes && <Text style={[styles.meta, timerRunning && styles.timerActive]}>◷ {timerRunning ? formatTimer(timerRemaining) : `${quest.timerMinutes} min`}</Text>}
           {quest.cutoffLabel && <Text style={[styles.meta, { color: colors.coral }]}>Safe Zone · {quest.cutoffLabel}</Text>}

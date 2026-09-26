@@ -96,7 +96,7 @@ export function useHomeHeroData() {
         const today = dateKey(new Date(), household.timezone);
         const weekStart = startOfWeek(today);
         const weekEnd = addDays(weekStart, 6);
-        const [heroesResult, managedResult, todayResult, weekResult, assignmentsResult, goalsResult] = await Promise.all([
+        const [heroesResult, managedResult, todayResult, openGuildResult, weekResult, assignmentsResult, goalsResult] = await Promise.all([
           childIds.length
             ? supabase.from('profiles').select('id,display_name,date_of_birth').in('id', childIds)
             : Promise.resolve({ data: [], error: null }),
@@ -104,9 +104,10 @@ export function useHomeHeroData() {
             ? supabase.from('managed_hero_accounts').select('user_id,username').eq('household_id', membership.household_id).in('user_id', childIds).order('created_at')
             : Promise.resolve({ data: [], error: null }),
           supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_templates(title,kind)').eq('household_id', membership.household_id).eq('occurrence_date', today),
+          supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_assignments!inner(days_of_week),quest_templates!inner(title,kind)').eq('household_id', membership.household_id).eq('quest_templates.kind', 'guild').gte('occurrence_date', weekStart).lte('occurrence_date', today).in('status', ['available','pending_approval','rewarded']),
           supabase.from('quest_instances').select('child_id,star_reward_snapshot').eq('household_id', membership.household_id).eq('status', 'rewarded').gte('occurrence_date', weekStart).lte('occurrence_date', weekEnd),
           childIds.length
-            ? supabase.from('quest_assignments').select('id,quest_template_id,child_id,created_at,starts_on,ends_on,days_of_week,quest_templates(star_reward,is_active,minimum_age,maximum_age)').in('child_id', childIds).eq('active', true)
+            ? supabase.from('quest_assignments').select('id,quest_template_id,child_id,created_at,starts_on,ends_on,days_of_week,quest_templates(star_reward,is_active,kind,minimum_age,maximum_age)').in('child_id', childIds).eq('active', true)
             : Promise.resolve({ data: [], error: null }),
           childIds.length
             ? supabase.from('weekly_goals').select('child_id,target_stars').eq('household_id', membership.household_id).eq('week_start', weekStart)
@@ -115,12 +116,14 @@ export function useHomeHeroData() {
         const { data: heroProfiles, error: heroesError } = heroesResult;
         const { data: managedRows, error: managedError } = managedResult;
         const { data: todayRows, error: todayError } = todayResult;
+        const { data: openGuildRows, error: openGuildError } = openGuildResult;
         const { data: weekRows, error: weekError } = weekResult;
         const { data: assignmentRows, error: assignmentsError } = assignmentsResult;
         const { data: goals, error: goalsError } = goalsResult;
         if (heroesError) throw heroesError;
         if (managedError) throw managedError;
         if (todayError) throw todayError;
+        if (openGuildError) throw openGuildError;
         if (weekError) throw weekError;
         if (assignmentsError) throw assignmentsError;
         if (goalsError) throw goalsError;
@@ -141,7 +144,10 @@ export function useHomeHeroData() {
           heroId: assignment.child_id,
           assignedAt: assignment.created_at,
           active: true,
+          daysOfWeek: assignment.days_of_week,
         })));
+        const activeWeeklyGuildRows = (openGuildRows ?? []).filter(row => ((row.quest_assignments as unknown as { days_of_week: number[] })?.days_of_week ?? []).length === 7);
+        const dashboardRows = mergeRowsById(todayRows ?? [], activeWeeklyGuildRows);
         const earnedByHero = new Map<string, number>();
         for (const row of weekRows ?? []) earnedByHero.set(row.child_id, (earnedByHero.get(row.child_id) ?? 0) + row.star_reward_snapshot);
         const goalByHero = new Map((goals ?? []).map(goal => [goal.child_id, goal.target_stars]));
@@ -153,7 +159,7 @@ export function useHomeHeroData() {
           goalStars: goalByHero.get(profile.id) ?? null,
         }));
         const todayProgress = (heroProfiles ?? []).map(profile => {
-          const heroQuests = (todayRows ?? []).filter(row => row.child_id === profile.id);
+          const heroQuests = dashboardRows.filter(row => row.child_id === profile.id);
           return {
             childId: profile.id,
             heroName: profile.display_name,
@@ -161,7 +167,7 @@ export function useHomeHeroData() {
             totalQuests: heroQuests.length,
           };
         });
-        const safeZoneRow = (todayRows ?? []).filter(row => {
+        const safeZoneRow = dashboardRows.filter(row => {
           const template = row.quest_templates as unknown as { title: string; kind: QuestKind };
           return template?.kind === 'bedtime' && row.cutoff_at && ['available', 'in_progress'].includes(row.status);
         }).sort((a, b) => new Date(a.cutoff_at as string).getTime() - new Date(b.cutoff_at as string).getTime())[0];
@@ -211,14 +217,19 @@ export function useHomeHeroData() {
         const { error: syncError } = await supabase.rpc('sync_my_quest_assignments');
         if (syncError) throw syncError;
         const today = dateKey(new Date(), household.timezone);
-        const [questsResult, badgesResult] = await Promise.all([
+        const weekStart = startOfWeek(today);
+        const [questsResult, weeklyGuildResult, badgesResult] = await Promise.all([
           supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active)').eq('child_id',childId).eq('occurrence_date',today).eq('quest_templates.is_active',true).order('available_at'),
+          supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_assignments!inner(days_of_week),quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active)').eq('child_id',childId).eq('quest_templates.kind','guild').eq('quest_templates.is_active',true).gte('occurrence_date',weekStart).lte('occurrence_date',today).in('status',['available','pending_approval','rewarded']).order('available_at'),
           supabase.from('hero_badges').select('badge_key,earned_at').eq('child_id', current.user.id).order('earned_at'),
         ]);
         const { data, error: questError } = questsResult;
+        const { data: weeklyGuildRows, error: weeklyGuildError } = weeklyGuildResult;
         const { data: badgeRows, error: badgeError } = badgesResult;
         if (questError) throw questError;
-        setQuests((data ?? []).map(mapInstance));
+        if (weeklyGuildError) throw weeklyGuildError;
+        const activeWeeklyGuildRows = (weeklyGuildRows ?? []).filter(row => ((row.quest_assignments as unknown as { days_of_week: number[] })?.days_of_week ?? []).length === 7);
+        setQuests(mergeRowsById(data ?? [], activeWeeklyGuildRows).map(mapInstance));
         setPendingQuests([]);
         if (badgeError) {
           setEarnedBadges([]);
@@ -307,6 +318,24 @@ export function useHomeHeroData() {
     return () => data.subscription.unsubscribe();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!supabase || !session?.user.id || family?.role !== 'parent') return;
+    const client = supabase;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const refreshSoon = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { void refresh(); }, 150);
+    };
+    const channel = client
+      .channel(`reward-requests-${session.user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reward_redemptions' }, refreshSoon)
+      .subscribe(status => { if (status === 'SUBSCRIBED') refreshSoon(); });
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      void client.removeChannel(channel);
+    };
+  }, [family?.role, refresh, session?.user.id]);
+
   const rpc = useCallback(async (name: string, args: Record<string, unknown>) => {
     if (!supabase) return;
     const { error: rpcError } = await supabase.rpc(name, args);
@@ -332,12 +361,19 @@ function dateKey(date: Date, timeZone?: string) {
 }
 function startOfWeek(date: string) { const value = new Date(`${date}T00:00:00Z`); const day = value.getUTCDay() || 7; value.setUTCDate(value.getUTCDate() - day + 1); return value.toISOString().slice(0, 10); }
 function addDays(date: string, days: number) { const value = new Date(`${date}T00:00:00Z`); value.setUTCDate(value.getUTCDate() + days); return value.toISOString().slice(0, 10); }
+function mergeRowsById<T extends { id: string }>(first: T[], second: T[]) { const rows = new Map<string, T>(); for (const row of [...first,...second]) rows.set(row.id,row); return [...rows.values()]; }
 
 function calculateWeeklyAvailability(rows: any[], childId: string, dateOfBirth: string | null, weekStart: string) {
   let total = 0;
   for (const row of rows.filter(item => item.child_id === childId)) {
-    const template = row.quest_templates as { star_reward: number; is_active: boolean; minimum_age: number | null; maximum_age: number | null } | null;
+    const template = row.quest_templates as { star_reward: number; is_active: boolean; kind: QuestKind; minimum_age: number | null; maximum_age: number | null } | null;
     if (!template?.is_active) continue;
+    if (template.kind === 'guild' && (row.days_of_week as number[]).length === 7) {
+      const activeDuringWeek = row.starts_on <= addDays(weekStart, 6) && (!row.ends_on || row.ends_on >= weekStart);
+      const age = dateOfBirth ? ageOnDate(dateOfBirth, weekStart) : null;
+      if (activeDuringWeek && (age === null || template.minimum_age === null || age >= template.minimum_age) && (age === null || template.maximum_age === null || age <= template.maximum_age)) total += template.star_reward;
+      continue;
+    }
     for (let dayOffset = 0; dayOffset < 7; dayOffset += 1) {
       const occurrenceDate = addDays(weekStart, dayOffset);
       const isoDay = dayOffset + 1;

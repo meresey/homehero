@@ -1,5 +1,6 @@
 export type QuestKind = 'daily' | 'timer' | 'guild' | 'bedtime';
 export type QuestStatus = 'available' | 'in_progress' | 'pending_approval' | 'rewarded' | 'expired';
+export type GuildScheduleMode = 'any_week' | 'specific_day';
 
 export type Quest = {
   id: string;
@@ -16,6 +17,8 @@ export type Quest = {
   cutoffLabel?: string;
   cadence?: 'daily' | 'weekly' | 'guild';
   scheduleLabel?: string;
+  guildScheduleMode?: GuildScheduleMode;
+  guildDayOfWeek?: number;
   minimumAge?: number;
   maximumAge?: number;
   timerStartedAt?: string;
@@ -79,6 +82,7 @@ export type QuestAssignment = {
   heroId: string;
   assignedAt: string;
   active: boolean;
+  daysOfWeek?: number[];
 };
 
 export type GuildApproval = {

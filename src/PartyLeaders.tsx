@@ -13,6 +13,7 @@ export function PartyLeaders({ householdId, currentUserId }: { householdId: stri
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [email, setEmail] = useState('');
   const [newCode, setNewCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<Leader | null>(null);
@@ -32,11 +33,16 @@ export function PartyLeaders({ householdId, currentUserId }: { householdId: stri
   }, [householdId, currentUserId]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2500);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   const invite = async () => {
     if (!supabase || busy) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError('Enter a valid email address.'); return; }
-    setBusy(true); setError(null); setNewCode(null);
+    setBusy(true); setError(null); setNewCode(null); setCopied(false);
     const { data, error: inviteError } = await supabase.rpc('create_parent_invitation', { p_household_id: householdId, p_email: email.trim() });
     setBusy(false);
     if (inviteError) { setError(inviteError.message); return; }
@@ -51,7 +57,7 @@ export function PartyLeaders({ householdId, currentUserId }: { householdId: stri
     const { error: revokeError } = await supabase.rpc('revoke_parent_invitation', { p_invitation_id: id });
     setBusy(false);
     if (revokeError) setError(revokeError.message);
-    else { setNewCode(null); await load(); }
+    else { setNewCode(null); setCopied(false); await load(); }
   };
 
   const remove = async () => {
@@ -64,10 +70,13 @@ export function PartyLeaders({ householdId, currentUserId }: { householdId: stri
   };
 
   const copyCode = async () => {
-    if (newCode && typeof navigator !== 'undefined' && navigator.clipboard) {
-      try { await navigator.clipboard.writeText(newCode); }
-      catch { setError('Could not copy automatically. Select the code below to copy it.'); }
+    if (!newCode) return;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try { await navigator.clipboard.writeText(newCode); setError(null); setCopied(true); return; }
+      catch { /* Fall through to the selectable-code guidance below. */ }
     }
+    setCopied(false);
+    setError('Could not copy automatically. Select the code below to copy it.');
   };
 
   return <Panel>
@@ -78,7 +87,7 @@ export function PartyLeaders({ householdId, currentUserId }: { householdId: stri
       <Text style={styles.sectionTitle}>Invite another Party Leader</Text>
       <Text style={styles.subtle}>Create a one-time code for their email address. They must sign in with that verified email to join. The code expires in 7 days.</Text>
       <View style={styles.inviteForm}><TextInput accessibilityLabel="Invitee email address" editable={!busy} autoCapitalize="none" keyboardType="email-address" autoCorrect={false} placeholder="another.adult@example.com" placeholderTextColor={colors.muted} value={email} onChangeText={setEmail} style={styles.input} /><Pressable accessibilityRole="button" disabled={busy} onPress={invite} style={[styles.primaryButton, busy && styles.disabled]}><Text style={styles.primaryText}>{busy ? 'Working…' : 'Create invite'}</Text></Pressable></View>
-      {newCode && <View style={styles.codeBox}><Text style={styles.codeLabel}>SHARE THIS CODE PRIVATELY — SHOWN ONLY ONCE</Text><Text selectable style={styles.code}>{newCode}</Text><Pressable accessibilityRole="button" onPress={copyCode}><Text style={styles.link}>Copy code</Text></Pressable></View>}
+      {newCode && <View style={styles.codeBox}><Text style={styles.codeLabel}>SHARE THIS CODE PRIVATELY — SHOWN ONLY ONCE</Text><Text selectable style={styles.code}>{newCode}</Text><Pressable accessibilityRole="button" accessibilityLabel={copied ? 'Invitation code copied' : 'Copy invitation code'} onPress={copyCode} style={[styles.copyButton, copied && styles.copyButtonSuccess]}><Ionicons name={copied ? 'checkmark-circle' : 'copy-outline'} size={17} color={copied ? colors.green : colors.navy} /><Text accessibilityLiveRegion="polite" style={[styles.copyButtonText, copied && styles.copyButtonTextSuccess]}>{copied ? 'Copied!' : 'Copy code'}</Text></Pressable></View>}
       {invitations.length > 0 && <View style={styles.pending}><Text style={styles.sectionTitle}>Pending invitations</Text>{invitations.map(invitation => <View key={invitation.id} style={styles.row}><View style={styles.leaderCopy}><Text style={styles.name}>{invitation.invited_email}</Text><Text style={styles.subtle}>Expires {new Date(invitation.expires_at).toLocaleDateString()}</Text></View><Pressable accessibilityRole="button" onPress={() => revoke(invitation.id)} disabled={busy} style={styles.textButton}><Text style={styles.danger}>Revoke</Text></Pressable></View>)}</View>}
     </>}
     {confirmRemove && <View style={styles.confirmBox}><Text style={styles.name}>Remove {confirmRemove.display_name}?</Text><Text style={styles.subtle}>They will lose access to this household. Their account and past activity remain intact.</Text><View style={styles.confirmActions}><Pressable onPress={() => setConfirmRemove(null)} disabled={busy} style={styles.textButton}><Text style={styles.link}>Cancel</Text></Pressable><Pressable onPress={remove} disabled={busy} style={styles.textButton}><Text style={styles.danger}>Yes, remove</Text></Pressable></View></View>}
@@ -97,6 +106,8 @@ const styles = StyleSheet.create({
   input: { flexGrow: 1, minWidth: 205, borderWidth: 1, borderColor: '#DDD8CE', backgroundColor: colors.white, color: colors.navy, borderRadius: 12, paddingHorizontal: 14, height: 45 },
   primaryButton: { backgroundColor: colors.green, borderRadius: 12, paddingHorizontal: 16, height: 45, justifyContent: 'center' }, primaryText: { color: colors.white, fontWeight: '800' }, disabled: { opacity: .55 },
   codeBox: { marginTop: 13, padding: 15, borderRadius: 13, backgroundColor: '#FFF7DD', gap: 8 }, codeLabel: { color: '#85600A', fontSize: 11, fontWeight: '800' }, code: { color: colors.navy, fontWeight: '800', fontSize: 17, letterSpacing: 1 }, link: { color: colors.green, fontWeight: '800' },
+  copyButton: { alignSelf: 'flex-start', minHeight: 38, paddingHorizontal: 11, borderRadius: 10, borderWidth: 1, borderColor: '#D7C98F', backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  copyButtonSuccess: { borderColor: '#A6C888', backgroundColor: '#EFF7E7' }, copyButtonText: { color: colors.navy, fontWeight: '800' }, copyButtonTextSuccess: { color: colors.green },
   pending: { marginTop: 4 }, textButton: { padding: 8 }, danger: { color: '#9A3528', fontWeight: '800' },
   error: { color: '#9A3528', backgroundColor: '#FFF0EF', padding: 10, borderRadius: 9, marginBottom: 8 },
   confirmBox: { marginTop: 12, borderRadius: 12, borderWidth: 1, borderColor: '#F2C6C0', backgroundColor: '#FFF7F5', padding: 14, gap: 4 }, confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 7 },

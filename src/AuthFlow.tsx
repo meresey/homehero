@@ -6,6 +6,7 @@ import { supabase } from './lib/supabase';
 import { colors } from './theme';
 import { AppFrame } from './components';
 import { heroLoginEmail, isValidHeroPin, isValidHeroUsername, normalizeHeroUsername } from './managedHero';
+import { isStrongPassword, passwordRequirements } from './passwordPolicy';
 
 type LoginRole = 'parent' | 'hero';
 type Message = { tone: 'success' | 'error'; text: string } | null;
@@ -40,6 +41,7 @@ export function AuthScreen() {
     }
     if (!email.trim() || !password) return setMessage({ tone: 'error', text: 'Enter your email address and password.' });
     if (signup && !name.trim()) return setMessage({ tone: 'error', text: 'Enter your display name.' });
+    if (signup && !isStrongPassword(password)) return setMessage({ tone: 'error', text: 'Your password must meet all five security requirements below.' });
     if (signup && password !== confirmPassword) return setMessage({ tone: 'error', text: 'The passwords do not match.' });
     setBusy(true); setMessage(null);
     const result = signup
@@ -90,8 +92,9 @@ export function AuthScreen() {
           {role === 'parent' ? <>
             {signup && <AuthField label="Display name" icon="person-outline"><TextInput editable={!busy} placeholder="How your Heroes will know you" placeholderTextColor="#9298A8" value={name} onChangeText={setName} style={styles.authInput} /></AuthField>}
             <AuthField label="Email address" icon="mail-outline"><TextInput editable={!busy} placeholder="you@example.com" placeholderTextColor="#9298A8" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} style={styles.authInput} /></AuthField>
-            <AuthField label="Password" icon="lock-closed-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder={signup ? 'Choose a secure password' : 'Enter your password'} placeholderTextColor="#9298A8" secureTextEntry={!showPassword} value={password} onChangeText={setPassword} style={styles.authInput} /></AuthField>
-            {signup && <AuthField label="Confirm password" icon="shield-checkmark-outline" trailing={<PasswordToggle visible={showConfirmPassword} onPress={() => setShowConfirmPassword(value => !value)} />}><TextInput editable={!busy} placeholder="Enter it once more" placeholderTextColor="#9298A8" secureTextEntry={!showConfirmPassword} value={confirmPassword} onChangeText={setConfirmPassword} style={styles.authInput} /></AuthField>}
+            <AuthField label="Password" icon="lock-closed-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder={signup ? 'Choose a secure password' : 'Enter your password'} placeholderTextColor="#9298A8" secureTextEntry={!showPassword} value={password} onChangeText={text => { setPassword(text); setMessage(null); }} style={styles.authInput} /></AuthField>
+            {signup && <PasswordChecklist password={password} />}
+            {signup && <AuthField label="Confirm password" icon="shield-checkmark-outline" trailing={<PasswordToggle visible={showConfirmPassword} onPress={() => setShowConfirmPassword(value => !value)} />}><TextInput editable={!busy} placeholder="Enter it once more" placeholderTextColor="#9298A8" secureTextEntry={!showConfirmPassword} value={confirmPassword} onChangeText={text => { setConfirmPassword(text); setMessage(null); }} style={styles.authInput} /></AuthField>}
           </> : <>
             <AuthField label="Hero username" icon="person-circle-outline"><TextInput editable={!busy} placeholder="Your Hero username" placeholderTextColor="#9298A8" autoCapitalize="none" autoCorrect={false} value={username} onChangeText={text => setUsername(text.toLowerCase().replace(/\s/g, ''))} style={styles.authInput} /></AuthField>
             <AuthField label="Six-digit PIN" icon="keypad-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder="••••••" placeholderTextColor="#9298A8" secureTextEntry={!showPassword} keyboardType="number-pad" maxLength={6} value={password} onChangeText={text => setPassword(text.replace(/\D/g, '').slice(0, 6))} style={styles.authInput} /></AuthField>
@@ -115,6 +118,10 @@ function PasswordToggle({ visible, onPress }: { visible: boolean; onPress: () =>
   return <Pressable accessibilityRole="button" accessibilityLabel={visible ? 'Hide password' : 'Show password'} onPress={onPress} hitSlop={10} style={styles.passwordToggle}><Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} /></Pressable>;
 }
 
+function PasswordChecklist({ password }: { password: string }) {
+  return <View accessibilityLabel="Password requirements" style={styles.passwordRequirements}>{passwordRequirements(password).map(requirement => <View key={requirement.id} style={styles.passwordRequirement}><Ionicons name={requirement.met ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={requirement.met ? colors.green : colors.muted} /><Text style={[styles.passwordRequirementText, requirement.met && styles.passwordRequirementMet]}>{requirement.label}</Text></View>)}</View>;
+}
+
 function BrandBenefit({ icon, text }: { icon: string; text: string }) {
   return <View style={styles.brandBenefit}><View style={styles.brandBenefitIcon}><Ionicons name={icon as never} size={17} color={colors.gold} /></View><Text style={styles.brandBenefitText}>{text}</Text></View>;
 }
@@ -123,7 +130,7 @@ function friendlyAuthError(message: string, signup = false) {
   const normalized = message.toLowerCase();
   if (normalized.includes('invalid login credentials')) return 'We couldn’t sign you in. Check your email and password, then try again.';
   if (normalized.includes('already registered')) return 'An account already exists for this email. Try signing in instead.';
-  if (normalized.includes('password') && signup) return 'Choose a stronger password with at least six characters.';
+  if ((normalized.includes('password') || normalized.includes('weak_password')) && signup) return 'Use at least 8 characters with lowercase and capital letters, a number, and a symbol.';
   if (normalized.includes('rate limit')) return 'Too many attempts. Wait a moment, then try again.';
   return message;
 }
@@ -229,6 +236,10 @@ const styles = StyleSheet.create({
   fieldFrame: { minHeight: 51, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', gap: 9 },
   authInput: { flex: 1, minWidth: 0, paddingVertical: 13, color: colors.ink, fontSize: 13, outlineStyle: 'none' } as object,
   passwordToggle: { padding: 4 },
+  passwordRequirements: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: -3 },
+  passwordRequirement: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 99, backgroundColor: '#F4F1E9' },
+  passwordRequirementText: { color: colors.muted, fontSize: 8, fontWeight: '700' },
+  passwordRequirementMet: { color: colors.green },
   authPrimary: { minHeight: 52, marginTop: 15, paddingHorizontal: 18, borderRadius: 14, backgroundColor: colors.green, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, shadowColor: colors.green, shadowOffset: { width: 0, height: 6 }, shadowOpacity: .18, shadowRadius: 10, elevation: 3 },
   authPrimaryPressed: { transform: [{ translateY: 1 }], opacity: .92 },
   authPrimaryText: { color: colors.white, fontSize: 13, fontWeight: '900' },

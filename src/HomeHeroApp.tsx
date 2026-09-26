@@ -185,13 +185,13 @@ export function HomeHeroApp() {
       <View style={[styles.roleBar, mobile && styles.roleBarMobile]}>
         <View accessibilityLabel="Home Hero" style={styles.wordmark}><View style={styles.wordmarkIcon}><Ionicons name="shield-checkmark" size={17} color={colors.white} /></View>{(!mobile || width >= 380) && <Text style={styles.logo}>HOME <Text style={{ color: colors.green }}>HERO</Text></Text>}</View>
         <View style={styles.headerActions}>
-          <View style={styles.switcher}>
-            {(data.backendEnabled ? [activeRole] : ['child', 'parent'] as Role[]).map(item => (
+          {!data.backendEnabled && <View style={styles.switcher}>
+            {(['child', 'parent'] as Role[]).map(item => (
               <Pressable key={item} onPress={() => setRole(item)} style={[styles.switchButton, role === item && styles.switchActive]}>
                 <Text style={[styles.switchText, role === item && styles.switchTextActive]}>{item === 'child' ? 'Hero' : 'Party Leader'}</Text>
               </Pressable>
             ))}
-          </View>
+          </View>}
           {data.backendEnabled && <Pressable accessibilityRole="button" accessibilityLabel="Sign out" disabled={signingOut} onPress={signOut} style={({ pressed }) => [styles.signOutButton, pressed && styles.signOutPressed, signingOut && styles.signOutDisabled]}><Ionicons name="log-out-outline" size={18} color={colors.navy} />{!mobile && <Text style={styles.signOutText}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>}</Pressable>}
         </View>
       </View>

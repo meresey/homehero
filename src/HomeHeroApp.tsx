@@ -208,7 +208,7 @@ export function HomeHeroApp() {
           <HeroHeader name={heroName} level={currentHeroLevel} stars={stars} xp={xp} badges={earnedBadgeCount} compact={mobile} />
           <View style={styles.screen}>
             {childTab === 'today' && <ChildToday quests={quests} xp={xp} levels={levelDefinitions} onQuest={complete} mobile={mobile} />}
-            {childTab === 'week' && <WeeklyBoard history={data.backendEnabled ? [] : householdData.state.completionHistory.filter(item => item.heroId === householdData.selectedHero.id)} quests={quests} streakAwards={data.backendEnabled ? [] : householdData.state.streakAwards.filter(item => item.heroId === householdData.selectedHero.id)} />}
+            {childTab === 'week' && <WeeklyBoard history={data.backendEnabled ? data.completionHistory : householdData.state.completionHistory.filter(item => item.heroId === householdData.selectedHero.id)} quests={quests} streakAwards={data.backendEnabled ? data.streakAwards : householdData.state.streakAwards.filter(item => item.heroId === householdData.selectedHero.id)} />}
             {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : activeLocalRewards} stars={stars} pendingRewardIds={data.backendEnabled ? data.pendingRewardIds : householdData.state.rewardRequests.filter(item => item.heroId === householdData.selectedHero.id && item.status === 'pending').map(item => item.rewardId)} onRedeem={redeem} />}
             {childTab === 'hero' && <HeroProfile name={heroName} stars={stars} xp={xp} levels={levelDefinitions} badges={earnedBadges} />}
           </View>

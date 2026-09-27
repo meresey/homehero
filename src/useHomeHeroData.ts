@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { initialQuests } from './data';
 import { backendEnabled, supabase } from './lib/supabase';
-import { BadgeDefinition, HeroProfile, Quest, QuestAssignment, QuestKind, QuestStatus, Reward, RewardRedemption } from './types';
+import { BadgeDefinition, HeroProfile, Quest, QuestAssignment, QuestCompletion, QuestKind, QuestStatus, Reward, RewardRedemption, StreakAward } from './types';
 
 type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child'; displayName: string };
 export type ParentDashboardSummary = {
@@ -51,6 +51,8 @@ export function useHomeHeroData() {
   const [pendingRewards, setPendingRewards] = useState<RewardRedemption[]>([]);
   const [pendingRewardIds, setPendingRewardIds] = useState<string[]>([]);
   const [earnedBadges, setEarnedBadges] = useState<BadgeDefinition[]>([]);
+  const [completionHistory, setCompletionHistory] = useState<QuestCompletion[]>([]);
+  const [streakAwards, setStreakAwards] = useState<StreakAward[]>([]);
   const [stars, setStars] = useState(backendEnabled ? 0 : 19);
   const [xp, setXp] = useState(backendEnabled ? 0 : 324);
   const [parentDashboard, setParentDashboard] = useState<ParentDashboardSummary>(emptyParentDashboard);
@@ -62,7 +64,7 @@ export function useHomeHeroData() {
     const current = activeSession === undefined ? (await supabase.auth.getSession()).data.session : activeSession;
     activeUserId.current = current?.user.id ?? null;
     setSession(current);
-    if (!current) { loadedUserId.current = null; setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
+    if (!current) { loadedUserId.current = null; setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
     // Keep the existing screen visible when refreshing data for the same account.
     // A full-screen loader is only needed before we have loaded this account.
     if (loadedUserId.current !== current.user.id) setLoading(true);
@@ -70,7 +72,7 @@ export function useHomeHeroData() {
     try {
       const { data: membership, error: membershipError } = await supabase.from('household_members').select('household_id, role, households(name, invite_code, timezone)').eq('user_id', current.user.id).maybeSingle();
       if (membershipError) throw membershipError;
-      if (!membership) { setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setParentDashboard(emptyParentDashboard); return; }
+      if (!membership) { setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); return; }
       const household = membership.households as unknown as { name: string; invite_code: string; timezone: string };
       const [profileResult, linksResult] = await Promise.all([
         supabase.from('profiles').select('display_name').eq('id', current.user.id).single(),
@@ -84,6 +86,8 @@ export function useHomeHeroData() {
       let childIds: string[] = [];
       if (membership.role === 'parent') {
         setEarnedBadges([]);
+        setCompletionHistory([]);
+        setStreakAwards([]);
         const { data: links, error: linkError } = linksResult;
         if (linkError) throw linkError;
         childIds = (links ?? []).map(link => link.child_id);
@@ -218,18 +222,26 @@ export function useHomeHeroData() {
         if (syncError) throw syncError;
         const today = dateKey(new Date(), household.timezone);
         const weekStart = startOfWeek(today);
-        const [questsResult, weeklyGuildResult, badgesResult] = await Promise.all([
+        const [questsResult, weeklyGuildResult, badgesResult, completionsResult, streaksResult] = await Promise.all([
           supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active)').eq('child_id',childId).eq('occurrence_date',today).eq('quest_templates.is_active',true).order('available_at'),
           supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_assignments!inner(days_of_week),quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active)').eq('child_id',childId).eq('quest_templates.kind','guild').eq('quest_templates.is_active',true).gte('occurrence_date',weekStart).lte('occurrence_date',today).in('status',['available','pending_approval','rewarded']).order('available_at'),
           supabase.from('hero_badges').select('badge_key,earned_at').eq('child_id', current.user.id).order('earned_at'),
+          supabase.from('quest_instances').select('id,child_id,quest_template_id,occurrence_date,star_reward_snapshot,xp_reward_snapshot,rewarded_at,quest_templates!inner(title,icon_key,kind)').eq('child_id',childId).eq('status','rewarded').order('occurrence_date',{ ascending: false }).limit(1000),
+          supabase.from('streak_awards').select('id,child_id,assignment_id,week_start,xp_awarded,created_at').eq('child_id',childId).order('week_start',{ ascending: false }).limit(100),
         ]);
         const { data, error: questError } = questsResult;
         const { data: weeklyGuildRows, error: weeklyGuildError } = weeklyGuildResult;
         const { data: badgeRows, error: badgeError } = badgesResult;
+        const { data: completionRows, error: completionsError } = completionsResult;
+        const { data: streakRows, error: streaksError } = streaksResult;
         if (questError) throw questError;
         if (weeklyGuildError) throw weeklyGuildError;
+        if (completionsError) throw completionsError;
+        if (streaksError) throw streaksError;
         const activeWeeklyGuildRows = (weeklyGuildRows ?? []).filter(row => ((row.quest_assignments as unknown as { days_of_week: number[] })?.days_of_week ?? []).length === 7);
         setQuests(mergeRowsById(data ?? [], activeWeeklyGuildRows).map(mapInstance));
+        setCompletionHistory((completionRows ?? []).map(mapCompletion));
+        setStreakAwards((streakRows ?? []).map(row => ({ id: row.id, heroId: row.child_id, questId: row.assignment_id, weekStart: row.week_start, xpAwarded: row.xp_awarded, awardedAt: row.created_at })));
         setPendingQuests([]);
         if (badgeError) {
           setEarnedBadges([]);
@@ -336,6 +348,26 @@ export function useHomeHeroData() {
     };
   }, [family?.role, refresh, session?.user.id]);
 
+  useEffect(() => {
+    if (!supabase || !session?.user.id || family?.role !== 'child') return;
+    const client = supabase;
+    const childId = session.user.id;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const refreshSoon = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { void refresh(); }, 150);
+    };
+    const channel = client
+      .channel(`hero-weekly-progress-${childId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quest_instances', filter: `child_id=eq.${childId}` }, refreshSoon)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'streak_awards', filter: `child_id=eq.${childId}` }, refreshSoon)
+      .subscribe(status => { if (status === 'SUBSCRIBED') refreshSoon(); });
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      void client.removeChannel(channel);
+    };
+  }, [family?.role, refresh, session?.user.id]);
+
   const rpc = useCallback(async (name: string, args: Record<string, unknown>) => {
     if (!supabase) return;
     const { error: rpcError } = await supabase.rpc(name, args);
@@ -343,7 +375,7 @@ export function useHomeHeroData() {
     await refresh();
   }, [refresh]);
 
-  return { backendEnabled, session, family, quests, retiredQuests, questCatalog, heroes, questAssignments, pendingQuests, runningTimers, rewards, retiredRewards, rewardCatalog, pendingRewards, pendingRewardIds, earnedBadges, stars, xp, parentDashboard, loading, error, refresh,
+  return { backendEnabled, session, family, quests, retiredQuests, questCatalog, heroes, questAssignments, pendingQuests, runningTimers, rewards, retiredRewards, rewardCatalog, pendingRewards, pendingRewardIds, earnedBadges, completionHistory, streakAwards, stars, xp, parentDashboard, loading, error, refresh,
     setDemoQuests: setQuests, setDemoStars: setStars, setDemoXp: setXp,
     completeQuest: (q: Quest) => rpc(q.kind === 'guild' ? 'submit_guild_quest' : 'complete_quest', { p_instance_id: q.instanceId }),
     startTimer: (q: Quest) => rpc('start_timer', { p_instance_id: q.instanceId }),
@@ -399,6 +431,7 @@ function ageOnDate(dateOfBirth: string, date: string) {
 function mapTemplate(row: any): Quest { return { id: row.id, templateId: row.id, catalogQuestId: row.catalog_quest_id ?? undefined, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
 function mapCatalogQuest(row: any): Quest { return { id: row.id, catalogQuestId: row.id, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
 function mapInstance(row: any): Quest { const t = row.quest_templates; return { id: row.id, instanceId: row.id, templateId: row.quest_template_id, title: t.title, description: t.description ?? '', emoji: t.icon_key?.length <= 3 ? t.icon_key : '✨', kind: t.kind as QuestKind, cadence: t.cadence, scheduleLabel: t.schedule_label, status: row.status as QuestStatus, stars: row.star_reward_snapshot, xp: row.xp_reward_snapshot, timerMinutes: t.timer_seconds ? t.timer_seconds / 60 : undefined, timerStartedAt: row.timer_started_at ?? undefined, timerEndsAt: row.timer_expected_end_at ?? undefined, timerCompletedAt: row.submitted_at ?? undefined, minimumAge: t.minimum_age ?? undefined, maximumAge: t.maximum_age ?? undefined, cutoffLabel: row.cutoff_at ? new Date(row.cutoff_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : undefined }; }
+function mapCompletion(row: any): QuestCompletion { const template = row.quest_templates; return { id: row.id, heroId: row.child_id, questId: row.quest_template_id, questTitle: template.title, questEmoji: template.icon_key?.length <= 3 ? template.icon_key : '✨', questKind: template.kind as QuestKind, stars: row.star_reward_snapshot, xp: row.xp_reward_snapshot, completedAt: `${row.occurrence_date}T12:00:00` }; }
 function mapReward(row: any): Reward { return { id: row.id, rewardId: row.id, catalogRewardId: row.catalog_reward_id ?? undefined, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }
 function mapCatalogReward(row: any): Reward { return { id: row.id, catalogRewardId: row.id, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }
 function mapRedemption(row: any, heroName: string, availableStars: number): RewardRedemption { const reward = row.rewards as { title: string; description?: string; icon_key?: string }; return { id: row.id, rewardId: row.reward_id, childId: row.child_id, heroName, title: reward.title, subtitle: reward.description ?? 'Parent-approved reward', emoji: reward.icon_key || '🎁', cost: row.star_cost_snapshot, availableStars, requestedAt: row.requested_at }; }

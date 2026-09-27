@@ -15,7 +15,6 @@ import type { HeroTodayProgress, HeroWeeklyProgress, ManagedHeroAccount, ParentD
 import { archiveQuest, restoreQuest as restoreQuestInDatabase, saveQuest as saveQuestToDatabase } from './lib/questAdmin';
 import { archiveReward, restoreReward as restoreRewardInDatabase, saveReward as saveRewardToDatabase } from './lib/rewardAdmin';
 import { getHeroLevelProgress, HeroLevel, heroLevels } from './levels';
-import { LevelAdmin } from './LevelAdmin';
 import { useHouseholdState } from './useHouseholdState';
 import { HouseholdDashboard } from './HouseholdDashboard';
 import { HouseholdReview } from './HouseholdReview';
@@ -26,7 +25,7 @@ import { HeroCredentialsModal } from './HeroCredentials';
 
 type Role = 'child' | 'parent';
 type ChildTab = 'today' | 'week' | 'store' | 'hero';
-type ParentTab = 'home' | 'quests' | 'approvals' | 'rewards' | 'levels';
+type ParentTab = 'home' | 'quests' | 'approvals' | 'rewards';
 type NavItem = [id: string, icon: string, label: string, badge?: number];
 
 const showError = (cause: unknown) => Alert.alert('Something went wrong', cause instanceof Error ? cause.message : 'Please try again.');
@@ -44,7 +43,7 @@ export function HomeHeroApp() {
   const [enrollingHero, setEnrollingHero] = useState(false);
   const [managedHero, setManagedHero] = useState<ManagedHeroAccount | null>(null);
   const [localRewards, setLocalRewards, rewardsHydrated] = usePersistentState<Reward[]>('home-hero.rewards.v1', rewards);
-  const [levelDefinitions, setLevelDefinitions, levelsHydrated] = usePersistentState<HeroLevel[]>('home-hero.levels.v2', heroLevels);
+  const levelDefinitions = heroLevels;
   const activeRole = data.backendEnabled && data.family ? data.family.role : role;
   const localActiveQuests = householdData.questTemplates.filter(quest => !quest.archived);
   const localRetiredQuests = householdData.questTemplates.filter(quest => quest.archived);
@@ -123,7 +122,7 @@ export function HomeHeroApp() {
         const daysOfWeek = quest.cadence === 'guild'
           ? quest.guildScheduleMode === 'specific_day' ? [quest.guildDayOfWeek ?? 6] : [1,2,3,4,5,6,7]
           : quest.cadence === 'weekly' ? [1] : [1,2,3,4,5,6,7];
-        await saveQuestToDatabase({ householdId: data.family.householdId, childIds: heroIds, templateId: quest.templateId, catalogQuestId: quest.catalogQuestId, title: quest.title, description: quest.description, iconKey: quest.emoji, cadence: quest.cadence ?? 'daily', stars: quest.stars, xp: quest.xp, timerMinutes: quest.timerMinutes, daysOfWeek, scheduleLabel: quest.scheduleLabel, minimumAge: quest.minimumAge, maximumAge: quest.maximumAge });
+        await saveQuestToDatabase({ householdId: data.family.householdId, childIds: heroIds, templateId: quest.templateId, catalogQuestId: quest.catalogQuestId, title: quest.title, description: quest.description, iconKey: quest.emoji, cadence: quest.cadence ?? 'daily', stars: quest.stars, timerMinutes: quest.timerMinutes, daysOfWeek, scheduleLabel: quest.scheduleLabel, minimumAge: quest.minimumAge, maximumAge: quest.maximumAge });
         await data.refresh(); Alert.alert('Quest saved', `“${quest.title}” is ready.`);
         return true;
       } catch (cause) { throw cause; }
@@ -185,7 +184,7 @@ export function HomeHeroApp() {
     if (error) showError(error);
   };
 
-  if ((data.backendEnabled && data.loading) || (!data.backendEnabled && (!householdData.hydrated || !rewardsHydrated || !levelsHydrated))) return <SafeAreaView style={styles.safe}><AppFrame><View style={styles.loading}><ActivityIndicator size="large" color={colors.green} /><Text style={styles.muted}>Loading your hero party…</Text></View></AppFrame></SafeAreaView>;
+  if ((data.backendEnabled && data.loading) || (!data.backendEnabled && (!householdData.hydrated || !rewardsHydrated))) return <SafeAreaView style={styles.safe}><AppFrame><View style={styles.loading}><ActivityIndicator size="large" color={colors.green} /><Text style={styles.muted}>Loading your hero party…</Text></View></AppFrame></SafeAreaView>;
   if (data.backendEnabled && !data.session) return <AuthScreen />;
   if (data.backendEnabled && !data.family) return <OnboardingScreen refresh={data.refresh} backendError={data.error} />;
 
@@ -227,9 +226,8 @@ export function HomeHeroApp() {
           {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} />}
           {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} runningTimers={data.runningTimers} rewards={data.pendingRewards} reviewQuest={reviewQuest} reviewReward={reviewReward} />}
           {parentTab === 'rewards' && <RewardAdmin rewards={data.backendEnabled ? data.rewards : activeLocalRewards} retiredRewards={data.backendEnabled ? data.retiredRewards : retiredLocalRewards} pendingRewardIds={data.backendEnabled ? data.pendingRewards.map(item => item.rewardId) : householdData.state.rewardRequests.filter(item => item.status === 'pending').map(item => item.rewardId)} catalog={data.backendEnabled ? data.rewardCatalog : demoRewardCatalog} onSave={saveReward} onRemove={removeReward} onRestore={restoreReward} />}
-          {parentTab === 'levels' && <LevelAdmin levels={levelDefinitions} onSave={updated => setLevelDefinitions(current => current.map(level => level.level === updated.level ? updated : level))} />}
           <BottomNav value={parentTab} onChange={value => setParentTab(value as ParentTab)} items={[
-            ['home', 'home-outline', 'Home'], ['quests', 'list-outline', 'Quests'], ['approvals', 'checkmark-done-outline', 'Review', parentReviewCount], ['rewards', 'gift-outline', 'Rewards'], ['levels', 'trophy-outline', 'Levels'],
+            ['home', 'home-outline', 'Home'], ['quests', 'list-outline', 'Quests'], ['approvals', 'checkmark-done-outline', 'Review', parentReviewCount], ['rewards', 'gift-outline', 'Rewards'],
           ]} />
         </>
       )}

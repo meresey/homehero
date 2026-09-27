@@ -10,7 +10,6 @@ export type QuestAdminInput = {
   iconKey?: string;
   cadence: 'daily' | 'weekly' | 'guild';
   stars: number;
-  xp: number;
   timerMinutes?: number;
   daysOfWeek: number[];
   localCutoff?: string;
@@ -21,6 +20,7 @@ export type QuestAdminInput = {
 
 export async function saveQuest(input: QuestAdminInput) {
   if (!supabase) throw new Error('Supabase is not configured');
+  const systemXp = input.cadence === 'guild' ? 3 : input.timerMinutes ? 2 : 1;
   const { data, error } = await supabase.rpc('save_quest_admin', {
     p_household_id: input.householdId,
     p_child_ids: input.childIds,
@@ -30,7 +30,7 @@ export async function saveQuest(input: QuestAdminInput) {
     p_icon_key: input.iconKey ?? 'sparkles',
     p_cadence: input.cadence,
     p_star_reward: input.stars,
-    p_xp_reward: input.xp,
+    p_xp_reward: systemXp,
     p_timer_seconds: input.timerMinutes ? input.timerMinutes * 60 : null,
     p_days_of_week: input.daysOfWeek,
     p_local_cutoff: input.localCutoff ?? null,

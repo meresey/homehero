@@ -6,9 +6,10 @@ import { colors } from './theme';
 import { GuildScheduleMode, HeroProfile, Quest, QuestAssignment } from './types';
 import { EmojiPickerField } from './EmojiPicker';
 import { calculateAge, formatQuestAgeRange } from './ageEligibility';
+import { questXpForKind } from './questXp';
 
 type Category = 'all' | 'daily' | 'weekly' | 'guild';
-type Draft = { title: string; description: string; emoji: string; cadence: Exclude<Category, 'all'>; scheduleLabel: string; guildScheduleMode: GuildScheduleMode; guildDayOfWeek: number; stars: string; xp: string; timerMinutes: string; minimumAge: string; maximumAge: string };
+type Draft = { title: string; description: string; emoji: string; cadence: Exclude<Category, 'all'>; scheduleLabel: string; guildScheduleMode: GuildScheduleMode; guildDayOfWeek: number; stars: string; timerMinutes: string; minimumAge: string; maximumAge: string };
 
 const weekdays = [
   { value: 1, short: 'Mon', label: 'Monday' },
@@ -20,7 +21,7 @@ const weekdays = [
   { value: 7, short: 'Sun', label: 'Sunday' },
 ] as const;
 
-const emptyDraft: Draft = { title: '', description: '', emoji: '✨', cadence: 'daily', scheduleLabel: 'Every day', guildScheduleMode: 'any_week', guildDayOfWeek: 6, stars: '1', xp: '1', timerMinutes: '', minimumAge: '', maximumAge: '' };
+const emptyDraft: Draft = { title: '', description: '', emoji: '✨', cadence: 'daily', scheduleLabel: 'Every day', guildScheduleMode: 'any_week', guildDayOfWeek: 6, stars: '1', timerMinutes: '', minimumAge: '', maximumAge: '' };
 
 type QuestAdminProps = { quests: Quest[]; retiredQuests?: Quest[]; pendingTemplateIds?: string[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; onSave: (quest: Quest, heroIds: string[]) => boolean | Promise<boolean>; onRemove: (id: string) => boolean | Promise<boolean>; onRestore: (id: string) => boolean | Promise<boolean> };
 
@@ -131,7 +132,7 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
   useEffect(() => {
     setFormError(null); setSaving(false);
     if (!value || value === 'new') return setDraft(emptyDraft);
-    setDraft({ title: value.title, description: value.description, emoji: value.emoji, cadence: value.cadence ?? 'daily', scheduleLabel: value.scheduleLabel ?? 'Every day', guildScheduleMode: value.guildScheduleMode ?? (dayFromLabel(value.scheduleLabel) ? 'specific_day' : 'any_week'), guildDayOfWeek: value.guildDayOfWeek ?? dayFromLabel(value.scheduleLabel) ?? 6, stars: String(value.stars), xp: String(value.xp), timerMinutes: value.kind === 'guild' ? '' : value.timerMinutes ? String(value.timerMinutes) : '', minimumAge: value.minimumAge == null ? '' : String(value.minimumAge), maximumAge: value.maximumAge == null ? '' : String(value.maximumAge) });
+    setDraft({ title: value.title, description: value.description, emoji: value.emoji, cadence: value.cadence ?? 'daily', scheduleLabel: value.scheduleLabel ?? 'Every day', guildScheduleMode: value.guildScheduleMode ?? (dayFromLabel(value.scheduleLabel) ? 'specific_day' : 'any_week'), guildDayOfWeek: value.guildDayOfWeek ?? dayFromLabel(value.scheduleLabel) ?? 6, stars: String(value.stars), timerMinutes: value.kind === 'guild' ? '' : value.timerMinutes ? String(value.timerMinutes) : '', minimumAge: value.minimumAge == null ? '' : String(value.minimumAge), maximumAge: value.maximumAge == null ? '' : String(value.maximumAge) });
   }, [value]);
   if (!value) return null;
   const set = <K extends keyof Draft>(key: K, next: Draft[K]) => { setFormError(null); setDraft(old => ({ ...old, [key]: next })); };
@@ -148,14 +149,14 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
     if (saving) return;
     setFormError(null);
     if (!draft.title.trim()) return setFormError('Give this quest a short, encouraging name.');
-    const stars = Math.max(0, Number.parseInt(draft.stars, 10) || 0); const xp = Number.parseInt(draft.xp, 10); const timer = draft.cadence === 'guild' ? undefined : Number.parseInt(draft.timerMinutes, 10) || undefined;
+    const stars = Math.max(0, Number.parseInt(draft.stars, 10) || 0); const timer = draft.cadence === 'guild' ? undefined : Number.parseInt(draft.timerMinutes, 10) || undefined;
     if (stars > 100) return setFormError('Stars must be between 0 and 100.');
-    if (!Number.isInteger(xp) || xp < 1 || xp > 10) return setFormError('XP must be between 1 and 10 so lifetime progression remains meaningful.');
     const minimumAge = draft.minimumAge.trim() ? Number.parseInt(draft.minimumAge, 10) : undefined;
     const maximumAge = draft.maximumAge.trim() ? Number.parseInt(draft.maximumAge, 10) : undefined;
     if ((minimumAge != null && (minimumAge < 3 || minimumAge > 18)) || (maximumAge != null && (maximumAge < 3 || maximumAge > 18))) return setFormError('Quest ages must be between 3 and 18.');
     if (minimumAge != null && maximumAge != null && minimumAge > maximumAge) return setFormError('The maximum age must be equal to or greater than the minimum age.');
     const kind = draft.cadence === 'guild' ? 'guild' as const : timer ? 'timer' as const : value !== 'new' && value.kind === 'bedtime' ? 'bedtime' as const : 'daily' as const;
+    const xp = questXpForKind(kind);
     const guildScheduleMode = draft.cadence === 'guild' ? draft.guildScheduleMode : undefined;
     const guildDayOfWeek = draft.cadence === 'guild' && draft.guildScheduleMode === 'specific_day' ? draft.guildDayOfWeek : undefined;
     const scheduleLabel = draft.cadence === 'guild'
@@ -190,9 +191,9 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
       </Field> : <Field label="Schedule"><TextInput value={draft.scheduleLabel} onChangeText={text => set('scheduleLabel', text)} placeholder="Mon–Fri" style={styles.input} /></Field>}
       <Field label="Age suitability"><Text style={styles.fieldHint}>Leave both fields blank to make this quest available to all ages.</Text><View style={styles.twoColumns}><TextInput accessibilityLabel="Minimum age" value={draft.minimumAge} onChangeText={text => set('minimumAge', text.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="Minimum age" style={[styles.input, styles.half]} /><TextInput accessibilityLabel="Maximum age" value={draft.maximumAge} onChangeText={text => set('maximumAge', text.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="Maximum age" style={[styles.input, styles.half]} /></View></Field>
       <Field label="Assign to Heroes"><Text style={styles.fieldHint}>Each Hero keeps their own completion status. Ineligible Heroes cannot be selected. You can save the quest without an assignment.</Text><View style={styles.heroChoices}>{heroes.map(hero => { const eligible = isAgeEligible(previewQuest, hero); const selected = eligible && selectedHeroIds.includes(hero.id); const age = calculateAge(hero.dateOfBirth); return <Pressable key={hero.id} disabled={!eligible || saving} onPress={() => onSelectedHeroIds(selected ? selectedHeroIds.filter(id => id !== hero.id) : [...selectedHeroIds, hero.id])} style={[styles.heroChoice, selected && styles.heroChoiceSelected, !eligible && styles.heroChoiceDisabled]}><Text style={styles.heroChoiceEmoji}>{hero.avatarEmoji}</Text><Text style={[styles.heroChoiceText, selected && styles.heroChoiceTextSelected]}>{hero.displayName}</Text><Text style={styles.heroAge}>{age === null ? 'Age not set' : `Age ${age}`}</Text></Pressable>; })}</View></Field>
-      <View style={styles.twoColumns}><Field label="Stars" style={styles.half}><TextInput value={draft.stars} onChangeText={text => set('stars', text)} keyboardType="number-pad" style={styles.input} /></Field><Field label="XP (1–10)" style={styles.half}><TextInput value={draft.xp} onChangeText={text => set('xp', text)} keyboardType="number-pad" style={styles.input} /></Field></View>
+      <Field label="Stars"><TextInput value={draft.stars} onChangeText={text => set('stars', text)} keyboardType="number-pad" style={[styles.input, styles.smallField]} /></Field>
       {draft.cadence !== 'guild' && <Field label="Timer minutes (optional)"><TextInput value={draft.timerMinutes} onChangeText={text => set('timerMinutes', text)} keyboardType="number-pad" placeholder="20" style={styles.input} /></Field>}
-      <View style={styles.notice}><Ionicons name="shield-checkmark-outline" size={22} color={colors.purple} /><Text style={styles.noticeText}>All quests require Party Leader approval before stars and XP are awarded.</Text></View>
+      <View style={styles.notice}><Ionicons name="shield-checkmark-outline" size={22} color={colors.purple} /><Text style={styles.noticeText}>XP is assigned automatically by quest type: Daily and Bedtime 1 XP, Timer 2 XP, and Guild 3 XP. Stars and XP are awarded only after Party Leader approval.</Text></View>
       <Pressable accessibilityRole="button" disabled={saving} onPress={submit} style={[styles.primary, saving && styles.confirmDisabled]}><Text style={styles.primaryText}>{saving ? 'Saving…' : isExisting ? 'Save changes' : 'Add to my quests'}</Text></Pressable>
     </ScrollView>
   </View></SafeAreaView></Modal>;

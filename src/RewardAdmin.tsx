@@ -90,7 +90,7 @@ function RewardEditor({ value, isExisting, onClose, onSave }: { value: Reward | 
     <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
       <Field label="Reward name"><TextInput value={draft.title} onChangeText={text => update('title', text)} placeholder="e.g. Choose movie night" style={styles.input} /></Field>
       <Field label="Description"><TextInput value={draft.subtitle} onChangeText={text => update('subtitle', text)} placeholder="What does the Hero receive?" multiline style={[styles.input, styles.multiline]} /></Field>
-      <Field label="Icon"><EmojiPickerField value={draft.emoji} onSelect={emoji => update('emoji', emoji)} /></Field>
+      <Field label="Icon"><EmojiPickerField value={draft.emoji} name={draft.title} description={draft.subtitle} kind="reward" onSelect={emoji => update('emoji', emoji)} /></Field>
       <Field label="Star cost"><TextInput value={draft.cost} onChangeText={text => update('cost', text)} keyboardType="number-pad" style={styles.input} /></Field>
       <View style={styles.notice}><Ionicons name="star-outline" size={22} color={colors.green} /><Text style={styles.noticeText}>Heroes see this reward and its updated price immediately in the Star Store.</Text></View>
       <Pressable style={styles.primary} onPress={submit}><Text style={styles.primaryText}>{isExisting ? 'Save changes' : 'Add to my rewards'}</Text></Pressable>

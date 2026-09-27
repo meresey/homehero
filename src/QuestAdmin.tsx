@@ -180,7 +180,7 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
       <Field label="Quest name"><TextInput value={draft.title} onChangeText={text => set('title', text)} placeholder="e.g. Tidy your room" style={styles.input} /></Field>
       <Field label="Description"><TextInput value={draft.description} onChangeText={text => set('description', text)} placeholder="What should the hero do?" multiline style={[styles.input, styles.multiline]} /></Field>
       <Field label="Quest type"><View style={styles.segment}>{(['daily','weekly','guild'] as const).map(key => <Pressable key={key} onPress={() => setCadence(key)} style={[styles.segmentItem, draft.cadence === key && styles.segmentActive]}><Text style={[styles.segmentText, draft.cadence === key && styles.segmentTextActive]}>{key[0].toUpperCase()+key.slice(1)}</Text></Pressable>)}</View></Field>
-      <Field label="Icon"><EmojiPickerField value={draft.emoji} onSelect={emoji => set('emoji', emoji)} /></Field>
+      <Field label="Icon"><EmojiPickerField value={draft.emoji} name={draft.title} description={draft.description} kind="quest" onSelect={emoji => set('emoji', emoji)} /></Field>
       {draft.cadence === 'guild' ? <Field label="Guild schedule">
         <Text style={styles.fieldHint}>Choose whether the family can complete this quest once at any time during the week or only on a particular day.</Text>
         <View style={styles.segment}>

@@ -6,7 +6,7 @@ and badges remain permanent achievements.
 
 ## Phase 1 — Compatibility presentation
 
-Status: implemented locally.
+Status: implemented and validated on staging.
 
 - Replace user-facing Stars terminology with Coins across Hero and Party Leader
   screens, alerts, accessibility labels, weekly progress, quest rewards, and
@@ -23,6 +23,8 @@ migration.
 
 ## Phase 2 — Staging validation
 
+Status: complete.
+
 - Deploy Phase 1 to staging.
 - Verify a quest displays and awards Coins only after approval.
 - Verify weekly available/earned totals still agree with quest values.
@@ -32,6 +34,9 @@ migration.
 - Check mobile and desktop layouts, screen-reader labels, and empty states.
 
 ## Phase 3 — System content cleanup
+
+Status: complete in migration `202609270003_coin_badge_copy.sql` and the
+regenerated first-time guide.
 
 - Update system badge descriptions and operational documentation to use Coins
   and Hero Shop.

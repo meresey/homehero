@@ -372,6 +372,7 @@ export function useHomeHeroData() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'quest_instances', filter: `child_id=eq.${childId}` }, refreshSoon)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'streak_awards', filter: `child_id=eq.${childId}` }, refreshSoon)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hero_badges', filter: `child_id=eq.${childId}` }, refreshSoon)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reward_redemptions', filter: `child_id=eq.${childId}` }, refreshSoon)
       .subscribe(status => { if (status === 'SUBSCRIBED') refreshSoon(); });
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);

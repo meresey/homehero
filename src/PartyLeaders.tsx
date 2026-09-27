@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   leaderCopy: { flex: 1 }, name: { color: colors.navy, fontWeight: '700', fontSize: 15 }, subtle: { color: colors.muted, fontSize: 13, lineHeight: 19 },
   sectionTitle: { color: colors.navy, fontSize: 16, fontWeight: '800', marginTop: 17, marginBottom: 5 },
   inviteForm: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 12 },
-  input: { flexGrow: 1, minWidth: 205, borderWidth: 1, borderColor: '#DDD8CE', backgroundColor: colors.white, color: colors.navy, borderRadius: 12, paddingHorizontal: 14, height: 45 },
+  input: { flexGrow: 1, minWidth: 205, borderWidth: 1, borderColor: '#DDD8CE', backgroundColor: colors.white, color: colors.navy, borderRadius: 12, paddingHorizontal: 14, height: 45, fontSize: 16 },
   primaryButton: { backgroundColor: colors.green, borderRadius: 12, paddingHorizontal: 16, height: 45, justifyContent: 'center' }, primaryText: { color: colors.white, fontWeight: '800' }, disabled: { opacity: .55 },
   codeBox: { marginTop: 13, padding: 15, borderRadius: 13, backgroundColor: '#FFF7DD', gap: 8 }, codeLabel: { color: '#85600A', fontSize: 11, fontWeight: '800' }, code: { color: colors.navy, fontWeight: '800', fontSize: 17, letterSpacing: 1 }, link: { color: colors.green, fontWeight: '800' },
   copyButton: { alignSelf: 'flex-start', minHeight: 38, paddingHorizontal: 11, borderRadius: 10, borderWidth: 1, borderColor: '#D7C98F', backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', gap: 7 },

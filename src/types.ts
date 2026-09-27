@@ -69,6 +69,14 @@ export type BadgeDefinition = {
   emoji: string;
 };
 
+export type BadgeProgress = BadgeDefinition & {
+  category: string;
+  tier?: string;
+  current: number;
+  target: number;
+  earnedAt?: string;
+};
+
 export type HeroBadge = {
   heroId: string;
   badgeId: string;

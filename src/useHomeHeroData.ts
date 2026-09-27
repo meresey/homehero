@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { initialQuests } from './data';
 import { backendEnabled, supabase } from './lib/supabase';
-import { BadgeDefinition, HeroProfile, Quest, QuestAssignment, QuestCompletion, QuestKind, QuestStatus, Reward, RewardRedemption, StreakAward } from './types';
+import { BadgeDefinition, BadgeProgress, HeroProfile, Quest, QuestAssignment, QuestCompletion, QuestKind, QuestStatus, Reward, RewardRedemption, StreakAward } from './types';
 
 type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child'; displayName: string };
 export type ParentDashboardSummary = {
@@ -31,6 +31,18 @@ export type HeroWeeklyProgress = {
   goalStars: number | null;
 };
 
+type BadgeProgressRow = {
+  badge_key: string;
+  name: string;
+  description: string;
+  icon_key: string;
+  category: string;
+  tier: string | null;
+  current_value: number;
+  target_value: number;
+  earned_at: string | null;
+};
+
 const emptyParentDashboard: ParentDashboardSummary = { leaderName: 'Party Leader', heroNames: [], managedHeroes: [], todayProgress: [], weeklyProgress: [], safeZone: null };
 
 export function useHomeHeroData() {
@@ -51,6 +63,7 @@ export function useHomeHeroData() {
   const [pendingRewards, setPendingRewards] = useState<RewardRedemption[]>([]);
   const [pendingRewardIds, setPendingRewardIds] = useState<string[]>([]);
   const [earnedBadges, setEarnedBadges] = useState<BadgeDefinition[]>([]);
+  const [badgeProgress, setBadgeProgress] = useState<BadgeProgress[]>([]);
   const [completionHistory, setCompletionHistory] = useState<QuestCompletion[]>([]);
   const [streakAwards, setStreakAwards] = useState<StreakAward[]>([]);
   const [stars, setStars] = useState(backendEnabled ? 0 : 19);
@@ -64,7 +77,7 @@ export function useHomeHeroData() {
     const current = activeSession === undefined ? (await supabase.auth.getSession()).data.session : activeSession;
     activeUserId.current = current?.user.id ?? null;
     setSession(current);
-    if (!current) { loadedUserId.current = null; setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
+    if (!current) { loadedUserId.current = null; setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setBadgeProgress([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
     // Keep the existing screen visible when refreshing data for the same account.
     // A full-screen loader is only needed before we have loaded this account.
     if (loadedUserId.current !== current.user.id) setLoading(true);
@@ -72,7 +85,7 @@ export function useHomeHeroData() {
     try {
       const { data: membership, error: membershipError } = await supabase.from('household_members').select('household_id, role, households(name, invite_code, timezone)').eq('user_id', current.user.id).maybeSingle();
       if (membershipError) throw membershipError;
-      if (!membership) { setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); return; }
+      if (!membership) { setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setBadgeProgress([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); return; }
       const household = membership.households as unknown as { name: string; invite_code: string; timezone: string };
       const [profileResult, linksResult] = await Promise.all([
         supabase.from('profiles').select('display_name').eq('id', current.user.id).single(),
@@ -86,6 +99,7 @@ export function useHomeHeroData() {
       let childIds: string[] = [];
       if (membership.role === 'parent') {
         setEarnedBadges([]);
+        setBadgeProgress([]);
         setCompletionHistory([]);
         setStreakAwards([]);
         const { data: links, error: linkError } = linksResult;
@@ -225,7 +239,7 @@ export function useHomeHeroData() {
         const [questsResult, weeklyGuildResult, badgesResult, completionsResult, streaksResult] = await Promise.all([
           supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active)').eq('child_id',childId).eq('occurrence_date',today).eq('quest_templates.is_active',true).order('available_at'),
           supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_assignments!inner(days_of_week),quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active)').eq('child_id',childId).eq('quest_templates.kind','guild').eq('quest_templates.is_active',true).gte('occurrence_date',weekStart).lte('occurrence_date',today).in('status',['available','pending_approval','rewarded']).order('available_at'),
-          supabase.from('hero_badges').select('badge_key,earned_at').eq('child_id', current.user.id).order('earned_at'),
+          supabase.rpc('get_my_badge_progress'),
           supabase.from('quest_instances').select('id,child_id,quest_template_id,occurrence_date,star_reward_snapshot,xp_reward_snapshot,rewarded_at,quest_templates!inner(title,icon_key,kind)').eq('child_id',childId).eq('status','rewarded').order('occurrence_date',{ ascending: false }).limit(1000),
           supabase.from('streak_awards').select('id,child_id,assignment_id,week_start,xp_awarded,created_at').eq('child_id',childId).order('week_start',{ ascending: false }).limit(100),
         ]);
@@ -243,25 +257,20 @@ export function useHomeHeroData() {
         setCompletionHistory((completionRows ?? []).map(mapCompletion));
         setStreakAwards((streakRows ?? []).map(row => ({ id: row.id, heroId: row.child_id, questId: row.assignment_id, weekStart: row.week_start, xpAwarded: row.xp_awarded, awardedAt: row.created_at })));
         setPendingQuests([]);
-        if (badgeError) {
-          setEarnedBadges([]);
-        } else {
-          const badgeKeys = (badgeRows ?? []).map(row => row.badge_key);
-          if (badgeKeys.length === 0) {
-            setEarnedBadges([]);
-          } else {
-            const { data: definitions, error: definitionsError } = await supabase.from('badge_definitions').select('key,name,description,icon_key').in('key', badgeKeys);
-            if (definitionsError) {
-              setEarnedBadges([]);
-            } else {
-              const definitionsByKey = new Map((definitions ?? []).map(badge => [badge.key, badge]));
-              setEarnedBadges(badgeKeys.flatMap(key => {
-                const badge = definitionsByKey.get(key);
-                return badge ? [{ id: badge.key, name: badge.name, description: badge.description, emoji: badge.icon_key }] : [];
-              }));
-            }
-          }
-        }
+        if (badgeError) throw badgeError;
+        const progress: BadgeProgress[] = ((badgeRows ?? []) as BadgeProgressRow[]).map(row => ({
+          id: row.badge_key,
+          name: row.name,
+          description: row.description,
+          emoji: row.icon_key,
+          category: row.category,
+          tier: row.tier ?? undefined,
+          current: row.current_value,
+          target: row.target_value,
+          earnedAt: row.earned_at ?? undefined,
+        }));
+        setBadgeProgress(progress);
+        setEarnedBadges(progress.filter(badge => badge.earnedAt).map(({ id, name, description, emoji }) => ({ id, name, description, emoji })));
       }
       const [balanceResult, rewardsResult] = await Promise.all([
         childId
@@ -361,6 +370,7 @@ export function useHomeHeroData() {
       .channel(`hero-weekly-progress-${childId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'quest_instances', filter: `child_id=eq.${childId}` }, refreshSoon)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'streak_awards', filter: `child_id=eq.${childId}` }, refreshSoon)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hero_badges', filter: `child_id=eq.${childId}` }, refreshSoon)
       .subscribe(status => { if (status === 'SUBSCRIBED') refreshSoon(); });
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
@@ -375,7 +385,7 @@ export function useHomeHeroData() {
     await refresh();
   }, [refresh]);
 
-  return { backendEnabled, session, family, quests, retiredQuests, questCatalog, heroes, questAssignments, pendingQuests, runningTimers, rewards, retiredRewards, rewardCatalog, pendingRewards, pendingRewardIds, earnedBadges, completionHistory, streakAwards, stars, xp, parentDashboard, loading, error, refresh,
+  return { backendEnabled, session, family, quests, retiredQuests, questCatalog, heroes, questAssignments, pendingQuests, runningTimers, rewards, retiredRewards, rewardCatalog, pendingRewards, pendingRewardIds, earnedBadges, badgeProgress, completionHistory, streakAwards, stars, xp, parentDashboard, loading, error, refresh,
     setDemoQuests: setQuests, setDemoStars: setStars, setDemoXp: setXp,
     completeQuest: (q: Quest) => rpc(q.kind === 'guild' ? 'submit_guild_quest' : 'complete_quest', { p_instance_id: q.instanceId }),
     startTimer: (q: Quest) => rpc('start_timer', { p_instance_id: q.instanceId }),

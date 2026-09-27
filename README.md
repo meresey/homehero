@@ -4,7 +4,7 @@ A gamified family habit and chore app for children aged 10–13. This repository
 
 ## What is implemented
 
-- Child Today, Week, Star Store, and Hero screens
+- Child Today, Week, Hero Shop, and Hero screens
 - Parent Dashboard, Quest Manager, Approval Inbox, and Rewards screens
 - Parent-managed Hero enrollment with child-safe usernames and six-digit PINs
 - Party Leader controls for changing managed Hero usernames and resetting PINs
@@ -14,7 +14,7 @@ A gamified family habit and chore app for children aged 10–13. This repository
 - PostgreSQL schema for households, quests, instances, ledger, levels, streaks, weekly goals, rewards, and redemptions
 - Row Level Security policies
 - Atomic RPCs for completing quests, starting timers, reviewing Guild Quests, and redeeming rewards
-- Idempotent star/XP ledger
+- Idempotent coin/XP ledger (using the backward-compatible `star` database currency key)
 - Bedtime expiration and Monday–Sunday streak functions
 - Optional Edge Function wrapper for expiration
 
@@ -56,7 +56,7 @@ Do not enable `EXPO_PUBLIC_USE_SUPABASE` until every item below is complete:
 - Add a parent-authorized RPC and RLS policy for saving level titles, XP thresholds, and characteristics.
 - Connect `LevelAdmin` saves to that RPC while retaining local-state behavior when the backend flag is off.
 - Load the Hero header name from `profiles.display_name` instead of the local `Alex` placeholder.
-- Continue loading header stars and lifetime XP from `child_balances`, then calculate the current level from the database-backed level definitions.
+- Continue loading header coins and lifetime XP from `child_balances` (the coin balance remains in the backward-compatible `stars` column), then calculate the current level from the database-backed level definitions.
 - Add `badge_definitions` and `child_badges` tables (including `earned_at`), with household-safe RLS policies.
 - Query the child’s earned badge count and badge collection so the shared Hero header and Hero profile use the same database source.
 - Retain the local profile and badge fixtures while `EXPO_PUBLIC_USE_SUPABASE=false`.
@@ -111,7 +111,7 @@ Apply `202609210001_party_leader_invitations.sql` to staging before testing this
 | Finish timed quest | `finish_timer(instance_id)` |
 | Submit family quest | `submit_guild_quest(instance_id)` |
 | Approve/reject Guild Quest | `review_guild_quest(instance_id, approve, note)` |
-| Spend stars | `redeem_reward(reward_id, idempotency_key)` |
+| Spend coins | `redeem_reward(reward_id, idempotency_key)` |
 | Create or edit a quest | `upsert_quest_admin(...)` |
 | Remove a quest from future schedules | `archive_quest_admin(template_id)` |
 

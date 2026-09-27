@@ -5,6 +5,7 @@ import { EmptyState, PageHeading, Panel } from './components';
 import { colors } from './theme';
 import { Reward } from './types';
 import { EmojiPickerField } from './EmojiPicker';
+import { COIN_ICON, coinLabel } from './economy';
 
 type Draft = { title: string; subtitle: string; emoji: string; cost: string };
 const emptyDraft: Draft = { title: '', subtitle: '', emoji: '🎁', cost: '25' };
@@ -40,18 +41,18 @@ export function RewardAdmin({ rewards, retiredRewards = [], pendingRewardIds = [
 
   return <>
     <ScrollView contentContainerStyle={styles.content}>
-      <PageHeading eyebrow="PARTY LEADER" title="Rewards" subtitle={mobile ? undefined : 'Set privileges and star prices'} action={<Pressable accessibilityLabel="Add reward" style={styles.addButton} onPress={() => setEditing('new')}><Ionicons name="add" size={25} color={colors.white} /></Pressable>} />
+      <PageHeading eyebrow="PARTY LEADER" title="Rewards" subtitle={mobile ? undefined : 'Set privileges and coin prices'} action={<Pressable accessibilityLabel="Add reward" style={styles.addButton} onPress={() => setEditing('new')}><Ionicons name="add" size={25} color={colors.white} /></Pressable>} />
       <View style={styles.viewTabs}>
         <Pressable onPress={() => setView('household')} style={[styles.viewTab, view === 'household' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'household' && styles.viewTabTextActive]}>My rewards</Text></Pressable>
         <Pressable onPress={() => setView('library')} style={[styles.viewTab, view === 'library' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'library' && styles.viewTabTextActive]}>Reward library</Text></Pressable>
         <Pressable onPress={() => setView('retired')} style={[styles.viewTab, view === 'retired' && styles.viewTabActive]}><Text style={[styles.viewTabText, view === 'retired' && styles.viewTabTextActive]}>Retired</Text></Pressable>
       </View>
       <Text style={styles.privacy}>{view === 'library' ? '✨ Ready-made rewards you can customise before adding' : view === 'retired' ? '🗃️ Hidden from Heroes · redemption history is preserved' : '🔒 Private to your household'}</Text>
-      {!mobile && <Panel style={styles.summary}><Text style={styles.summaryValue}>{source.length}</Text><View><Text style={styles.cardTitle}>{view === 'household' ? 'Active rewards' : view === 'retired' ? 'Retired rewards' : 'Available ideas'}</Text><Text style={styles.lead}>{view === 'household' ? 'Changes appear instantly in the Hero’s store.' : view === 'retired' ? 'Restore a reward to return it to the Star Store.' : 'Choose one, then adjust its details and price.'}</Text></View></Panel>}
-      {source.length === 0 ? <EmptyState icon={view === 'retired' ? 'archive-outline' : 'gift-outline'} title={view === 'library' ? 'Every library reward is already added' : view === 'retired' ? 'No retired rewards' : 'No rewards yet'} description={view === 'household' ? 'Add a reward to make your Heroes’ stars meaningful.' : undefined} action={view === 'household' ? <Pressable onPress={() => setEditing('new')}><Text style={styles.link}>Add the first reward</Text></Pressable> : undefined} /> : source.map(reward =>
+      {!mobile && <Panel style={styles.summary}><Text style={styles.summaryValue}>{source.length}</Text><View><Text style={styles.cardTitle}>{view === 'household' ? 'Active rewards' : view === 'retired' ? 'Retired rewards' : 'Available ideas'}</Text><Text style={styles.lead}>{view === 'household' ? 'Changes appear instantly in the Hero Shop.' : view === 'retired' ? 'Restore a reward to return it to the Hero Shop.' : 'Choose one, then adjust its details and price.'}</Text></View></Panel>}
+      {source.length === 0 ? <EmptyState icon={view === 'retired' ? 'archive-outline' : 'gift-outline'} title={view === 'library' ? 'Every library reward is already added' : view === 'retired' ? 'No retired rewards' : 'No rewards yet'} description={view === 'household' ? 'Add a reward to make your Heroes’ coins meaningful.' : undefined} action={view === 'household' ? <Pressable onPress={() => setEditing('new')}><Text style={styles.link}>Add the first reward</Text></Pressable> : undefined} /> : source.map(reward =>
         <Panel key={reward.id} style={[styles.rewardCard, mobile && styles.rewardCardMobile]}>
           <View style={styles.emojiBox}><Text style={styles.emoji}>{reward.emoji}</Text></View>
-          <View style={styles.copy}><Text style={styles.rewardTitle}>{reward.title}</Text>{!mobile && <Text style={styles.lead}>{reward.subtitle}</Text>}<Text style={styles.cost}>⭐ {reward.cost} stars</Text>{view === 'household' && pendingRewardIds.includes(reward.rewardId ?? reward.id) && <Text style={styles.pendingNote}>Pending approval · review before retiring</Text>}</View>
+          <View style={styles.copy}><Text style={styles.rewardTitle}>{reward.title}</Text>{!mobile && <Text style={styles.lead}>{reward.subtitle}</Text>}<Text style={styles.cost}>{COIN_ICON} {coinLabel(reward.cost)}</Text>{view === 'household' && pendingRewardIds.includes(reward.rewardId ?? reward.id) && <Text style={styles.pendingNote}>Pending approval · review before retiring</Text>}</View>
           <View style={styles.actions}>
             {view === 'household' ? <><Pressable accessibilityLabel={`Edit ${reward.title}`} style={styles.iconButton} onPress={() => setEditing(reward)}><Ionicons name="create-outline" size={20} color={colors.navy} /></Pressable>
             <Pressable disabled={pendingRewardIds.includes(reward.rewardId ?? reward.id)} accessibilityLabel={pendingRewardIds.includes(reward.rewardId ?? reward.id) ? `Cannot retire ${reward.title} while approval is pending` : `Retire ${reward.title}`} style={[styles.iconButton, pendingRewardIds.includes(reward.rewardId ?? reward.id) && styles.disabledAction]} onPress={() => { setRetireError(null); setRetiring(reward); }}><Ionicons name="archive-outline" size={19} color={pendingRewardIds.includes(reward.rewardId ?? reward.id) ? colors.muted : colors.coral} /></Pressable></> : view === 'retired' ? <Pressable disabled={Boolean(restoringId)} accessibilityLabel={`Restore ${reward.title}`} onPress={() => restore(reward)} style={styles.restoreButton}><Text style={styles.restoreText}>{restoringId === reward.id ? 'RESTORING…' : 'RESTORE'}</Text></Pressable> : <Pressable accessibilityLabel={`Add ${reward.title}`} onPress={() => addFromLibrary(reward)} style={styles.libraryAdd}><Text style={styles.libraryAddText}>ADD</Text></Pressable>}
@@ -62,7 +63,7 @@ export function RewardAdmin({ rewards, retiredRewards = [], pendingRewardIds = [
       <View style={styles.confirmOverlay}><View accessibilityRole="alert" style={styles.confirmCard}>
         <View style={styles.confirmIcon}><Ionicons name="archive-outline" size={24} color={colors.coral} /></View>
         <Text style={styles.confirmTitle}>Retire reward?</Text>
-        <Text style={styles.confirmText}>“{retiring?.title}” will disappear from the Star Store. Existing and pending requests will be preserved, and you can restore it later.</Text>
+        <Text style={styles.confirmText}>“{retiring?.title}” will disappear from the Hero Shop. Existing and pending requests will be preserved, and you can restore it later.</Text>
         {retireError && <View style={styles.retireError}><Text style={styles.retireErrorText}>{retireError}</Text></View>}
         <View style={styles.confirmActions}><Pressable disabled={retireBusy} onPress={() => setRetiring(null)} style={styles.confirmCancel}><Text style={styles.confirmCancelText}>Cancel</Text></Pressable><Pressable disabled={retireBusy} onPress={confirmRetire} style={[styles.confirmRetire, retireBusy && styles.disabled]}><Text style={styles.confirmRetireText}>{retireBusy ? 'Retiring…' : 'Retire reward'}</Text></Pressable></View>
       </View></View>
@@ -82,7 +83,7 @@ function RewardEditor({ value, isExisting, onClose, onSave }: { value: Reward | 
   const submit = async () => {
     const cost = Number.parseInt(draft.cost, 10);
     if (!draft.title.trim()) return Alert.alert('Reward name required', 'Give this reward a short name.');
-    if (!Number.isInteger(cost) || cost < 1 || cost > 10000) return Alert.alert('Invalid star cost', 'Enter a whole number between 1 and 10,000.');
+    if (!Number.isInteger(cost) || cost < 1 || cost > 10000) return Alert.alert('Invalid coin cost', 'Enter a whole number between 1 and 10,000.');
     await onSave({ id: value === 'new' ? `reward-${Date.now()}` : value.id, rewardId: value === 'new' ? undefined : value.rewardId, catalogRewardId: value === 'new' ? undefined : value.catalogRewardId, title: draft.title.trim(), subtitle: draft.subtitle.trim() || 'A special Hero reward', emoji: draft.emoji.trim() || '🎁', cost });
   };
   return <Modal visible animationType="slide" onRequestClose={onClose}><SafeAreaView style={styles.modalSafe}><View style={styles.modalSurface}>
@@ -91,8 +92,8 @@ function RewardEditor({ value, isExisting, onClose, onSave }: { value: Reward | 
       <Field label="Reward name"><TextInput value={draft.title} onChangeText={text => update('title', text)} placeholder="e.g. Choose movie night" style={styles.input} /></Field>
       <Field label="Description"><TextInput value={draft.subtitle} onChangeText={text => update('subtitle', text)} placeholder="What does the Hero receive?" multiline style={[styles.input, styles.multiline]} /></Field>
       <Field label="Icon"><EmojiPickerField value={draft.emoji} name={draft.title} description={draft.subtitle} kind="reward" onSelect={emoji => update('emoji', emoji)} /></Field>
-      <Field label="Star cost"><TextInput value={draft.cost} onChangeText={text => update('cost', text)} keyboardType="number-pad" style={styles.input} /></Field>
-      <View style={styles.notice}><Ionicons name="star-outline" size={22} color={colors.green} /><Text style={styles.noticeText}>Heroes see this reward and its updated price immediately in the Star Store.</Text></View>
+      <Field label="Coin cost"><TextInput value={draft.cost} onChangeText={text => update('cost', text)} keyboardType="number-pad" style={styles.input} /></Field>
+      <View style={styles.notice}><Text style={{ fontSize: 21 }}>{COIN_ICON}</Text><Text style={styles.noticeText}>Heroes see this reward and its updated price immediately in the Hero Shop.</Text></View>
       <Pressable style={styles.primary} onPress={submit}><Text style={styles.primaryText}>{isExisting ? 'Save changes' : 'Add to my rewards'}</Text></Pressable>
     </ScrollView>
   </View></SafeAreaView></Modal>;

@@ -5,6 +5,7 @@ import { EmptyState, PageHeading, Panel, Pill } from './components';
 import { colors } from './theme';
 import { GuildScheduleMode, HeroProfile, Quest, QuestAssignment } from './types';
 import { EmojiPickerField } from './EmojiPicker';
+import { COIN_ICON, coinFriendlyMessage } from './economy';
 import { calculateAge, formatQuestAgeRange } from './ageEligibility';
 import { questXpForKind } from './questXp';
 
@@ -97,7 +98,7 @@ export function QuestAdmin({ quests, retiredQuests = [], pendingTemplateIds = []
         <View style={styles.questCopy}>
           <View style={styles.titleRow}><Text style={styles.questTitle}>{q.title}</Text><Pill tone={q.cadence === 'guild' ? 'purple' : q.cadence === 'weekly' ? 'gold' : 'green'}>{(q.cadence ?? 'daily').toUpperCase()}</Pill></View>
           {!mobile && <Text style={styles.description}>{q.description}</Text>}
-          <Text style={styles.meta}>{q.scheduleLabel ?? 'Every day'}{!mobile && `  ·  ${formatQuestAgeRange(q)}`}  ·  ⭐ {q.stars}  ·  ✦ {q.xp} XP{q.timerMinutes ? `  ·  ◷ ${q.timerMinutes} min` : ''}</Text>
+          <Text style={styles.meta}>{q.scheduleLabel ?? 'Every day'}{!mobile && `  ·  ${formatQuestAgeRange(q)}`}  ·  {COIN_ICON} {q.stars}  ·  ✦ {q.xp} XP{q.timerMinutes ? `  ·  ◷ ${q.timerMinutes} min` : ''}</Text>
           {view === 'household' && <Text style={styles.assigned}>{assignmentIds(q.id).length ? `Assigned to ${heroes.filter(hero => assignmentIds(q.id).includes(hero.id)).map(hero => `${hero.avatarEmoji} ${hero.displayName}`).join(', ')}` : 'Not assigned to a Hero'}</Text>}
           {view === 'household' && pendingTemplateIds.includes(q.templateId ?? q.id) && <Text style={styles.pendingNote}>Pending approval · review before retiring</Text>}
           {view === 'retired' && <Text style={styles.retiredNote}>Past completions and earned points are preserved.</Text>}
@@ -113,7 +114,7 @@ export function QuestAdmin({ quests, retiredQuests = [], pendingTemplateIds = []
         <View accessibilityRole="alert" style={styles.confirmCard}>
           <View style={styles.confirmIcon}><Ionicons name="archive-outline" size={24} color={colors.coral} /></View>
           <Text style={styles.confirmTitle}>Retire quest?</Text>
-          <Text style={styles.confirmText}>“{removing?.title}” will stop appearing in future schedules. Existing completions, stars, and XP will be kept. You can restore it later.</Text>
+          <Text style={styles.confirmText}>“{removing?.title}” will stop appearing in future schedules. Existing completions, coins, and XP will be kept. You can restore it later.</Text>
           {removalError && <View style={styles.removeError}><Text style={styles.removeErrorText}>{removalError}</Text></View>}
           <View style={styles.confirmActions}>
             <Pressable disabled={removalBusy} onPress={() => setRemoving(null)} style={styles.confirmCancel}><Text style={styles.confirmCancelText}>Cancel</Text></Pressable>
@@ -150,7 +151,7 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
     setFormError(null);
     if (!draft.title.trim()) return setFormError('Give this quest a short, encouraging name.');
     const stars = Math.max(0, Number.parseInt(draft.stars, 10) || 0); const timer = draft.cadence === 'guild' ? undefined : Number.parseInt(draft.timerMinutes, 10) || undefined;
-    if (stars > 100) return setFormError('Stars must be between 0 and 100.');
+    if (stars > 100) return setFormError('Coins must be between 0 and 100.');
     const minimumAge = draft.minimumAge.trim() ? Number.parseInt(draft.minimumAge, 10) : undefined;
     const maximumAge = draft.maximumAge.trim() ? Number.parseInt(draft.maximumAge, 10) : undefined;
     if ((minimumAge != null && (minimumAge < 3 || minimumAge > 18)) || (maximumAge != null && (maximumAge < 3 || maximumAge > 18))) return setFormError('Quest ages must be between 3 and 18.');
@@ -170,7 +171,7 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
       if (saved) onClose();
       else setFormError('The quest could not be saved. Check the details and try again.');
     } catch (cause) {
-      setFormError(cause instanceof Error ? cause.message : 'The quest could not be saved. Please try again.');
+      setFormError(cause instanceof Error ? coinFriendlyMessage(cause.message) : 'The quest could not be saved. Please try again.');
     } finally { setSaving(false); }
   };
   const previewQuest = { minimumAge: draft.minimumAge ? Number(draft.minimumAge) : undefined, maximumAge: draft.maximumAge ? Number(draft.maximumAge) : undefined };
@@ -191,9 +192,9 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
       </Field> : <Field label="Schedule"><TextInput value={draft.scheduleLabel} onChangeText={text => set('scheduleLabel', text)} placeholder="Mon–Fri" style={styles.input} /></Field>}
       <Field label="Age suitability"><Text style={styles.fieldHint}>Leave both fields blank to make this quest available to all ages.</Text><View style={styles.twoColumns}><TextInput accessibilityLabel="Minimum age" value={draft.minimumAge} onChangeText={text => set('minimumAge', text.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="Minimum age" style={[styles.input, styles.half]} /><TextInput accessibilityLabel="Maximum age" value={draft.maximumAge} onChangeText={text => set('maximumAge', text.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="Maximum age" style={[styles.input, styles.half]} /></View></Field>
       <Field label="Assign to Heroes"><Text style={styles.fieldHint}>Each Hero keeps their own completion status. Ineligible Heroes cannot be selected. You can save the quest without an assignment.</Text><View style={styles.heroChoices}>{heroes.map(hero => { const eligible = isAgeEligible(previewQuest, hero); const selected = eligible && selectedHeroIds.includes(hero.id); const age = calculateAge(hero.dateOfBirth); return <Pressable key={hero.id} disabled={!eligible || saving} onPress={() => onSelectedHeroIds(selected ? selectedHeroIds.filter(id => id !== hero.id) : [...selectedHeroIds, hero.id])} style={[styles.heroChoice, selected && styles.heroChoiceSelected, !eligible && styles.heroChoiceDisabled]}><Text style={styles.heroChoiceEmoji}>{hero.avatarEmoji}</Text><Text style={[styles.heroChoiceText, selected && styles.heroChoiceTextSelected]}>{hero.displayName}</Text><Text style={styles.heroAge}>{age === null ? 'Age not set' : `Age ${age}`}</Text></Pressable>; })}</View></Field>
-      <Field label="Stars"><TextInput value={draft.stars} onChangeText={text => set('stars', text)} keyboardType="number-pad" style={[styles.input, styles.smallField]} /></Field>
+      <Field label="Coins"><TextInput value={draft.stars} onChangeText={text => set('stars', text)} keyboardType="number-pad" style={[styles.input, styles.smallField]} /></Field>
       {draft.cadence !== 'guild' && <Field label="Timer minutes (optional)"><TextInput value={draft.timerMinutes} onChangeText={text => set('timerMinutes', text)} keyboardType="number-pad" placeholder="20" style={styles.input} /></Field>}
-      <View style={styles.notice}><Ionicons name="shield-checkmark-outline" size={22} color={colors.purple} /><Text style={styles.noticeText}>XP is assigned automatically by quest type: Daily and Bedtime 1 XP, Timer 2 XP, and Guild 3 XP. Stars and XP are awarded only after Party Leader approval.</Text></View>
+      <View style={styles.notice}><Ionicons name="shield-checkmark-outline" size={22} color={colors.purple} /><Text style={styles.noticeText}>XP is assigned automatically by quest type: Daily and Bedtime 1 XP, Timer 2 XP, and Guild 3 XP. Coins and XP are awarded only after Party Leader approval.</Text></View>
       <Pressable accessibilityRole="button" disabled={saving} onPress={submit} style={[styles.primary, saving && styles.confirmDisabled]}><Text style={styles.primaryText}>{saving ? 'Saving…' : isExisting ? 'Save changes' : 'Add to my quests'}</Text></Pressable>
     </ScrollView>
   </View></SafeAreaView></Modal>;

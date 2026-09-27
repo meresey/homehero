@@ -3,6 +3,7 @@ import { Session } from '@supabase/supabase-js';
 import { initialQuests } from './data';
 import { backendEnabled, supabase } from './lib/supabase';
 import { BadgeDefinition, BadgeProgress, HeroProfile, Quest, QuestAssignment, QuestCompletion, QuestKind, QuestStatus, Reward, RewardRedemption, StreakAward } from './types';
+import { coinFriendlyMessage } from './economy';
 
 type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child'; displayName: string };
 export type ParentDashboardSummary = {
@@ -260,8 +261,8 @@ export function useHomeHeroData() {
         if (badgeError) throw badgeError;
         const progress: BadgeProgress[] = ((badgeRows ?? []) as BadgeProgressRow[]).map(row => ({
           id: row.badge_key,
-          name: row.name,
-          description: row.description,
+          name: coinFriendlyMessage(row.name),
+          description: coinFriendlyMessage(row.description),
           emoji: row.icon_key,
           category: row.category,
           tier: row.tier ?? undefined,

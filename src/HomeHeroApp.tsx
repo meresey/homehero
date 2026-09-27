@@ -22,13 +22,14 @@ import { usePersistentState } from './usePersistentState';
 import { supabase } from './lib/supabase';
 import { HeroEnrollmentModal } from './HeroEnrollment';
 import { HeroCredentialsModal } from './HeroCredentials';
+import { COIN_ICON, coinFriendlyMessage, coinLabel } from './economy';
 
 type Role = 'child' | 'parent';
 type ChildTab = 'today' | 'week' | 'store' | 'hero';
 type ParentTab = 'home' | 'quests' | 'approvals' | 'rewards';
 type NavItem = [id: string, icon: string, label: string, badge?: number];
 
-const showError = (cause: unknown) => Alert.alert('Something went wrong', cause instanceof Error ? cause.message : 'Please try again.');
+const showError = (cause: unknown) => Alert.alert('Something went wrong', cause instanceof Error ? coinFriendlyMessage(cause.message) : 'Please try again.');
 
 export function HomeHeroApp() {
   const { width } = useWindowDimensions();
@@ -85,34 +86,34 @@ export function HomeHeroApp() {
       return;
     }
     if (data.backendEnabled) {
-      try { await data.completeQuest(quest); Alert.alert('Quest submitted!', 'Your Party Leader has been asked to approve it. Stars and XP will be awarded after approval.'); } catch (cause) { showError(cause); }
+      try { await data.completeQuest(quest); Alert.alert('Quest submitted!', 'Your Party Leader has been asked to approve it. Coins and XP will be awarded after approval.'); } catch (cause) { showError(cause); }
       return;
     }
     householdData.submitQuestForApproval(quest);
-    Alert.alert('Quest submitted!', 'Your Party Leader has been asked to approve it. Stars and XP will be awarded after approval.');
+    Alert.alert('Quest submitted!', 'Your Party Leader has been asked to approve it. Coins and XP will be awarded after approval.');
   };
 
   const reviewQuest = async (selected: Quest, approve: boolean) => {
-    if (data.backendEnabled) { try { await data.reviewQuest(selected, approve); Alert.alert(approve ? 'Quest approved' : 'Try again requested', approve ? `${selected.stars} stars and ${selected.xp} XP awarded.` : `${selected.heroName ?? 'The Hero'} can now try this quest again.`); } catch (cause) { showError(cause); } }
+    if (data.backendEnabled) { try { await data.reviewQuest(selected, approve); Alert.alert(approve ? 'Quest approved' : 'Try again requested', approve ? `${coinLabel(selected.stars)} and ${selected.xp} XP awarded.` : `${selected.heroName ?? 'The Hero'} can now try this quest again.`); } catch (cause) { showError(cause); } }
   };
 
   const reviewReward = async (request: RewardRedemption, approve: boolean) => {
     try {
       await data.reviewReward(request.id, approve);
       Alert.alert(approve ? 'Reward approved' : 'Reward declined', approve
-        ? `${request.cost} stars were deducted from ${request.heroName}’s balance.`
+        ? `${coinLabel(request.cost)} were deducted from ${request.heroName}’s balance.`
         : `${request.heroName} was not charged for this request.`);
     } catch (cause) { showError(cause); }
   };
 
   const redeem = async (cost: number, title: string, rewardId?: string) => {
-    if (stars < cost) return Alert.alert('Keep questing!', `You need ${cost - stars} more stars.`);
+    if (stars < cost) return Alert.alert('Keep questing!', `You need ${coinLabel(cost - stars)} more.`);
     if (data.backendEnabled && rewardId) { try { await data.redeemReward(rewardId); Alert.alert('Request sent!', `A Party Leader will approve “${title}”.`); } catch (cause) { showError(cause); } return; }
     if (!rewardId) return;
     const alreadyPending = householdData.state.rewardRequests.some(request => request.heroId === householdData.selectedHero.id && request.rewardId === rewardId && request.status === 'pending');
     if (alreadyPending) return Alert.alert('Already requested', `“${title}” is waiting for your Party Leader to review it.`);
     householdData.requestReward(rewardId, cost);
-    Alert.alert('Request sent!', `A Party Leader will approve “${title}”. Your stars will not be charged until then.`);
+    Alert.alert('Request sent!', `A Party Leader will approve “${title}”. Your coins will not be charged until then.`);
   };
 
   const saveQuest = async (quest: Quest, heroIds: string[] = []) => {
@@ -152,14 +153,14 @@ export function HomeHeroApp() {
       try {
         await saveRewardToDatabase({ householdId: data.family.householdId, rewardId: reward.rewardId, catalogRewardId: reward.catalogRewardId, title: reward.title, description: reward.subtitle, iconKey: reward.emoji, starCost: reward.cost });
         await data.refresh();
-        Alert.alert('Reward saved', `“${reward.title}” is now available in the Star Store.`);
+        Alert.alert('Reward saved', `“${reward.title}” is now available in the Hero Shop.`);
         return true;
       } catch (cause) { showError(cause); return false; }
     }
     setLocalRewards(current => current.some(item => item.id === reward.id)
       ? current.map(item => item.id === reward.id ? { ...reward, archived: false } : item)
       : [...current, { ...reward, archived: false }].sort((a, b) => a.cost - b.cost));
-    Alert.alert('Reward saved', `“${reward.title}” is now available in the Star Store.`);
+    Alert.alert('Reward saved', `“${reward.title}” is now available in the Hero Shop.`);
     return true;
   };
 
@@ -211,11 +212,11 @@ export function HomeHeroApp() {
           <View style={styles.screen}>
             {childTab === 'today' && <ChildToday quests={quests} xp={xp} levels={levelDefinitions} onQuest={complete} mobile={mobile} />}
             {childTab === 'week' && <WeeklyBoard history={data.backendEnabled ? data.completionHistory : householdData.state.completionHistory.filter(item => item.heroId === householdData.selectedHero.id)} quests={quests} streakAwards={data.backendEnabled ? data.streakAwards : householdData.state.streakAwards.filter(item => item.heroId === householdData.selectedHero.id)} />}
-            {childTab === 'store' && <StarStore rewards={data.backendEnabled ? data.rewards : activeLocalRewards} stars={stars} pendingRewardIds={data.backendEnabled ? data.pendingRewardIds : householdData.state.rewardRequests.filter(item => item.heroId === householdData.selectedHero.id && item.status === 'pending').map(item => item.rewardId)} onRedeem={redeem} />}
+            {childTab === 'store' && <HeroShop rewards={data.backendEnabled ? data.rewards : activeLocalRewards} stars={stars} pendingRewardIds={data.backendEnabled ? data.pendingRewardIds : householdData.state.rewardRequests.filter(item => item.heroId === householdData.selectedHero.id && item.status === 'pending').map(item => item.rewardId)} onRedeem={redeem} />}
             {childTab === 'hero' && <HeroProfile name={heroName} stars={stars} xp={xp} levels={levelDefinitions} badges={badgeProgress} />}
           </View>
           <BottomNav value={childTab} onChange={value => setChildTab(value as ChildTab)} items={[
-            ['today', 'map-outline', 'Today'], ['week', 'calendar-outline', 'Week'], ['store', 'star-outline', 'Store'], ['hero', 'shield-outline', 'Hero'],
+            ['today', 'map-outline', 'Today'], ['week', 'calendar-outline', 'Week'], ['store', 'storefront-outline', 'Shop'], ['hero', 'shield-outline', 'Hero'],
           ]} />
         </>
       ) : (
@@ -245,7 +246,7 @@ function HeroHeader({ name, level, stars, xp, badges, compact }: { name: string;
     <View style={[styles.levelShield, compact && styles.levelShieldCompact]}><Text style={styles.levelSmall}>LEVEL</Text><Text style={[styles.levelNumber, compact && styles.levelNumberCompact]}>{level.level}</Text></View>
     <View style={styles.heroHeaderCopy}><Text style={styles.eyebrow}>{compact ? weekday : `${weekday} · HERO DASHBOARD`}</Text><Text style={styles.greeting}>{name}</Text><Text style={styles.heroSub}>{level.title}{!compact && ' · Every small win builds a hero.'}</Text></View>
     <View style={styles.heroStats}>
-      <View style={styles.heroStat}><Text style={styles.heroStatIcon}>⭐</Text><View><Text style={styles.heroStatValue}>{stars}</Text><Text style={styles.heroStatLabel}>STARS</Text></View></View>
+      <View style={styles.heroStat}><Text style={styles.heroStatIcon}>{COIN_ICON}</Text><View><Text style={styles.heroStatValue}>{stars}</Text><Text style={styles.heroStatLabel}>COINS</Text></View></View>
       <View style={styles.heroStat}><Text style={styles.heroStatIcon}>✦</Text><View><Text style={styles.heroStatValue}>{xp}</Text><Text style={styles.heroStatLabel}>XP</Text></View></View>
       {!compact && <View style={styles.heroStat}><Text style={styles.heroStatIcon}>🏅</Text><View><Text style={styles.heroStatValue}>{badges}</Text><Text style={styles.heroStatLabel}>BADGES</Text></View></View>}
     </View>
@@ -286,19 +287,19 @@ function WeeklyBoard({ history, quests, streakAwards }: { history: QuestCompleti
   const dateRange = `${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(monday)}–${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(sunday)}`;
   const bonuses = streakAwards.filter(item => item.weekStart === localDateKey(monday)).reduce((sum, item) => sum + item.xpAwarded, 0);
   return <ScrollView contentContainerStyle={styles.content}><PageHeading eyebrow="HERO JOURNEY" title="Weekly adventure" subtitle={`Monday to Sunday · ${dateRange}`} />
-    <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Weekend bonus</Text><Text style={styles.muted}>{total} of {target} stars</Text></View><Text style={styles.bigStar}>⭐</Text></View><ProgressBar value={total} max={target} /><Text style={styles.encourage}>{total >= target ? 'Weekend reward unlocked!' : `${target - total} more stars unlock the weekend reward.`}</Text></Panel>
-    <Panel><Text style={styles.cardTitle}>Your quest trail</Text><View style={styles.weekRow}>{days.map(item => <View key={item.dateKey} style={styles.day}><Text style={styles.dayLabel}>{item.label}</Text><View style={[styles.dayDot, item.done && styles.dayDone, item.today && styles.dayToday]}><Text style={styles.dayValue}>{item.done ? '✓' : item.today ? '•' : ''}</Text></View><Text style={styles.dayStars}>{item.stars ? `⭐${item.stars}` : '—'}</Text></View>)}</View></Panel>
+    <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Weekend bonus</Text><Text style={styles.muted}>{total} of {target} coins</Text></View><Text style={styles.bigStar}>{COIN_ICON}</Text></View><ProgressBar value={total} max={target} /><Text style={styles.encourage}>{total >= target ? 'Weekend reward unlocked!' : `${coinLabel(target - total)} unlock the weekend reward.`}</Text></Panel>
+    <Panel><Text style={styles.cardTitle}>Your quest trail</Text><View style={styles.weekRow}>{days.map(item => <View key={item.dateKey} style={styles.day}><Text style={styles.dayLabel}>{item.label}</Text><View style={[styles.dayDot, item.done && styles.dayDone, item.today && styles.dayToday]}><Text style={styles.dayValue}>{item.done ? '✓' : item.today ? '•' : ''}</Text></View><Text style={styles.dayStars}>{item.stars ? `${COIN_ICON}${item.stars}` : '—'}</Text></View>)}</View></Panel>
     <Panel><View style={styles.sectionHeader}><Text style={styles.cardTitle}>Quest streaks</Text>{bonuses > 0 && <Pill tone="gold">+{bonuses} XP</Pill>}</View>{questStreaks.length === 0 ? <Text style={[styles.muted, { marginTop: 12 }]}>Complete the same daily quest on consecutive days to start a streak.</Text> : questStreaks.map(item => <View key={item.quest.id} style={styles.statRow}><Text style={styles.statEmoji}>{item.quest.emoji}</Text><Text style={styles.statName}>{item.quest.title}</Text><Pill tone="gold">🔥 {item.days} day{item.days === 1 ? '' : 's'}</Pill></View>)}</Panel>
   </ScrollView>;
 }
 
-function StarStore({ rewards: storeRewards, stars, pendingRewardIds, onRedeem }: { rewards: typeof rewards; stars: number; pendingRewardIds: string[]; onRedeem: (cost: number, title: string, id: string) => void }) {
+function HeroShop({ rewards: storeRewards, stars, pendingRewardIds, onRedeem }: { rewards: typeof rewards; stars: number; pendingRewardIds: string[]; onRedeem: (cost: number, title: string, id: string) => void }) {
   const mobile = useWindowDimensions().width < 600;
-  return <ScrollView contentContainerStyle={styles.content}><PageHeading eyebrow="HERO JOURNEY" title="Star Store" subtitle="Real rewards for heroic habits" action={<View style={styles.starBalance}><Text style={styles.starBalanceText}>⭐ {stars}</Text></View>} />
-    {storeRewards.length === 0 ? <EmptyState icon="gift-outline" title="Store opening soon" description="Your Party Leader has not added rewards yet." /> : storeRewards.map(reward => {
+  return <ScrollView contentContainerStyle={styles.content}><PageHeading eyebrow="HERO JOURNEY" title="Hero Shop" subtitle="Spend coins on real rewards" action={<View style={styles.starBalance}><Text style={styles.starBalanceText}>{COIN_ICON} {stars}</Text></View>} />
+    {storeRewards.length === 0 ? <EmptyState icon="gift-outline" title="Hero Shop opening soon" description="Your Party Leader has not added rewards yet." /> : storeRewards.map(reward => {
       const pending = pendingRewardIds.includes(reward.id);
       const canBuy = stars >= reward.cost && !pending;
-      return <View key={reward.id} style={[styles.storeCard, mobile && styles.storeCardMobile]}><Text style={[styles.storeEmoji, mobile && styles.storeEmojiMobile]}>{reward.emoji}</Text><View style={{ flex: 1 }}><Text style={styles.questTitle}>{reward.title}</Text>{!mobile && <Text style={styles.muted}>{reward.subtitle}</Text>}{pending ? <Text style={styles.pendingReward}>Waiting for approval</Text> : stars < reward.cost && <Text style={styles.starsNeeded}>{reward.cost - stars} more needed</Text>}</View><Pressable accessibilityRole="button" accessibilityLabel={pending ? `${reward.title} awaiting approval` : `Buy ${reward.title} for ${reward.cost} stars`} accessibilityState={{ disabled: !canBuy }} disabled={!canBuy} onPress={() => onRedeem(reward.cost, reward.title, reward.id)} style={[styles.buyButton, mobile && styles.buyButtonMobile, !canBuy && styles.buyButtonDisabled]}><Text style={[styles.buyButtonText, !canBuy && styles.buyButtonTextDisabled]}>{pending ? (mobile ? 'Pending' : 'Awaiting approval') : mobile ? `${reward.cost} ⭐` : `Buy · ${reward.cost} ⭐`}</Text></Pressable></View>;
+      return <View key={reward.id} style={[styles.storeCard, mobile && styles.storeCardMobile]}><Text style={[styles.storeEmoji, mobile && styles.storeEmojiMobile]}>{reward.emoji}</Text><View style={{ flex: 1 }}><Text style={styles.questTitle}>{reward.title}</Text>{!mobile && <Text style={styles.muted}>{reward.subtitle}</Text>}{pending ? <Text style={styles.pendingReward}>Waiting for approval</Text> : stars < reward.cost && <Text style={styles.starsNeeded}>{coinLabel(reward.cost - stars)} more needed</Text>}</View><Pressable accessibilityRole="button" accessibilityLabel={pending ? `${reward.title} awaiting approval` : `Buy ${reward.title} for ${coinLabel(reward.cost)}`} accessibilityState={{ disabled: !canBuy }} disabled={!canBuy} onPress={() => onRedeem(reward.cost, reward.title, reward.id)} style={[styles.buyButton, mobile && styles.buyButtonMobile, !canBuy && styles.buyButtonDisabled]}><Text style={[styles.buyButtonText, !canBuy && styles.buyButtonTextDisabled]}>{pending ? (mobile ? 'Pending' : 'Awaiting approval') : mobile ? `${reward.cost} ${COIN_ICON}` : `Buy · ${reward.cost} ${COIN_ICON}`}</Text></Pressable></View>;
     })}
     <Text style={styles.footnote}>Purchases are requests. A Party Leader approves and fulfills each reward.</Text>
   </ScrollView>;
@@ -311,7 +312,7 @@ function HeroProfile({ name, stars, xp, levels, badges }: { name: string; stars:
   const locked = badges.filter(badge => !badge.earnedAt);
   const almostThere = [...locked].filter(badge => badge.current > 0).sort((a, b) => (b.current / b.target) - (a.current / a.target)).slice(0, 3);
   return <ScrollView contentContainerStyle={styles.content}><LinearGradient colors={['#EAF3DD','#F7F3E8']} style={[styles.profile, mobile && styles.profileMobile]}><View style={[styles.profileShield, mobile && styles.profileShieldMobile]}><Text style={[styles.profileLevel, mobile && styles.profileLevelMobile]}>{level.current.level}</Text></View><View style={[styles.profileHeading, mobile && styles.profileHeadingMobile]}><Text style={[styles.profileTitle, mobile && styles.profileTitleMobile]}>{name} the {level.current.title}</Text><Text style={[styles.profileLead, mobile && styles.profileLeadMobile]}>{level.current.characteristics.join(' · ')}</Text>{!mobile && <Text style={styles.qualitiesLabel}>QUALITIES YOU’RE BUILDING</Text>}</View></LinearGradient>
-    <View style={styles.metricGrid}><Panel style={styles.metric}><Text style={styles.metricValue}>{xp}</Text><Text style={styles.muted}>Lifetime XP</Text></Panel><Panel style={styles.metric}><Text style={styles.metricValue}>{stars}</Text><Text style={styles.muted}>Stars to spend</Text></Panel></View>
+    <View style={styles.metricGrid}><Panel style={styles.metric}><Text style={styles.metricValue}>{xp}</Text><Text style={styles.muted}>Lifetime XP</Text></Panel><Panel style={styles.metric}><Text style={styles.metricValue}>{stars}</Text><Text style={styles.muted}>Coins to spend</Text></Panel></View>
     <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Level {level.current.level} progress</Text><Text style={styles.muted}>{level.next ? `${level.remainingXp.toLocaleString()} XP until Level ${level.next.level}${level.next.title !== level.current.title ? ` · ${level.next.title}` : ''}` : 'Highest level reached'}</Text></View><Pill tone="gold">{level.next ? `${level.earnedThisLevel.toLocaleString()}/${level.levelRange.toLocaleString()} XP` : 'MAX LEVEL'}</Pill></View><ProgressBar value={level.earnedThisLevel} max={level.levelRange} color={colors.gold} /></Panel>
     {almostThere.length > 0 && <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Almost there</Text><Text style={styles.muted}>Your closest badge milestones</Text></View><Pill tone="purple">{earned.length}/{badges.length} EARNED</Pill></View><View style={styles.badgeProgressList}>{almostThere.map(badge => <BadgeProgressRow key={badge.id} badge={badge} />)}</View></Panel>}
     <Panel><View style={styles.sectionHeader}><View><Text style={styles.cardTitle}>Earned badges</Text><Text style={styles.muted}>{earned.length} of {badges.length} unlocked</Text></View><Text style={styles.badgeSummary}>🏅 {earned.length}</Text></View>{earned.length === 0 ? <View style={styles.badgeEmpty}><Text style={styles.badgeEmptyIcon}>🏅</Text><View style={{ flex: 1 }}><Text style={styles.badgeEmptyTitle}>No badges earned yet</Text><Text style={styles.muted}>Complete approved quests to unlock your first achievement.</Text></View></View> : <View style={styles.badges}>{earned.map(badge => <View key={badge.id} style={styles.badge}><Text style={styles.badgeIcon}>{badge.emoji}</Text><Text style={styles.badgeName}>{badge.name}</Text>{badge.tier && <Text style={styles.badgeTier}>{badge.tier}</Text>}</View>)}</View>}</Panel>
@@ -346,7 +347,7 @@ function ParentHome({ householdName, householdId, currentUserId, dashboard, pend
       {dashboard.safeZone && <View style={styles.attentionCard}><View style={[styles.attentionIcon, { backgroundColor: '#E6ECF6' }]}><Ionicons name="moon-outline" size={22} color={colors.navy} /></View><View style={{ flex: 1 }}><Text style={styles.attentionLabel}>TONIGHT’S SAFE ZONE</Text><Text style={styles.attentionValue}>{formatCutoff(dashboard.safeZone.cutoffAt)}</Text><Text style={styles.muted}>{dashboard.safeZone.heroName} · {dashboard.safeZone.title}</Text><Text style={styles.safeZoneRemaining}>{formatTimeRemaining(dashboard.safeZone.cutoffAt)} remaining</Text></View></View>}
     </View>}
 
-    <View style={styles.dashboardSectionHeader}><View><Text style={styles.sectionTitle}>Today’s Heroes</Text>{!mobile && <Text style={styles.muted}>Daily completion and weekly stars, together.</Text>}</View>{heroCount > 0 && <Pill>{heroCount} HERO{heroCount === 1 ? '' : 'ES'}</Pill>}</View>
+    <View style={styles.dashboardSectionHeader}><View><Text style={styles.sectionTitle}>Today’s Heroes</Text>{!mobile && <Text style={styles.muted}>Daily completion and weekly coins, together.</Text>}</View>{heroCount > 0 && <Pill>{heroCount} HERO{heroCount === 1 ? '' : 'ES'}</Pill>}</View>
     <HeroOverview today={dashboard.todayProgress} weekly={dashboard.weeklyProgress} pendingQuests={pendingQuests} pendingRewards={pendingRewards} runningTimers={runningTimers} onEnrollHero={onEnrollHero} onOpenReview={onOpenReview} compact={mobile} />
 
     <View style={styles.dashboardSectionHeader}><View><Text style={styles.sectionTitle}>Quick actions</Text>{!mobile && <Text style={styles.muted}>Go straight to common household tasks.</Text>}</View></View>
@@ -373,7 +374,7 @@ function HeroOverview({ today, weekly, pendingQuests, pendingRewards, runningTim
     const timers = runningTimers.filter(item => item.childId === hero.childId).length;
     return <Panel key={hero.childId} style={styles.heroOverviewCard}><View style={styles.heroOverviewHeader}><View style={styles.heroAvatar}><Text style={styles.heroAvatarText}>{hero.heroName.slice(0, 1).toUpperCase()}</Text></View><View style={{ flex: 1 }}><Text style={styles.heroOverviewName}>{hero.heroName}</Text><Text style={styles.muted}>{reviews > 0 ? `${reviews} awaiting review` : timers > 0 ? `${timers} timer${timers === 1 ? '' : 's'} running` : 'No action needed'}</Text></View>{reviews > 0 && <Pressable onPress={onOpenReview}><Pill tone="purple">REVIEW</Pill></Pressable>}</View>
       <View style={styles.heroMetricHeader}><Text style={styles.heroMetricLabel}>TODAY</Text><Text style={styles.heroMetricValue}>{hero.completedQuests}/{hero.totalQuests} quests · {todayPercentage}%</Text></View><ProgressBar value={hero.completedQuests} max={Math.max(hero.totalQuests, 1)} />
-      {compact ? <Text style={styles.mobileWeeklySummary}>⭐ {week?.earnedStars ?? 0}/{week?.availableStars ?? 0} stars this week</Text> : <><View style={styles.heroMetricHeader}><Text style={styles.heroMetricLabel}>THIS WEEK</Text><Text style={styles.heroMetricValue}>{week?.earnedStars ?? 0}/{week?.availableStars ?? 0} stars · {weeklyPercentage}%</Text></View><ProgressBar value={week?.earnedStars ?? 0} max={Math.max(week?.availableStars ?? 0, 1)} color={colors.gold} /></>}
+      {compact ? <Text style={styles.mobileWeeklySummary}>{COIN_ICON} {week?.earnedStars ?? 0}/{week?.availableStars ?? 0} coins this week</Text> : <><View style={styles.heroMetricHeader}><Text style={styles.heroMetricLabel}>THIS WEEK</Text><Text style={styles.heroMetricValue}>{week?.earnedStars ?? 0}/{week?.availableStars ?? 0} coins · {weeklyPercentage}%</Text></View><ProgressBar value={week?.earnedStars ?? 0} max={Math.max(week?.availableStars ?? 0, 1)} color={colors.gold} /></>}
       {(reviews > 0 || timers > 0) && <View style={styles.heroStatusRow}>{reviews > 0 && <Text style={styles.heroStatusText}>🔔 {reviews} to review</Text>}{timers > 0 && <Text style={styles.heroStatusText}>⏱️ {timers} active</Text>}</View>}
     </Panel>;
   })}</View>;
@@ -398,13 +399,13 @@ function TodayProgress({ heroes }: { heroes: HeroTodayProgress[] }) {
 
 function WeeklyProgress({ heroes }: { heroes: HeroWeeklyProgress[] }) {
   return <Panel><View style={styles.sectionHeader}><Text style={styles.cardTitle}>Weekly progress</Text>{heroes.length > 0 && <Pill>{heroes.length} HERO{heroes.length === 1 ? '' : 'ES'}</Pill>}</View>
-    {heroes.length === 0 ? <View style={styles.weeklyEmpty}><Text style={styles.weeklyEmptyIcon}>⭐</Text><View style={{ flex: 1 }}><Text style={styles.weeklyHeroName}>No Heroes enrolled yet</Text><Text style={styles.muted}>Add a Hero to begin tracking weekly stars.</Text></View></View> : heroes.map((hero, index) => {
+    {heroes.length === 0 ? <View style={styles.weeklyEmpty}><Text style={styles.weeklyEmptyIcon}>{COIN_ICON}</Text><View style={{ flex: 1 }}><Text style={styles.weeklyHeroName}>No Heroes enrolled yet</Text><Text style={styles.muted}>Add a Hero to begin tracking weekly coins.</Text></View></View> : heroes.map((hero, index) => {
       const percentage = hero.availableStars > 0 ? Math.min(100, Math.round(hero.earnedStars / hero.availableStars * 100)) : 0;
       const goalRemaining = hero.goalStars === null ? null : Math.max(0, hero.goalStars - hero.earnedStars);
       return <View key={hero.childId} style={[styles.weeklyHero, index > 0 && styles.weeklyHeroDivider]}>
         <View style={styles.weeklyHeroHeader}><Text style={styles.weeklyHeroName}>{hero.heroName}</Text>{hero.availableStars > 0 && <Pill tone={hero.earnedStars >= hero.availableStars ? 'gold' : 'green'}>{hero.earnedStars >= hero.availableStars ? 'ALL EARNED' : `${percentage}%`}</Pill>}</View>
-        {hero.availableStars > 0 ? <><View style={styles.dashboardProgress}><ProgressBar value={hero.earnedStars} max={hero.availableStars} /></View><Text style={styles.encourage}>{hero.earnedStars} of {hero.availableStars} available stars earned</Text></> : <Text style={styles.weeklyNoQuests}>No quests are scheduled for {hero.heroName} this week.</Text>}
-        {hero.goalStars !== null && <Text style={[styles.weeklyGoal, goalRemaining === 0 && styles.weeklyGoalMet]}>Weekly goal: {hero.goalStars} stars · {goalRemaining === 0 ? 'Goal met!' : `${goalRemaining} to go`}</Text>}
+        {hero.availableStars > 0 ? <><View style={styles.dashboardProgress}><ProgressBar value={hero.earnedStars} max={hero.availableStars} /></View><Text style={styles.encourage}>{hero.earnedStars} of {hero.availableStars} available coins earned</Text></> : <Text style={styles.weeklyNoQuests}>No quests are scheduled for {hero.heroName} this week.</Text>}
+        {hero.goalStars !== null && <Text style={[styles.weeklyGoal, goalRemaining === 0 && styles.weeklyGoalMet]}>Weekly goal: {coinLabel(hero.goalStars)} · {goalRemaining === 0 ? 'Goal met!' : `${goalRemaining} to go`}</Text>}
       </View>;
     })}
   </Panel>;
@@ -431,13 +432,13 @@ function Approvals({ quests, runningTimers, rewards: rewardRequests, reviewQuest
       })}
       {rewardRequests.map(request => {
         const enoughStars = request.availableStars >= request.cost;
-        return <Panel key={request.id}><Text style={styles.eyebrowDark}>REWARD REQUEST</Text><Text style={styles.approvalQuest}>{request.emoji} {request.heroName} wants {request.title}</Text><Text style={styles.muted}>{request.subtitle}</Text><Text style={styles.rewardBalance}>{request.cost} stars · {request.availableStars} available</Text>{!enoughStars && <View style={styles.balanceError}><Text style={styles.balanceErrorTitle}>Not enough stars</Text><Text style={styles.balanceErrorText}>{request.heroName} needs {request.cost - request.availableStars} more stars before this reward can be approved.</Text></View>}<View style={styles.reviewActions}><Pressable style={styles.secondaryButton} onPress={() => reviewReward(request, false)}><Text style={styles.secondaryText}>Decline</Text></Pressable><Pressable accessibilityState={{ disabled: !enoughStars }} disabled={!enoughStars} style={[styles.primaryButton, !enoughStars && styles.primaryButtonDisabled]} onPress={() => reviewReward(request, true)}><Text style={[styles.primaryText, !enoughStars && styles.primaryTextDisabled]}>Approve · −{request.cost} ⭐</Text></Pressable></View></Panel>;
+        return <Panel key={request.id}><Text style={styles.eyebrowDark}>HERO SHOP REQUEST</Text><Text style={styles.approvalQuest}>{request.emoji} {request.heroName} wants {request.title}</Text><Text style={styles.muted}>{request.subtitle}</Text><Text style={styles.rewardBalance}>{coinLabel(request.cost)} · {coinLabel(request.availableStars)} available</Text>{!enoughStars && <View style={styles.balanceError}><Text style={styles.balanceErrorTitle}>Not enough coins</Text><Text style={styles.balanceErrorText}>{request.heroName} needs {coinLabel(request.cost - request.availableStars)} before this reward can be approved.</Text></View>}<View style={styles.reviewActions}><Pressable style={styles.secondaryButton} onPress={() => reviewReward(request, false)}><Text style={styles.secondaryText}>Decline</Text></Pressable><Pressable accessibilityState={{ disabled: !enoughStars }} disabled={!enoughStars} style={[styles.primaryButton, !enoughStars && styles.primaryButtonDisabled]} onPress={() => reviewReward(request, true)}><Text style={[styles.primaryText, !enoughStars && styles.primaryTextDisabled]}>Approve · −{request.cost} {COIN_ICON}</Text></Pressable></View></Panel>;
       })}
       {pending.map(q => {
         const timed = q.kind === 'timer';
         const remainingSeconds = timed && q.timerEndsAt ? Math.max(0, Math.ceil((new Date(q.timerEndsAt).getTime() - now) / 1000)) : 0;
         const timerFinished = !timed || Boolean(q.timerCompletedAt && q.timerEndsAt && new Date(q.timerEndsAt).getTime() <= now);
-        return <Panel key={q.id}><Text style={styles.eyebrowDark}>{questKindLabel(q.kind)} · {timerFinished ? 'READY FOR REVIEW' : 'TIMER RUNNING'}</Text><Text style={styles.approvalQuest}>{q.emoji} {q.heroName ? `${q.heroName} submitted ` : ''}{q.title}</Text><Text style={styles.muted}>{q.description}</Text>{!timerFinished && <View style={styles.timerApprovalNotice}><Text style={styles.timerApprovalTitle}>⏱️ {remainingSeconds > 0 ? `Timer still running · ${formatCountdown(remainingSeconds)}` : 'Timer completion not verified'}</Text><Text style={styles.timerApprovalText}>{remainingSeconds > 0 ? 'Approval unlocks automatically when the countdown reaches zero.' : 'The Hero must complete the timer before this quest can be approved.'}</Text></View>}<View style={styles.reviewActions}><Pressable style={styles.secondaryButton} onPress={() => reviewQuest(q, false)}><Text style={styles.secondaryText}>Try again</Text></Pressable><Pressable accessibilityRole="button" accessibilityState={{ disabled: !timerFinished }} disabled={!timerFinished} style={[styles.primaryButton, !timerFinished && styles.primaryButtonDisabled]} onPress={() => reviewQuest(q, true)}><Text style={[styles.primaryText, !timerFinished && styles.primaryTextDisabled]}>{timerFinished ? `Approve · +${q.stars} ⭐ · +${q.xp} XP` : remainingSeconds > 0 ? `Wait · ${formatCountdown(remainingSeconds)}` : 'Cannot approve'}</Text></Pressable></View></Panel>;
+        return <Panel key={q.id}><Text style={styles.eyebrowDark}>{questKindLabel(q.kind)} · {timerFinished ? 'READY FOR REVIEW' : 'TIMER RUNNING'}</Text><Text style={styles.approvalQuest}>{q.emoji} {q.heroName ? `${q.heroName} submitted ` : ''}{q.title}</Text><Text style={styles.muted}>{q.description}</Text>{!timerFinished && <View style={styles.timerApprovalNotice}><Text style={styles.timerApprovalTitle}>⏱️ {remainingSeconds > 0 ? `Timer still running · ${formatCountdown(remainingSeconds)}` : 'Timer completion not verified'}</Text><Text style={styles.timerApprovalText}>{remainingSeconds > 0 ? 'Approval unlocks automatically when the countdown reaches zero.' : 'The Hero must complete the timer before this quest can be approved.'}</Text></View>}<View style={styles.reviewActions}><Pressable style={styles.secondaryButton} onPress={() => reviewQuest(q, false)}><Text style={styles.secondaryText}>Try again</Text></Pressable><Pressable accessibilityRole="button" accessibilityState={{ disabled: !timerFinished }} disabled={!timerFinished} style={[styles.primaryButton, !timerFinished && styles.primaryButtonDisabled]} onPress={() => reviewQuest(q, true)}><Text style={[styles.primaryText, !timerFinished && styles.primaryTextDisabled]}>{timerFinished ? `Approve · +${q.stars} ${COIN_ICON} · +${q.xp} XP` : remainingSeconds > 0 ? `Wait · ${formatCountdown(remainingSeconds)}` : 'Cannot approve'}</Text></Pressable></View></Panel>;
       })}
     </>}
   </ScrollView>;

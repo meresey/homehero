@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, shadow } from './theme';
 import { Quest } from './types';
+import { COIN_ICON } from './economy';
 
 export function Panel({ children, style }: { children: ReactNode; style?: object }) {
   return <View style={[styles.panel, style]}>{children}</View>;
@@ -46,7 +47,7 @@ export function QuestCard({ quest, onPress }: { quest: Quest; onPress: () => voi
         <View style={styles.rewardRow}>
           {quest.timerMinutes && <Text style={[styles.meta, timerRunning && styles.timerActive]}>◷ {timerRunning ? formatTimer(timerRemaining) : `${quest.timerMinutes} min`}</Text>}
           {quest.cutoffLabel && <Text style={[styles.meta, { color: colors.coral }]}>Safe Zone · {quest.cutoffLabel}</Text>}
-          <Text style={styles.reward}>⭐ {quest.stars}  ✦ {quest.xp} XP</Text>
+          <Text style={styles.reward}>{COIN_ICON} {quest.stars}  ✦ {quest.xp} XP</Text>
         </View>
       </View>
       <View style={[styles.check, complete && styles.checkDone]}>

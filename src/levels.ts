@@ -8,7 +8,7 @@ export type HeroLevel = {
 const heroRanks = [
   { title: 'Rookie Hero', characteristics: ['Ready', 'Brave', 'Learning'] },
   { title: 'Rising Hero', characteristics: ['Helpful', 'Focused', 'Growing'] },
-  { title: 'Home Hero', characteristics: ['Dependable', 'Curious', 'Kind'] },
+  { title: 'Habit Hero', characteristics: ['Dependable', 'Curious', 'Kind'] },
   { title: 'Quest Keeper', characteristics: ['Steady', 'Resourceful', 'Caring'] },
   { title: 'Trailblazer', characteristics: ['Bold', 'Creative', 'Capable'] },
   { title: 'Hero Champion', characteristics: ['Committed', 'Skilled', 'Positive'] },

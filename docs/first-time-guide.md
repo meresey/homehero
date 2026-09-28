@@ -1,6 +1,6 @@
-# Home Hero: First-Time Guide
+# Starry Habits: First-Time Guide
 
-Home Hero turns everyday responsibilities into quests. A household has two
+Starry Habits turns everyday responsibilities into quests. A household has two
 types of users: **Party Leaders** are trusted adults who configure and supervise
 the experience; **Heroes** are children who complete quests, build XP, earn
 badges, collect coins, and request rewards.

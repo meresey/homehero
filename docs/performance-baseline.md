@@ -1,4 +1,4 @@
-# Home Hero performance baseline
+# Starry Habits performance baseline
 
 Measured on 26 September 2026 using an Expo web export with the local demo data path.
 
@@ -32,4 +32,3 @@ Measured on 26 September 2026 using an Expo web export with the local demo data 
 3. Add lightweight caching for rarely changing quest, reward, badge, and level definitions.
 4. Profile large household lists and introduce virtualization if real data shows a rendering bottleneck.
 5. Re-measure after the rebrand assets are integrated and ensure logo/image files do not regress startup size.
-

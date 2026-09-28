@@ -1,6 +1,6 @@
 # Coin economy and Hero Shop migration plan
 
-Home Hero will present its spendable quest currency as **Coins** (`🪙`) and its
+Starry Habits will present its spendable quest currency as **Coins** (`🪙`) and its
 reward marketplace as the **Hero Shop**. XP remains permanent level progress,
 and badges remain permanent achievements.
 

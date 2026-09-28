@@ -1,4 +1,4 @@
-# Home Hero
+# Starry Habits
 
 A gamified family habit and chore app for children aged 10–13. This repository contains an Expo/React Native product prototype and a transaction-safe Supabase/PostgreSQL backend.
 
@@ -71,7 +71,7 @@ The branded Party Leader confirmation email has a separate
 [Supabase email setup runbook](supabase/templates/README.md). Expo deployments do
 not publish email templates or SMTP settings.
 
-Home Hero uses separate Supabase projects and Expo environments:
+Starry Habits uses separate Supabase projects and Expo environments:
 
 | Environment | Expo environment | Supabase project |
 | --- | --- | --- |

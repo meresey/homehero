@@ -24,6 +24,7 @@ import { HeroEnrollmentModal } from './HeroEnrollment';
 import { HeroCredentialsModal } from './HeroCredentials';
 import { COIN_ICON, coinFriendlyMessage, coinLabel } from './economy';
 import { rewardLifecycleLabel, sortRewardEntitlements } from './rewardLifecycle';
+import { BrandWordmark } from './BrandWordmark';
 
 type Role = 'child' | 'parent';
 type ChildTab = 'today' | 'week' | 'store' | 'hero';
@@ -238,7 +239,7 @@ export function HomeHeroApp() {
     <SafeAreaView style={styles.safe}>
       <AppFrame>
       <View style={[styles.roleBar, mobile && styles.roleBarMobile]}>
-        <View accessibilityLabel="Home Hero" style={styles.wordmark}><View style={styles.wordmarkIcon}><Ionicons name="shield-checkmark" size={17} color={colors.white} /></View>{(!mobile || width >= 380) && <Text style={styles.logo}>HOME <Text style={{ color: colors.green }}>HERO</Text></Text>}</View>
+        <BrandWordmark compact={mobile && width < 380} />
         <View style={styles.headerActions}>
           {!data.backendEnabled && <View style={styles.switcher}>
             {(['child', 'parent'] as Role[]).map(item => (

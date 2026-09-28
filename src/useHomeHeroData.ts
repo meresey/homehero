@@ -458,5 +458,5 @@ function mapRedemption(row: any, heroName: string, availableStars: number): Rewa
 function errorMessage(cause: unknown) {
   if (cause instanceof Error) return cause.message;
   if (cause && typeof cause === 'object' && 'message' in cause && typeof cause.message === 'string') return cause.message;
-  return 'Could not load Home Hero';
+  return 'Could not load Starry Habits';
 }

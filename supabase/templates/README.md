@@ -1,7 +1,7 @@
-# Home Hero confirmation email runbook
+# Starry Habits confirmation email runbook
 
 This runbook is for the Supabase **Confirm sign up** email sent to Party Leaders.
-The subject is `Confirm your Home Hero email`; the message body is
+The subject is `Confirm your Starry Habits email`; the message body is
 [`confirm-signup.html`](./confirm-signup.html). The HTML is committed, but it is
 **not live** merely because the app is deployed. Hosted Supabase email settings
 are separate from Expo deployments and database migrations.
@@ -13,18 +13,18 @@ are separate from Expo deployments and database migrations.
   `qufmceawkyuritfyfffa`.
 - Staging's Site URL and redirect allow-list already include
   `https://meresey-home-hero--staging.expo.app`.
-- No Home Hero sending domain or SMTP provider has been selected. The hosted
+- No Starry Habits sending domain or SMTP provider has been selected. The hosted
   confirmation template has **not** been changed in either project.
 - The staging project was created after Supabase's 3 June 2026 free-tier
   restriction. If it is on the Free plan and uses the default sender, custom
   templates require custom SMTP first. A paid plan can unlock template editing
-  with the default sender, but does not provide a Home Hero sender address.
+  with the default sender, but does not provide a Starry Habits sender address.
 
 ## Prerequisites
 
-1. Choose a domain owned by Home Hero (an existing domain is fine) and a
+1. Choose a domain owned by Starry Habits (an existing domain is fine) and a
    transactional email provider that offers SMTP. Use a sender such as
-   `no-reply@auth.yourdomain.com` and display name `Home Hero`.
+   `no-reply@auth.yourdomain.com` and display name `Starry Habits`.
 2. Verify the sending domain with the provider. Add its required DNS records,
    including SPF and DKIM; configure DMARC for deliverability.
 3. Obtain the provider's SMTP host, port, username, and password. Enter the
@@ -36,12 +36,12 @@ are separate from Expo deployments and database migrations.
 
 1. In the **staging** Supabase project, open **Authentication → SMTP Settings**.
    Enable custom SMTP and enter the provider's host, port, username, password,
-   sender address, and sender name `Home Hero`. Save and confirm Supabase accepts
+   sender address, and sender name `Starry Habits`. Save and confirm Supabase accepts
    the settings. If the project is on a paid plan, the SMTP step may be deferred
    for testing the HTML, but it remains necessary for a branded sender and
    reliable public email delivery.
 2. Open **Authentication → Email Templates → Confirm sign up**. Set the subject
-   to `Confirm your Home Hero email` and paste the entire contents of
+   to `Confirm your Starry Habits email` and paste the entire contents of
    [`confirm-signup.html`](./confirm-signup.html) as the body. Keep every
    `{{ .ConfirmationURL }}` placeholder intact: Supabase substitutes the
    single-use verification link. Save the template.

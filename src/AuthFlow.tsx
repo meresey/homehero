@@ -7,6 +7,8 @@ import { colors } from './theme';
 import { AppFrame } from './components';
 import { heroLoginEmail, isValidHeroPin, isValidHeroUsername, normalizeHeroUsername } from './managedHero';
 import { isStrongPassword, passwordRequirements } from './passwordPolicy';
+import { BrandWordmark } from './BrandWordmark';
+import { brand } from './brand';
 
 type LoginRole = 'parent' | 'hero';
 type Message = { tone: 'success' | 'error'; text: string } | null;
@@ -28,7 +30,7 @@ export function AuthScreen() {
 
   const changeRole = (next: LoginRole) => { setRole(next); setSignup(false); setPassword(''); setConfirmPassword(''); setMessage(null); };
   const submit = async () => {
-    if (!supabase) return setMessage({ tone: 'error', text: 'Home Hero could not connect to the server.' });
+    if (!supabase) return setMessage({ tone: 'error', text: `${brand.name} could not connect to the server.` });
     if (role === 'hero') {
       const normalized = normalizeHeroUsername(username);
       if (!isValidHeroUsername(normalized)) return setMessage({ tone: 'error', text: 'Enter the username provided by your Party Leader.' });
@@ -68,18 +70,18 @@ export function AuthScreen() {
     <View style={[styles.authShell, !wide && styles.authShellStacked]}>
       <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.brandPanel, !wide && styles.brandPanelCompact]}>
         <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
-        <View style={styles.brandTop}><View style={styles.brandShield}><Ionicons name="shield-checkmark" size={31} color={colors.white} /></View><Text style={styles.authTitle}>HOME <Text style={styles.authTitleAccent}>HERO</Text></Text></View>
-        <View style={styles.brandCopy}><Text style={[styles.brandHeadline, !wide && styles.brandHeadlineCompact]}>Build good habits together.</Text><Text style={styles.brandLead}>A calmer way to turn everyday responsibilities into confidence, teamwork, and small wins.</Text></View>
+        <View style={styles.brandTop}><BrandWordmark reversed /></View>
+        <View style={styles.brandCopy}><Text style={[styles.brandHeadline, !wide && styles.brandHeadlineCompact]}>Make small wins shine.</Text><Text style={styles.brandLead}>A calmer way to turn everyday responsibilities into confidence, teamwork, and brighter habits.</Text></View>
         {wide && <View style={styles.benefitList}>
           <BrandBenefit icon="sparkles-outline" text="Quests that build independence" />
           <BrandBenefit icon="people-outline" text="A shared rhythm for the whole family" />
           <BrandBenefit icon="trophy-outline" text="Rewards that celebrate real effort" />
         </View>}
-        <View style={styles.brandFooter}><View style={styles.brandFooterLine} /><Text style={styles.brandFooterText}>STRONG HABITS · HAPPY HOMES</Text></View>
+        <View style={styles.brandFooter}><View style={styles.brandFooterLine} /><Text style={styles.brandFooterText}>{brand.familyPromise.toUpperCase()}</Text></View>
       </LinearGradient>
 
       <View style={[styles.authFormPanel, !wide && styles.authFormPanelStacked]}>
-        <View style={styles.authFormHeader}><Text style={styles.authEyebrow}>{signup ? 'BEGIN YOUR ADVENTURE' : 'WELCOME BACK'}</Text><Text style={styles.authHeading}>{role === 'hero' ? 'Ready for your quests?' : signup ? 'Create your Party Leader account' : 'Sign in to Home Hero'}</Text><Text style={styles.authCopy}>{role === 'hero' ? 'Use the username and PIN your Party Leader created.' : signup ? 'Create a household or join one with an invitation after confirming your email.' : 'Manage quests, celebrate progress, and keep your family moving.'}</Text></View>
+        <View style={styles.authFormHeader}><Text style={styles.authEyebrow}>{signup ? 'BEGIN YOUR ADVENTURE' : 'WELCOME BACK'}</Text><Text style={styles.authHeading}>{role === 'hero' ? 'Ready for your quests?' : signup ? 'Create your Party Leader account' : `Sign in to ${brand.name}`}</Text><Text style={styles.authCopy}>{role === 'hero' ? 'Use the username and PIN your Party Leader created.' : signup ? 'Create a household or join one with an invitation after confirming your email.' : 'Manage quests, celebrate progress, and keep your family moving.'}</Text></View>
 
         <View style={[styles.roleCards, width < 480 && styles.roleCardsNarrow]}>{(['parent', 'hero'] as const).map(item => {
           const active = role === item;
@@ -103,7 +105,7 @@ export function AuthScreen() {
 
         {role === 'parent' && !signup && <Pressable disabled={busy} onPress={forgotPassword} style={styles.forgotButton}><Text style={styles.forgotText}>Forgot password?</Text></Pressable>}
         <Pressable accessibilityRole="button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.authPrimary, pressed && styles.authPrimaryPressed, busy && styles.primaryDisabled]}><Text style={styles.authPrimaryText}>{busy ? (signup ? 'Creating account…' : 'Signing in…') : role === 'hero' ? 'Enter Hero HQ' : signup ? 'Create account' : 'Sign in'}</Text><Ionicons name="arrow-forward" size={18} color={colors.white} /></Pressable>
-        {role === 'parent' && <View style={styles.accountPrompt}><Text style={styles.accountPromptText}>{signup ? 'Already part of Home Hero?' : 'New to Home Hero?'}</Text><Pressable disabled={busy} onPress={toggleSignup}><Text style={styles.accountPromptLink}>{signup ? 'Sign in' : 'Create an account'}</Text></Pressable></View>}
+        {role === 'parent' && <View style={styles.accountPrompt}><Text style={styles.accountPromptText}>{signup ? `Already part of ${brand.name}?` : `New to ${brand.name}?`}</Text><Pressable disabled={busy} onPress={toggleSignup}><Text style={styles.accountPromptLink}>{signup ? 'Sign in' : 'Create an account'}</Text></Pressable></View>}
         {role === 'hero' && <View style={styles.heroHelp}><Ionicons name="information-circle-outline" size={17} color={colors.muted} /><Text style={styles.heroHelpText}>Don’t know your username or PIN? Ask your Party Leader.</Text></View>}
       </View>
     </View>
@@ -146,7 +148,7 @@ export function OnboardingScreen({ refresh, backendError }: { refresh: () => Pro
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const submit = async () => {
-    if (!supabase) return setMessage({ tone: 'error', text: 'Home Hero could not connect to the server. Please reload and try again.' });
+    if (!supabase) return setMessage({ tone: 'error', text: `${brand.name} could not connect to the server. Please reload and try again.` });
     if (mode === 'create' && !familyName.trim()) return setMessage({ tone: 'error', text: 'Enter a family name.' });
     if (mode === 'join' && !/^[0-9A-F]{32}$/.test(inviteCode.toUpperCase().replace(/[\s-]/g, ''))) return setMessage({ tone: 'error', text: 'Enter the 32-character invitation code from your household owner.' });
     setBusy(true); setMessage(null);
@@ -166,8 +168,8 @@ export function OnboardingScreen({ refresh, backendError }: { refresh: () => Pro
     <View style={[styles.onboardingShell, !wide && styles.onboardingShellStacked]}>
       <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.onboardingGuide, !wide && styles.onboardingGuideCompact]}>
         <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
-        <View style={styles.brandTop}><View style={styles.brandShield}><Ionicons name="shield-checkmark" size={31} color={colors.white} /></View><Text style={styles.authTitle}>HOME <Text style={styles.authTitleAccent}>HERO</Text></Text></View>
-        <View style={styles.onboardingGuideCopy}><Text style={styles.onboardingEyebrow}>YOUR FAMILY ADVENTURE</Text><Text style={[styles.onboardingGuideTitle, !wide && styles.onboardingGuideTitleCompact]}>A heroic home starts here.</Text><Text style={styles.brandLead}>Create a household or join one as a Party Leader, then support your Heroes together.</Text></View>
+        <View style={styles.brandTop}><BrandWordmark reversed /></View>
+        <View style={styles.onboardingGuideCopy}><Text style={styles.onboardingEyebrow}>YOUR FAMILY ADVENTURE</Text><Text style={[styles.onboardingGuideTitle, !wide && styles.onboardingGuideTitleCompact]}>Bright habits start here.</Text><Text style={styles.brandLead}>Create a household or join one as a Party Leader, then support your Heroes together.</Text></View>
         {wide && <View style={styles.onboardingSteps}>
           {mode === 'create' ? <><OnboardingStep number="1" title="Create your household" detail="Give your family hub a familiar name." active /><OnboardingStep number="2" title="Enrol your Heroes" detail="Create a username and PIN for each child." /><OnboardingStep number="3" title="Choose your quests" detail="Pick age-appropriate habits and rewards." /></> : <><OnboardingStep number="1" title="Accept your invitation" detail="Use the code from your household owner." active /><OnboardingStep number="2" title="Meet your Heroes" detail="See every Hero already in the household." /><OnboardingStep number="3" title="Lead together" detail="Share quests, rewards, and approvals." /></>}
         </View>}

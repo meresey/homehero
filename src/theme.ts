@@ -1,9 +1,9 @@
 export const colors = {
-  navy: '#112449',
+  navy: '#102B55',
   navySoft: '#203A69',
-  green: '#4C7B21',
+  green: '#4B8422',
   greenSoft: '#E8F2DB',
-  gold: '#F3B61F',
+  gold: '#F4B820',
   cream: '#F7F3E8',
   white: '#FFFFFF',
   ink: '#17213A',

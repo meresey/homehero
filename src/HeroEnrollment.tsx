@@ -28,7 +28,7 @@ export function HeroEnrollmentModal({ visible, onClose, onEnrolled }: { visible:
     if (!isValidBirthDate(birthDate)) return setMessage({ tone: 'error', text: 'Enter a valid birth date. Heroes must be between 3 and 18 years old.' });
     if (!isValidHeroPin(pin)) return setMessage({ tone: 'error', text: 'Choose a six-digit PIN.' });
     if (pin !== confirmPin) return setMessage({ tone: 'error', text: 'The PINs do not match.' });
-    if (!supabase) return setMessage({ tone: 'error', text: 'Home Hero could not connect to the server.' });
+    if (!supabase) return setMessage({ tone: 'error', text: 'Starry Habits could not connect to the server.' });
 
     setBusy(true); setMessage(null);
     try {

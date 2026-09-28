@@ -10,11 +10,11 @@ from reportlab.platypus import Paragraph
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "output" / "pdf" / "home-hero-first-time-guide.pdf"
+OUTPUT = ROOT / "output" / "pdf" / "starry-habits-first-time-guide.pdf"
 
 NAVY = HexColor("#102B55")
 NAVY_SOFT = HexColor("#294E80")
-GREEN = HexColor("#4C861F")
+GREEN = HexColor("#4B8422")
 PURPLE = HexColor("#7750AE")
 GOLD = HexColor("#F4B820")
 CREAM = HexColor("#F7F3E8")
@@ -30,7 +30,7 @@ PARTY_STEPS = [
     ("Choose quests from the library.", "Open Quests > Quest library, choose Add, review the age range, schedule, coins, XP, timer, and Hero assignments, then add it to My quests."),
     ("Create a family quest.", "Open Quests and choose +. Add its name, description, emoji, type, schedule, coin value, optional timer, age range, and Hero assignments."),
     ("Choose or create rewards.", "Open Rewards > Reward library to add and customise an idea, or choose + for a household-only reward. Active rewards appear in the Hero Shop."),
-    ("Review activity.", "Open Review for submitted quests and reward requests. Quest approval awards coins and XP. Reward approval deducts coins only when approved."),
+    ("Review activity.", "Open Review for submitted quests and reward requests. Quest approval awards coins and XP. Reward approval deducts coins; fulfill it after the Hero chooses Use reward."),
     ("Add another Party Leader.", "On Home, open Party Leaders (or Household access on mobile), create an email-bound invite, and share its one-time code privately. It expires after seven days."),
 ]
 
@@ -38,7 +38,7 @@ HERO_STEPS = [
     ("Sign in.", "Choose Hero and enter the username and six-digit PIN supplied by your Party Leader. Heroes do not need an email address."),
     ("Complete today's quests.", "Open Today and select a finished quest. Timed quests become approvable only after the countdown reaches zero. Every submission waits for review."),
     ("Follow your progress.", "Week shows weekly activity. The shared header and Hero tab show level, lifetime XP, coin balance, and badges. XP is permanent; coins can be spent."),
-    ("Request a reward.", "Open Hero Shop and choose Buy. The button activates only when you have enough coins. Coins are deducted only after Party Leader approval."),
+    ("Use a reward.", "Buy it in Hero Shop. Coins are deducted only after approval. It then appears in My Rewards; choose Use reward when ready and wait for fulfillment."),
     ("Ask for help.", "A Party Leader can change your username, reset your PIN, and manage the age-appropriate quests and household rewards available to you."),
 ]
 
@@ -97,8 +97,8 @@ def build_pdf():
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     page_width, page_height = landscape(A4)
     c = canvas.Canvas(str(OUTPUT), pagesize=(page_width, page_height), pageCompression=1, invariant=1)
-    c.setTitle("Home Hero First-Time Guide")
-    c.setAuthor("Home Hero")
+    c.setTitle("Starry Habits First-Time Guide")
+    c.setAuthor("Starry Habits")
     c.setSubject("Quick-start instructions for Party Leaders and Heroes")
 
     c.setFillColor(CREAM)
@@ -117,14 +117,14 @@ def build_pdf():
     c.roundRect(31, page_height - 65, 39, 43, 10, fill=1, stroke=0)
     c.setFillColor(WHITE)
     c.setFont("Helvetica-Bold", 20)
-    c.drawCentredString(50.5, page_height - 51, "H")
+    c.drawCentredString(50.5, page_height - 51, "SH")
 
     c.setFont("Helvetica-Bold", 19)
     c.setFillColor(WHITE)
-    c.drawString(82, page_height - 43, "HOME")
-    home_width = stringWidth("HOME", "Helvetica-Bold", 19)
-    c.setFillColor(GOLD)
-    c.drawString(89 + home_width, page_height - 43, "HERO")
+    c.drawString(82, page_height - 43, "STARRY")
+    starry_width = stringWidth("STARRY", "Helvetica-Bold", 19)
+    c.setFillColor(GREEN)
+    c.drawString(89 + starry_width, page_height - 43, "HABITS")
 
     c.setFillColor(WHITE)
     c.setFont("Helvetica-Bold", 16)

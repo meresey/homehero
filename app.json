@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "Home Hero",
+    "name": "Starry Habits",
     "slug": "home-hero",
     "scheme": "homehero",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/brand/starry-habits-app-icon-reference.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "plugins": [
@@ -15,7 +16,8 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/brand/starry-habits-app-icon-reference.png"
     },
     "ios": {
       "supportsTablet": true,
@@ -24,6 +26,7 @@
     "android": {
       "package": "com.meresey.homehero",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/starry-habits-app-icon-reference.png",
         "backgroundColor": "#F7F3E8"
       }
     },

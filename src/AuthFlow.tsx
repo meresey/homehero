@@ -20,6 +20,8 @@ export function AuthScreen() {
   const [role, setRole] = useState<LoginRole>('parent');
   const [signup, setSignup] = useState(false);
   const compactSignIn = phone && !signup;
+  const compactMobileAuth = phone;
+  const mobileSignup = phone && signup;
   const shortPhone = compactSignIn && height < 760;
   const showMobileAssurance = compactSignIn && height >= 600;
   const phoneShellHeight = compactSignIn ? Math.max(520, height - (width < 480 ? 24 : 32)) : undefined;
@@ -71,12 +73,12 @@ export function AuthScreen() {
     setMessage(error ? { tone: 'error', text: friendlyAuthError(error.message) } : { tone: 'success', text: `Password reset instructions were sent to ${email.trim()}.` });
   };
 
-  return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={[styles.authPage, width < 480 && styles.authPageNarrow, compactSignIn && styles.authPageCompact]} keyboardShouldPersistTaps="handled">
+  return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={[styles.authPage, width < 480 && styles.authPageNarrow, phone && styles.authPagePhone, compactSignIn && styles.authPageCompact]} keyboardShouldPersistTaps="handled">
     <View style={[styles.authShell, !wide && styles.authShellStacked, phone && styles.authShellPhone, phoneShellHeight != null && { minHeight: phoneShellHeight }]}>
-      <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.brandPanel, !wide && styles.brandPanelCompact, compactSignIn && styles.brandPanelPhone]}>
+      <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.brandPanel, !wide && styles.brandPanelCompact, compactMobileAuth && styles.brandPanelPhone]}>
         <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
         <View style={styles.brandTop}><BrandWordmark reversed /></View>
-        {compactSignIn
+        {compactMobileAuth
           ? <Text style={styles.brandMobileTagline}>{brand.tagline}</Text>
           : <View style={styles.brandCopy}><Text style={[styles.brandHeadline, !wide && styles.brandHeadlineCompact]}>Make small wins shine.</Text><Text style={styles.brandLead}>A calmer way to turn everyday responsibilities into confidence, teamwork, and brighter habits.</Text></View>}
         {wide && <View style={styles.benefitList}>
@@ -84,36 +86,36 @@ export function AuthScreen() {
           <BrandBenefit icon="people-outline" text="A shared rhythm for the whole family" />
           <BrandBenefit icon="trophy-outline" text="Rewards that celebrate real effort" />
         </View>}
-        {!compactSignIn && <View style={styles.brandFooter}><View style={styles.brandFooterLine} /><Text style={styles.brandFooterText}>{brand.familyPromise.toUpperCase()}</Text></View>}
+        {!compactMobileAuth && <View style={styles.brandFooter}><View style={styles.brandFooterLine} /><Text style={styles.brandFooterText}>{brand.familyPromise.toUpperCase()}</Text></View>}
       </LinearGradient>
 
-      <View style={[styles.authFormPanel, !wide && styles.authFormPanelStacked, compactSignIn && styles.authFormPanelPhone, shortPhone && styles.authFormPanelShort]}>
-        <View style={[styles.authFormHeader, compactSignIn && styles.authFormHeaderPhone]}>{!compactSignIn && <Text style={styles.authEyebrow}>{signup ? 'BEGIN YOUR ADVENTURE' : 'WELCOME BACK'}</Text>}<Text style={[styles.authHeading, compactSignIn && styles.authHeadingPhone]}>{role === 'hero' ? 'Ready for your quests?' : signup ? 'Create your Party Leader account' : `Sign in to ${brand.name}`}</Text>{!compactSignIn && <Text style={styles.authCopy}>{role === 'hero' ? 'Use the username and PIN your Party Leader created.' : signup ? 'Create a household or join one with an invitation after confirming your email.' : 'Manage quests, celebrate progress, and keep your family moving.'}</Text>}</View>
+      <View style={[styles.authFormPanel, !wide && styles.authFormPanelStacked, compactMobileAuth && styles.authFormPanelPhone, shortPhone && styles.authFormPanelShort]}>
+        <View style={[styles.authFormHeader, compactSignIn && styles.authFormHeaderPhone, mobileSignup && styles.authFormHeaderPhone]}>{!compactSignIn && <Text style={styles.authEyebrow}>{signup ? 'BEGIN YOUR ADVENTURE' : 'WELCOME BACK'}</Text>}<Text style={[styles.authHeading, compactSignIn && styles.authHeadingPhone, mobileSignup && styles.authHeadingPhone]}>{role === 'hero' ? 'Ready for your quests?' : signup ? 'Create your Party Leader account' : `Sign in to ${brand.name}`}</Text>{!compactSignIn && <Text style={styles.authCopy}>{role === 'hero' ? 'Use the username and PIN your Party Leader created.' : signup ? 'Create a household or join one with an invitation after confirming your email.' : 'Manage quests, celebrate progress, and keep your family moving.'}</Text>}</View>
 
-        <View style={[styles.roleCards, compactSignIn && styles.roleCardsPhone, width < 480 && !compactSignIn && styles.roleCardsNarrow]}>{(['parent', 'hero'] as const).map(item => {
+        <View style={[styles.roleCards, compactMobileAuth && styles.roleCardsPhone, width < 480 && !compactMobileAuth && styles.roleCardsNarrow]}>{(['parent', 'hero'] as const).map(item => {
           const active = role === item;
-          return <Pressable key={item} disabled={busy} onPress={() => changeRole(item)} style={[styles.roleCard, compactSignIn && styles.roleCardPhone, active && styles.roleCardActive]}><View style={[styles.roleIcon, compactSignIn && styles.roleIconPhone, active && styles.roleIconActive]}><Ionicons name={item === 'parent' ? 'people-outline' : 'flash-outline'} size={compactSignIn ? 16 : 18} color={active ? colors.white : colors.navy} /></View><View style={{ flex: 1 }}><Text style={[styles.roleTitle, compactSignIn && styles.roleTitlePhone, active && styles.roleTitleActive]}>{item === 'parent' ? 'Party Leader' : 'Hero'}</Text>{!compactSignIn && <Text style={[styles.roleDescription, active && styles.roleDescriptionActive]}>{item === 'parent' ? 'Manage the household' : 'Continue your quests'}</Text>}</View>{active && !compactSignIn && <Ionicons name="checkmark-circle" size={18} color={colors.gold} />}</Pressable>;
+          return <Pressable key={item} disabled={busy} onPress={() => changeRole(item)} style={[styles.roleCard, compactMobileAuth && styles.roleCardPhone, active && styles.roleCardActive]}><View style={[styles.roleIcon, compactMobileAuth && styles.roleIconPhone, active && styles.roleIconActive]}><Ionicons name={item === 'parent' ? 'people-outline' : 'flash-outline'} size={compactMobileAuth ? 16 : 18} color={active ? colors.white : colors.navy} /></View><View style={{ flex: 1 }}><Text style={[styles.roleTitle, compactMobileAuth && styles.roleTitlePhone, active && styles.roleTitleActive]}>{item === 'parent' ? 'Party Leader' : 'Hero'}</Text>{!compactMobileAuth && <Text style={[styles.roleDescription, active && styles.roleDescriptionActive]}>{item === 'parent' ? 'Manage the household' : 'Continue your quests'}</Text>}</View>{active && !compactMobileAuth && <Ionicons name="checkmark-circle" size={18} color={colors.gold} />}</Pressable>;
         })}</View>
 
         {message && <View accessibilityRole="alert" style={[styles.message, styles.authMessage, message.tone === 'success' ? styles.successMessage : styles.errorMessage]}><Ionicons name={message.tone === 'success' ? 'checkmark-circle-outline' : 'alert-circle-outline'} size={19} color={message.tone === 'success' ? '#315D1A' : '#9A3528'} /><Text style={[styles.messageText, styles.authMessageText, message.tone === 'success' ? styles.successText : styles.errorText]}>{message.text}</Text></View>}
 
-        <View style={[styles.fields, compactSignIn && styles.fieldsPhone]}>
+        <View style={[styles.fields, compactMobileAuth && styles.fieldsPhone]}>
           {role === 'parent' ? <>
-            {signup && <AuthField label="Display name" icon="person-outline"><TextInput editable={!busy} placeholder="How your Heroes will know you" placeholderTextColor="#9298A8" value={name} onChangeText={setName} style={styles.authInput} /></AuthField>}
-            <AuthField compact={compactSignIn} label="Email address" icon="mail-outline"><TextInput editable={!busy} placeholder="you@example.com" placeholderTextColor="#9298A8" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} style={styles.authInput} /></AuthField>
-            <AuthField compact={compactSignIn} label="Password" icon="lock-closed-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder={signup ? 'Choose a secure password' : 'Enter your password'} placeholderTextColor="#9298A8" secureTextEntry={!showPassword} value={password} onChangeText={text => { setPassword(text); setMessage(null); }} style={styles.authInput} /></AuthField>
+            {signup && <AuthField compact={compactMobileAuth} label="Display name" icon="person-outline"><TextInput editable={!busy} placeholder="How your Heroes will know you" placeholderTextColor="#9298A8" value={name} onChangeText={setName} style={styles.authInput} /></AuthField>}
+            <AuthField compact={compactMobileAuth} label="Email address" icon="mail-outline"><TextInput editable={!busy} placeholder="you@example.com" placeholderTextColor="#9298A8" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} style={styles.authInput} /></AuthField>
+            <AuthField compact={compactMobileAuth} label="Password" icon="lock-closed-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder={signup ? 'Choose a secure password' : 'Enter your password'} placeholderTextColor="#9298A8" secureTextEntry={!showPassword} value={password} onChangeText={text => { setPassword(text); setMessage(null); }} style={styles.authInput} /></AuthField>
             {signup && <PasswordChecklist password={password} />}
             {signup && <AuthField label="Confirm password" icon="shield-checkmark-outline" trailing={<PasswordToggle visible={showConfirmPassword} onPress={() => setShowConfirmPassword(value => !value)} />}><TextInput editable={!busy} placeholder="Enter it once more" placeholderTextColor="#9298A8" secureTextEntry={!showConfirmPassword} value={confirmPassword} onChangeText={text => { setConfirmPassword(text); setMessage(null); }} style={styles.authInput} /></AuthField>}
           </> : <>
-            <AuthField compact={compactSignIn} label="Hero username" icon="person-circle-outline"><TextInput editable={!busy} placeholder="Your Hero username" placeholderTextColor="#9298A8" autoCapitalize="none" autoCorrect={false} value={username} onChangeText={text => setUsername(text.toLowerCase().replace(/\s/g, ''))} style={styles.authInput} /></AuthField>
-            <AuthField compact={compactSignIn} label="Six-digit PIN" icon="keypad-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder="••••••" placeholderTextColor="#9298A8" secureTextEntry={!showPassword} keyboardType="number-pad" maxLength={6} value={password} onChangeText={text => setPassword(text.replace(/\D/g, '').slice(0, 6))} style={styles.authInput} /></AuthField>
+            <AuthField compact={compactMobileAuth} label="Hero username" icon="person-circle-outline"><TextInput editable={!busy} placeholder="Your Hero username" placeholderTextColor="#9298A8" autoCapitalize="none" autoCorrect={false} value={username} onChangeText={text => setUsername(text.toLowerCase().replace(/\s/g, ''))} style={styles.authInput} /></AuthField>
+            <AuthField compact={compactMobileAuth} label="Six-digit PIN" icon="keypad-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder="••••••" placeholderTextColor="#9298A8" secureTextEntry={!showPassword} keyboardType="number-pad" maxLength={6} value={password} onChangeText={text => setPassword(text.replace(/\D/g, '').slice(0, 6))} style={styles.authInput} /></AuthField>
           </>}
         </View>
 
         {role === 'parent' && !signup && <Pressable disabled={busy} onPress={forgotPassword} style={[styles.forgotButton, compactSignIn && styles.forgotButtonPhone]}><Text style={styles.forgotText}>Forgot password?</Text></Pressable>}
-        <Pressable accessibilityRole="button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.authPrimary, compactSignIn && styles.authPrimaryPhone, pressed && styles.authPrimaryPressed, busy && styles.primaryDisabled]}><Text style={styles.authPrimaryText}>{busy ? (signup ? 'Creating account…' : 'Signing in…') : role === 'hero' ? 'Enter Hero HQ' : signup ? 'Create account' : 'Sign in'}</Text><Ionicons name="arrow-forward" size={18} color={colors.white} /></Pressable>
-        {role === 'parent' && <View style={[styles.accountPrompt, compactSignIn && styles.accountPromptPhone]}><Text style={styles.accountPromptText}>{signup ? `Already part of ${brand.name}?` : `New to ${brand.name}?`}</Text><Pressable disabled={busy} onPress={toggleSignup}><Text style={styles.accountPromptLink}>{signup ? 'Sign in' : 'Create an account'}</Text></Pressable></View>}
-        {role === 'hero' && <View style={[styles.heroHelp, compactSignIn && styles.heroHelpPhone]}><Ionicons name="information-circle-outline" size={17} color={colors.muted} /><Text style={styles.heroHelpText}>Don’t know your username or PIN? Ask your Party Leader.</Text></View>}
+        <Pressable accessibilityRole="button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.authPrimary, compactMobileAuth && styles.authPrimaryPhone, pressed && styles.authPrimaryPressed, busy && styles.primaryDisabled]}><Text style={styles.authPrimaryText}>{busy ? (signup ? 'Creating account…' : 'Signing in…') : role === 'hero' ? 'Enter Hero HQ' : signup ? 'Create account' : 'Sign in'}</Text><Ionicons name="arrow-forward" size={18} color={colors.white} /></Pressable>
+        {role === 'parent' && <View style={[styles.accountPrompt, compactMobileAuth && styles.accountPromptPhone]}><Text style={styles.accountPromptText}>{signup ? `Already part of ${brand.name}?` : `New to ${brand.name}?`}</Text><Pressable disabled={busy} onPress={toggleSignup}><Text style={styles.accountPromptLink}>{signup ? 'Sign in' : 'Create an account'}</Text></Pressable></View>}
+        {role === 'hero' && <View style={[styles.heroHelp, compactMobileAuth && styles.heroHelpPhone]}><Ionicons name="information-circle-outline" size={17} color={colors.muted} /><Text style={styles.heroHelpText}>Don’t know your username or PIN? Ask your Party Leader.</Text></View>}
         {showMobileAssurance && <View style={styles.mobileAssurance}><View style={styles.mobileAssuranceIcon}><Ionicons name="shield-checkmark-outline" size={19} color={colors.green} /></View><View style={{ flex: 1 }}><Text style={styles.mobileAssuranceTitle}>A safe space for your family</Text><Text style={styles.mobileAssuranceCopy}>Private household access with progress guided by Party Leaders.</Text></View></View>}
       </View>
     </View>
@@ -203,6 +205,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream },
   authPage: { flexGrow: 1, padding: 22, alignItems: 'center', justifyContent: 'center' },
   authPageNarrow: { padding: 12 },
+  authPagePhone: { justifyContent: 'flex-start', paddingVertical: 10 },
   authPageCompact: { justifyContent: 'center', paddingVertical: 10 },
   authShell: { width: '100%', maxWidth: 1040, minHeight: 650, borderRadius: 30, overflow: 'hidden', backgroundColor: colors.white, flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(17,36,73,.08)', shadowColor: colors.navy, shadowOffset: { width: 0, height: 18 }, shadowOpacity: .15, shadowRadius: 36, elevation: 7 },
   authShellStacked: { maxWidth: 560, minHeight: 0, flexDirection: 'column' },

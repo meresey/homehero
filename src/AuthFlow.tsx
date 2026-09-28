@@ -21,6 +21,7 @@ export function AuthScreen() {
   const [signup, setSignup] = useState(false);
   const compactSignIn = phone && !signup;
   const shortPhone = compactSignIn && height < 760;
+  const phoneShellHeight = compactSignIn ? Math.max(520, height - (width < 480 ? 24 : 32)) : undefined;
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -70,7 +71,7 @@ export function AuthScreen() {
   };
 
   return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={[styles.authPage, width < 480 && styles.authPageNarrow, compactSignIn && styles.authPageCompact]} keyboardShouldPersistTaps="handled">
-    <View style={[styles.authShell, !wide && styles.authShellStacked, phone && styles.authShellPhone]}>
+    <View style={[styles.authShell, !wide && styles.authShellStacked, phone && styles.authShellPhone, phoneShellHeight != null && { minHeight: phoneShellHeight }]}>
       <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.brandPanel, !wide && styles.brandPanelCompact, compactSignIn && styles.brandPanelPhone]}>
         <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
         <View style={styles.brandTop}><BrandWordmark reversed compact={compactSignIn && width < 380} /></View>
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream },
   authPage: { flexGrow: 1, padding: 22, alignItems: 'center', justifyContent: 'center' },
   authPageNarrow: { padding: 12 },
-  authPageCompact: { justifyContent: 'flex-start', paddingVertical: 10 },
+  authPageCompact: { justifyContent: 'center', paddingVertical: 10 },
   authShell: { width: '100%', maxWidth: 1040, minHeight: 650, borderRadius: 30, overflow: 'hidden', backgroundColor: colors.white, flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(17,36,73,.08)', shadowColor: colors.navy, shadowOffset: { width: 0, height: 18 }, shadowOpacity: .15, shadowRadius: 36, elevation: 7 },
   authShellStacked: { maxWidth: 560, minHeight: 0, flexDirection: 'column' },
   authShellPhone: { borderRadius: 22 },
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
   brandFooterText: { color: '#AFC1D9', fontSize: 8, fontWeight: '900', letterSpacing: 1.3 },
   authFormPanel: { flex: 1.08, paddingHorizontal: 50, paddingVertical: 42, justifyContent: 'center' },
   authFormPanelStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', paddingHorizontal: 24, paddingVertical: 31 },
-  authFormPanelPhone: { paddingHorizontal: 17, paddingVertical: 19 },
+  authFormPanelPhone: { flexGrow: 1, paddingHorizontal: 17, paddingVertical: 19, justifyContent: 'center' },
   authFormPanelShort: { paddingVertical: 15 },
   authFormHeader: { gap: 6, marginBottom: 20 },
   authFormHeaderPhone: { marginBottom: 12 },

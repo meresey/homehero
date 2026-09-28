@@ -21,6 +21,7 @@ export function AuthScreen() {
   const [signup, setSignup] = useState(false);
   const compactSignIn = phone && !signup;
   const shortPhone = compactSignIn && height < 760;
+  const showMobileAssurance = compactSignIn && height >= 600;
   const phoneShellHeight = compactSignIn ? Math.max(520, height - (width < 480 ? 24 : 32)) : undefined;
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -74,7 +75,7 @@ export function AuthScreen() {
     <View style={[styles.authShell, !wide && styles.authShellStacked, phone && styles.authShellPhone, phoneShellHeight != null && { minHeight: phoneShellHeight }]}>
       <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.brandPanel, !wide && styles.brandPanelCompact, compactSignIn && styles.brandPanelPhone]}>
         <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
-        <View style={styles.brandTop}><BrandWordmark reversed compact={compactSignIn && width < 380} /></View>
+        <View style={styles.brandTop}><BrandWordmark reversed /></View>
         {compactSignIn
           ? <Text style={styles.brandMobileTagline}>{brand.tagline}</Text>
           : <View style={styles.brandCopy}><Text style={[styles.brandHeadline, !wide && styles.brandHeadlineCompact]}>Make small wins shine.</Text><Text style={styles.brandLead}>A calmer way to turn everyday responsibilities into confidence, teamwork, and brighter habits.</Text></View>}
@@ -113,6 +114,7 @@ export function AuthScreen() {
         <Pressable accessibilityRole="button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.authPrimary, compactSignIn && styles.authPrimaryPhone, pressed && styles.authPrimaryPressed, busy && styles.primaryDisabled]}><Text style={styles.authPrimaryText}>{busy ? (signup ? 'Creating account…' : 'Signing in…') : role === 'hero' ? 'Enter Hero HQ' : signup ? 'Create account' : 'Sign in'}</Text><Ionicons name="arrow-forward" size={18} color={colors.white} /></Pressable>
         {role === 'parent' && <View style={[styles.accountPrompt, compactSignIn && styles.accountPromptPhone]}><Text style={styles.accountPromptText}>{signup ? `Already part of ${brand.name}?` : `New to ${brand.name}?`}</Text><Pressable disabled={busy} onPress={toggleSignup}><Text style={styles.accountPromptLink}>{signup ? 'Sign in' : 'Create an account'}</Text></Pressable></View>}
         {role === 'hero' && <View style={[styles.heroHelp, compactSignIn && styles.heroHelpPhone]}><Ionicons name="information-circle-outline" size={17} color={colors.muted} /><Text style={styles.heroHelpText}>Don’t know your username or PIN? Ask your Party Leader.</Text></View>}
+        {showMobileAssurance && <View style={styles.mobileAssurance}><View style={styles.mobileAssuranceIcon}><Ionicons name="shield-checkmark-outline" size={19} color={colors.green} /></View><View style={{ flex: 1 }}><Text style={styles.mobileAssuranceTitle}>A safe space for your family</Text><Text style={styles.mobileAssuranceCopy}>Private household access with progress guided by Party Leaders.</Text></View></View>}
       </View>
     </View>
   </ScrollView></AppFrame></SafeAreaView>;
@@ -207,7 +209,7 @@ const styles = StyleSheet.create({
   authShellPhone: { borderRadius: 22 },
   brandPanel: { flex: .92, padding: 42, justifyContent: 'space-between', overflow: 'hidden' },
   brandPanelCompact: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', minHeight: 0, padding: 26, justifyContent: 'flex-start', gap: 22 },
-  brandPanelPhone: { minHeight: 72, paddingHorizontal: 16, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  brandPanelPhone: { minHeight: 92, paddingHorizontal: 17, paddingVertical: 14, alignItems: 'flex-start', justifyContent: 'center', gap: 5 },
   brandOrbOne: { position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: 'rgba(255,255,255,.055)', right: -75, top: -70 },
   brandOrbTwo: { position: 'absolute', width: 185, height: 185, borderRadius: 93, borderWidth: 1, borderColor: 'rgba(243,182,31,.18)', left: -70, bottom: -65 },
   brandTop: { flexDirection: 'row', alignItems: 'center', gap: 13 },
@@ -218,7 +220,7 @@ const styles = StyleSheet.create({
   brandHeadline: { color: colors.white, fontSize: 39, lineHeight: 46, fontWeight: '900', letterSpacing: -.8 },
   brandHeadlineCompact: { fontSize: 27, lineHeight: 33 },
   brandLead: { color: '#D7E3F2', fontSize: 14, lineHeight: 23, maxWidth: 380 },
-  brandMobileTagline: { flexShrink: 1, color: '#D7E3F2', fontSize: 10, lineHeight: 14, fontWeight: '700', textAlign: 'right' },
+  brandMobileTagline: { color: '#D7E3F2', fontSize: 12, lineHeight: 17, fontWeight: '700', letterSpacing: .1 },
   benefitList: { gap: 13 },
   brandBenefit: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   brandBenefitIcon: { width: 33, height: 33, borderRadius: 11, backgroundColor: 'rgba(255,255,255,.1)', alignItems: 'center', justifyContent: 'center' },
@@ -228,7 +230,7 @@ const styles = StyleSheet.create({
   brandFooterText: { color: '#AFC1D9', fontSize: 8, fontWeight: '900', letterSpacing: 1.3 },
   authFormPanel: { flex: 1.08, paddingHorizontal: 50, paddingVertical: 42, justifyContent: 'center' },
   authFormPanelStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', paddingHorizontal: 24, paddingVertical: 31 },
-  authFormPanelPhone: { flexGrow: 1, paddingHorizontal: 17, paddingVertical: 19, justifyContent: 'center' },
+  authFormPanelPhone: { flexGrow: 1, paddingHorizontal: 17, paddingVertical: 19, justifyContent: 'flex-start' },
   authFormPanelShort: { paddingVertical: 15 },
   authFormHeader: { gap: 6, marginBottom: 20 },
   authFormHeaderPhone: { marginBottom: 12 },
@@ -277,6 +279,10 @@ const styles = StyleSheet.create({
   heroHelp: { marginTop: 16, padding: 11, borderRadius: 12, backgroundColor: '#F4F1E9', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   heroHelpPhone: { marginTop: 11, paddingVertical: 8 },
   heroHelpText: { color: colors.muted, fontSize: 10, lineHeight: 15 },
+  mobileAssurance: { marginTop: 'auto', padding: 12, borderRadius: 14, backgroundColor: '#F2F7EB', borderWidth: 1, borderColor: '#D8E7C8', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  mobileAssuranceIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  mobileAssuranceTitle: { color: colors.navy, fontSize: 10, fontWeight: '900' },
+  mobileAssuranceCopy: { color: colors.muted, fontSize: 9, lineHeight: 13, marginTop: 2 },
   authMessage: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginBottom: 14 },
   authMessageText: { flex: 1 },
   onboardingShell: { width: '100%', maxWidth: 960, minHeight: 570, borderRadius: 30, overflow: 'hidden', backgroundColor: colors.white, flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(17,36,73,.08)', shadowColor: colors.navy, shadowOffset: { width: 0, height: 18 }, shadowOpacity: .15, shadowRadius: 36, elevation: 7 },

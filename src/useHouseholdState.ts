@@ -66,6 +66,24 @@ export function useHouseholdState(enabled = true) {
     }));
     return approve ? 'approved' as const : 'declined' as const;
   };
+  const claimReward = (requestId: string) => setState(current => ({
+    ...current,
+    rewardRequests: current.rewardRequests.map(item => item.id === requestId && item.status === 'approved'
+      ? { ...item, status: 'claimed', claimedAt: new Date().toISOString() }
+      : item),
+  }));
+  const cancelRewardClaim = (requestId: string) => setState(current => ({
+    ...current,
+    rewardRequests: current.rewardRequests.map(item => item.id === requestId && item.status === 'claimed'
+      ? { ...item, status: 'approved', claimedAt: undefined }
+      : item),
+  }));
+  const fulfillRewardRequest = (requestId: string) => setState(current => ({
+    ...current,
+    rewardRequests: current.rewardRequests.map(item => item.id === requestId && item.status === 'claimed'
+      ? { ...item, status: 'fulfilled', fulfilledAt: new Date().toISOString() }
+      : item),
+  }));
   const reviewGuildApproval = (approvalId: string, approve: boolean) => {
     const approval = state.guildApprovals.find(item => item.id === approvalId && item.status === 'pending');
     if (!approval) return false;
@@ -167,6 +185,9 @@ export function useHouseholdState(enabled = true) {
     submitQuestForApproval,
     requestReward,
     reviewRewardRequest,
+    claimReward,
+    cancelRewardClaim,
+    fulfillRewardRequest,
     reviewGuildApproval,
     saveHouseholdQuest,
     removeHouseholdQuest,
@@ -278,7 +299,7 @@ function buildSummary(state: HouseholdState, hero: HeroProfile): HeroSummary {
     completedToday: quests.filter(quest => quest.status === 'rewarded').length,
     totalToday: quests.length,
     pendingApprovals: quests.filter(quest => quest.status === 'pending_approval').length,
-    pendingRewardRequests: state.rewardRequests.filter(request => request.heroId === hero.id && request.status === 'pending').length,
+    pendingRewardRequests: state.rewardRequests.filter(request => request.heroId === hero.id && ['pending', 'claimed'].includes(request.status)).length,
     bedtimeQuestsDue: quests.filter(quest => quest.kind === 'bedtime' && ['available', 'in_progress'].includes(quest.status)).length,
   };
 }

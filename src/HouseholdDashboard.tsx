@@ -17,6 +17,7 @@ export function HouseholdDashboard({ household, heroes, levels, guildApprovals, 
   const attention = [
     ...guildApprovals.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'guild' as const, icon: item.kind === 'timer' ? '⏱️' : item.kind === 'guild' ? '🤝' : item.kind === 'bedtime' ? '🌙' : '⭐', text: item.kind === 'timer' ? 'finished a timed quest' : item.kind === 'guild' ? 'submitted a Guild Quest' : item.kind === 'bedtime' ? 'submitted a bedtime quest' : 'submitted a daily quest' })),
     ...rewardRequests.filter(item => item.status === 'pending').map(item => ({ id: item.id, heroId: item.heroId, type: 'reward' as const, icon: '🎁', text: 'requested a Hero Shop reward' })),
+    ...rewardRequests.filter(item => item.status === 'claimed').map(item => ({ id: item.id, heroId: item.heroId, type: 'reward' as const, icon: '🎁', text: 'is ready to use an approved reward' })),
   ];
   const heroName = (id: string) => heroes.find(hero => hero.heroId === id)?.displayName ?? 'A Hero';
 

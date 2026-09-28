@@ -63,6 +63,7 @@ export function useHomeHeroData() {
   const [rewardCatalog, setRewardCatalog] = useState<Reward[]>([]);
   const [pendingRewards, setPendingRewards] = useState<RewardRedemption[]>([]);
   const [pendingRewardIds, setPendingRewardIds] = useState<string[]>([]);
+  const [rewardRedemptions, setRewardRedemptions] = useState<RewardRedemption[]>([]);
   const [earnedBadges, setEarnedBadges] = useState<BadgeDefinition[]>([]);
   const [badgeProgress, setBadgeProgress] = useState<BadgeProgress[]>([]);
   const [completionHistory, setCompletionHistory] = useState<QuestCompletion[]>([]);
@@ -78,7 +79,7 @@ export function useHomeHeroData() {
     const current = activeSession === undefined ? (await supabase.auth.getSession()).data.session : activeSession;
     activeUserId.current = current?.user.id ?? null;
     setSession(current);
-    if (!current) { loadedUserId.current = null; setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setBadgeProgress([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
+    if (!current) { loadedUserId.current = null; setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setRewardRedemptions([]); setEarnedBadges([]); setBadgeProgress([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); setLoading(false); return; }
     // Keep the existing screen visible when refreshing data for the same account.
     // A full-screen loader is only needed before we have loaded this account.
     if (loadedUserId.current !== current.user.id) setLoading(true);
@@ -86,7 +87,7 @@ export function useHomeHeroData() {
     try {
       const { data: membership, error: membershipError } = await supabase.from('household_members').select('household_id, role, households(name, invite_code, timezone)').eq('user_id', current.user.id).maybeSingle();
       if (membershipError) throw membershipError;
-      if (!membership) { setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setEarnedBadges([]); setBadgeProgress([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); return; }
+      if (!membership) { setFamily(null); setQuests([]); setRetiredQuests([]); setQuestCatalog([]); setHeroes([]); setQuestAssignments([]); setPendingQuests([]); setRunningTimers([]); setRewards([]); setRetiredRewards([]); setRewardCatalog([]); setPendingRewards([]); setPendingRewardIds([]); setRewardRedemptions([]); setEarnedBadges([]); setBadgeProgress([]); setCompletionHistory([]); setStreakAwards([]); setParentDashboard(emptyParentDashboard); return; }
       const household = membership.households as unknown as { name: string; invite_code: string; timezone: string };
       const [profileResult, linksResult] = await Promise.all([
         supabase.from('profiles').select('display_name').eq('id', current.user.id).single(),
@@ -292,7 +293,7 @@ export function useHomeHeroData() {
       if (membership.role === 'parent') {
         const [retiredRewardsResult, redemptionsResult] = await Promise.all([
           supabase.from('rewards').select('id,catalog_reward_id,title,description,icon_key,star_cost').eq('household_id', membership.household_id).eq('active', false).order('archived_at', { ascending: false }),
-          supabase.from('reward_redemptions').select('id,reward_id,child_id,star_cost_snapshot,requested_at,rewards!inner(title,description,icon_key,household_id)').eq('rewards.household_id', membership.household_id).eq('status', 'requested').order('requested_at'),
+          supabase.from('reward_redemptions').select('id,reward_id,child_id,star_cost_snapshot,status,requested_at,reviewed_at,claimed_at,fulfilled_at,rewards!inner(title,description,icon_key,household_id)').eq('rewards.household_id', membership.household_id).in('status', ['requested', 'claimed']).order('requested_at'),
         ]);
         const { data: retiredRewardRows, error: retiredRewardError } = retiredRewardsResult;
         const { data: redemptionRows, error: redemptionError } = redemptionsResult;
@@ -314,12 +315,15 @@ export function useHomeHeroData() {
         const balances = new Map((redemptionBalances ?? []).map(balance => [balance.child_id, balance.stars]));
         setPendingRewards((redemptionRows ?? []).map(row => mapRedemption(row, names.get(row.child_id) ?? 'Hero', balances.get(row.child_id) ?? 0)));
         setPendingRewardIds([]);
+        setRewardRedemptions([]);
       } else {
         setRetiredRewards([]);
-        const { data: ownRequests, error: ownRequestsError } = await supabase.from('reward_redemptions').select('reward_id').eq('child_id', current.user.id).eq('status', 'requested');
+        const { data: ownRequests, error: ownRequestsError } = await supabase.from('reward_redemptions').select('id,reward_id,child_id,star_cost_snapshot,status,requested_at,reviewed_at,claimed_at,fulfilled_at,rewards!inner(title,description,icon_key)').eq('child_id', current.user.id).in('status', ['requested', 'approved', 'claimed', 'fulfilled']).order('requested_at', { ascending: false });
         if (ownRequestsError) throw ownRequestsError;
         setPendingRewards([]);
-        setPendingRewardIds((ownRequests ?? []).map(request => request.reward_id));
+        const ownRedemptions = (ownRequests ?? []).map(row => mapRedemption(row, current.user.user_metadata?.display_name ?? nextFamily.displayName, balance?.stars ?? 0));
+        setRewardRedemptions(ownRedemptions);
+        setPendingRewardIds(ownRedemptions.filter(request => request.status === 'requested').map(request => request.rewardId));
       }
     } catch (cause) { setError(errorMessage(cause)); }
     finally { loadedUserId.current = current.user.id; setLoading(false); }
@@ -387,7 +391,7 @@ export function useHomeHeroData() {
     await refresh();
   }, [refresh]);
 
-  return { backendEnabled, session, family, quests, retiredQuests, questCatalog, heroes, questAssignments, pendingQuests, runningTimers, rewards, retiredRewards, rewardCatalog, pendingRewards, pendingRewardIds, earnedBadges, badgeProgress, completionHistory, streakAwards, stars, xp, parentDashboard, loading, error, refresh,
+  return { backendEnabled, session, family, quests, retiredQuests, questCatalog, heroes, questAssignments, pendingQuests, runningTimers, rewards, retiredRewards, rewardCatalog, pendingRewards, pendingRewardIds, rewardRedemptions, earnedBadges, badgeProgress, completionHistory, streakAwards, stars, xp, parentDashboard, loading, error, refresh,
     setDemoQuests: setQuests, setDemoStars: setStars, setDemoXp: setXp,
     completeQuest: (q: Quest) => rpc(q.kind === 'guild' ? 'submit_guild_quest' : 'complete_quest', { p_instance_id: q.instanceId }),
     startTimer: (q: Quest) => rpc('start_timer', { p_instance_id: q.instanceId }),
@@ -395,6 +399,9 @@ export function useHomeHeroData() {
     reviewQuest: (q: Quest, approve: boolean) => rpc('review_quest', { p_instance_id: q.instanceId, p_approve: approve, p_note: null }),
     redeemReward: (rewardId: string) => rpc('redeem_reward', { p_reward_id: rewardId, p_idempotency_key: `${rewardId}-${Date.now()}` }),
     reviewReward: (redemptionId: string, approve: boolean) => rpc('review_reward_redemption', { p_redemption_id: redemptionId, p_approve: approve }),
+    claimReward: (redemptionId: string) => rpc('claim_reward_redemption', { p_redemption_id: redemptionId }),
+    cancelRewardClaim: (redemptionId: string) => rpc('cancel_reward_claim', { p_redemption_id: redemptionId }),
+    fulfillReward: (redemptionId: string) => rpc('fulfill_reward_redemption', { p_redemption_id: redemptionId }),
   };
 }
 
@@ -446,7 +453,7 @@ function mapInstance(row: any): Quest { const t = row.quest_templates; return { 
 function mapCompletion(row: any): QuestCompletion { const template = row.quest_templates; return { id: row.id, heroId: row.child_id, questId: row.quest_template_id, questTitle: template.title, questEmoji: template.icon_key?.length <= 3 ? template.icon_key : '✨', questKind: template.kind as QuestKind, stars: row.star_reward_snapshot, xp: row.xp_reward_snapshot, completedAt: `${row.occurrence_date}T12:00:00` }; }
 function mapReward(row: any): Reward { return { id: row.id, rewardId: row.id, catalogRewardId: row.catalog_reward_id ?? undefined, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }
 function mapCatalogReward(row: any): Reward { return { id: row.id, catalogRewardId: row.id, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }
-function mapRedemption(row: any, heroName: string, availableStars: number): RewardRedemption { const reward = row.rewards as { title: string; description?: string; icon_key?: string }; return { id: row.id, rewardId: row.reward_id, childId: row.child_id, heroName, title: reward.title, subtitle: reward.description ?? 'Parent-approved reward', emoji: reward.icon_key || '🎁', cost: row.star_cost_snapshot, availableStars, requestedAt: row.requested_at }; }
+function mapRedemption(row: any, heroName: string, availableStars: number): RewardRedemption { const reward = row.rewards as { title: string; description?: string; icon_key?: string }; return { id: row.id, rewardId: row.reward_id, childId: row.child_id, heroName, title: reward.title, subtitle: reward.description ?? 'Parent-approved reward', emoji: reward.icon_key || '🎁', cost: row.star_cost_snapshot, availableStars, status: row.status, requestedAt: row.requested_at, reviewedAt: row.reviewed_at ?? undefined, claimedAt: row.claimed_at ?? undefined, fulfilledAt: row.fulfilled_at ?? undefined }; }
 
 function errorMessage(cause: unknown) {
   if (cause instanceof Error) return cause.message;

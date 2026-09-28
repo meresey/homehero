@@ -37,7 +37,23 @@ export type Quest = {
 export type QuestCatalogItem = Quest & { catalogQuestId: string };
 
 export type Reward = { id: string; rewardId?: string; catalogRewardId?: string; title: string; emoji: string; cost: number; subtitle: string; archived?: boolean };
-export type RewardRedemption = { id: string; rewardId: string; childId: string; heroName: string; title: string; subtitle: string; emoji: string; cost: number; availableStars: number; requestedAt: string };
+export type RewardRedemptionStatus = 'requested' | 'approved' | 'claimed' | 'fulfilled' | 'rejected' | 'cancelled';
+export type RewardRedemption = {
+  id: string;
+  rewardId: string;
+  childId: string;
+  heroName: string;
+  title: string;
+  subtitle: string;
+  emoji: string;
+  cost: number;
+  availableStars: number;
+  status: RewardRedemptionStatus;
+  requestedAt: string;
+  reviewedAt?: string;
+  claimedAt?: string;
+  fulfilledAt?: string;
+};
 
 export type Household = {
   id: string;
@@ -111,7 +127,9 @@ export type RewardRequest = {
   rewardId: string;
   starCost: number;
   requestedAt: string;
-  status: 'pending' | 'approved' | 'declined' | 'fulfilled';
+  status: 'pending' | 'approved' | 'claimed' | 'declined' | 'fulfilled';
+  claimedAt?: string;
+  fulfilledAt?: string;
 };
 
 export type QuestCompletion = {

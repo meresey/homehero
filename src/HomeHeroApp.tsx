@@ -255,7 +255,7 @@ export function HomeHeroApp() {
         <>
           <HeroHeader name={heroName} level={currentHeroLevel} stars={stars} xp={xp} badges={earnedBadgeCount} compact={mobile} />
           <View style={styles.screen}>
-            {childTab === 'today' && <ChildToday quests={quests} xp={xp} levels={levelDefinitions} onQuest={complete} mobile={mobile} />}
+            {childTab === 'today' && <ChildToday quests={quests} onQuest={complete} mobile={mobile} />}
             {childTab === 'week' && <WeeklyBoard history={data.backendEnabled ? data.completionHistory : householdData.state.completionHistory.filter(item => item.heroId === householdData.selectedHero.id)} quests={quests} streakAwards={data.backendEnabled ? data.streakAwards : householdData.state.streakAwards.filter(item => item.heroId === householdData.selectedHero.id)} />}
             {childTab === 'store' && <HeroShop rewards={data.backendEnabled ? data.rewards : activeLocalRewards} stars={stars} redemptions={data.backendEnabled ? data.rewardRedemptions : localRewardRedemptions} pendingRewardIds={data.backendEnabled ? data.pendingRewardIds : householdData.state.rewardRequests.filter(item => item.heroId === householdData.selectedHero.id && item.status === 'pending').map(item => item.rewardId)} onRedeem={redeem} onClaim={claimReward} onCancelClaim={cancelRewardClaim} />}
             {childTab === 'hero' && <HeroProfile name={heroName} stars={stars} xp={xp} levels={levelDefinitions} badges={badgeProgress} />}
@@ -287,6 +287,7 @@ export function HomeHeroApp() {
 
 function HeroHeader({ name, level, stars, xp, badges, compact }: { name: string; level: HeroLevel; stars: number; xp: number; badges: number; compact: boolean }) {
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()).toUpperCase();
+  const progress = getHeroLevelProgress(xp);
   return <LinearGradient colors={[colors.navy, '#284A7D']} style={[styles.sharedHeroHeader, compact && styles.sharedHeroHeaderCompact]}>
     <View style={[styles.levelShield, compact && styles.levelShieldCompact]}><Text style={styles.levelSmall}>LEVEL</Text><Text style={[styles.levelNumber, compact && styles.levelNumberCompact]}>{level.level}</Text></View>
     <View style={styles.heroHeaderCopy}><Text style={styles.eyebrow}>{compact ? weekday : `${weekday} · HERO DASHBOARD`}</Text><Text style={styles.greeting}>{name}</Text><Text style={styles.heroSub}>{level.title}{!compact && ' · Every small win builds a hero.'}</Text></View>
@@ -295,19 +296,18 @@ function HeroHeader({ name, level, stars, xp, badges, compact }: { name: string;
       <View style={styles.heroStat}><Text style={styles.heroStatIcon}>✦</Text><View><Text style={styles.heroStatValue}>{xp}</Text><Text style={styles.heroStatLabel}>XP</Text></View></View>
       {!compact && <View style={styles.heroStat}><Text style={styles.heroStatIcon}>🏅</Text><View><Text style={styles.heroStatValue}>{badges}</Text><Text style={styles.heroStatLabel}>BADGES</Text></View></View>}
     </View>
+    <View style={[styles.headerLevelProgress, compact && styles.headerLevelProgressCompact]}>
+      <View style={styles.headerLevelProgressCopy}><View style={{ flex: 1 }}><Text style={styles.headerLevelTitle}>Level {progress.current.level} · {progress.current.title}</Text>{!compact && <Text style={styles.headerLevelMeta}>{progress.lifetimeXp.toLocaleString()} lifetime XP{progress.next ? ` · ${progress.earnedThisLevel.toLocaleString()} of ${progress.levelRange.toLocaleString()} XP this level` : ''}</Text>}</View><View style={styles.headerLevelRemaining}><Text style={styles.headerLevelRemainingText}>{progress.next ? `${progress.remainingXp.toLocaleString()} XP TO LEVEL ${progress.next.level}` : 'MAX LEVEL'}</Text></View></View>
+      <ProgressBar value={progress.earnedThisLevel} max={progress.levelRange} color={colors.gold} />
+      {compact && <Text style={styles.headerLevelMetaCompact}>{progress.next ? `${progress.earnedThisLevel.toLocaleString()} of ${progress.levelRange.toLocaleString()} XP this level` : `${progress.lifetimeXp.toLocaleString()} lifetime XP`}</Text>}
+    </View>
   </LinearGradient>;
 }
 
-function ChildToday({ quests, xp, levels, onQuest, mobile }: { quests: Quest[]; xp: number; levels: HeroLevel[]; onQuest: (q: Quest) => void; mobile: boolean }) {
-  const compact = useWindowDimensions().width < 380;
+function ChildToday({ quests, onQuest, mobile }: { quests: Quest[]; onQuest: (q: Quest) => void; mobile: boolean }) {
   const earned = quests.filter(q => q.status === 'rewarded').length;
-  const level = getHeroLevelProgress(xp, levels);
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {!mobile && <Panel>
-        <View style={[styles.sectionHeader, compact && styles.levelHeaderCompact]}><View style={[styles.levelHeaderCopy, compact && styles.levelHeaderCopyCompact]}><Text style={styles.cardTitle}>Level {level.current.level} · {level.current.title}</Text><Text style={styles.muted}>{level.lifetimeXp} lifetime XP{level.next ? ` · ${level.earnedThisLevel} of ${level.levelRange} this level` : ''}</Text></View><Pill tone="gold">{level.next ? `${level.remainingXp} XP TO LEVEL ${level.next.level}` : 'MAX LEVEL'}</Pill></View>
-        <ProgressBar value={level.earnedThisLevel} max={level.levelRange} color={colors.gold} />
-      </Panel>}
       <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Today's quests</Text><Text style={styles.muted}>{earned} of {quests.length} complete</Text></View><Pill>{quests.length ? Math.round(earned / quests.length * 100) : 0}%</Pill></View>
       {quests.map(quest => <QuestCard key={quest.id} quest={quest} onPress={() => onQuest(quest)} />)}
       {!mobile && <Panel style={{ backgroundColor: '#FFF7DE' }}><Text style={styles.tipTitle}>⚡ Perfect week in reach</Text><Text style={styles.muted}>Keep your daily quests going through Sunday to earn +5 bonus XP.</Text></Panel>}
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   logo: { color: colors.navy, fontSize: 19, fontWeight: '900', letterSpacing: 1 }, switcher: { flexDirection: 'row', backgroundColor: '#EAE5D9', borderRadius: 12, padding: 3 },
   switchButton: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 9 }, switchActive: { backgroundColor: colors.white }, switchText: { fontSize: 11, color: colors.muted, fontWeight: '700' }, switchTextActive: { color: colors.navy },
   signOutButton: { minHeight: 36, paddingHorizontal: 10, borderRadius: 11, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', gap: 5 }, signOutPressed: { opacity: .75 }, signOutDisabled: { opacity: .55 }, signOutText: { color: colors.navy, fontSize: 11, fontWeight: '800' },
-  sharedHeroHeader: { marginHorizontal: 18, marginBottom: 2, borderRadius: 22, padding: 14, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 13 }, levelShield: { width: 58, height: 66, backgroundColor: colors.green, borderWidth: 3, borderColor: colors.gold, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, levelSmall: { color: colors.white, fontSize: 8, fontWeight: '900' }, levelNumber: { color: colors.white, fontSize: 31, lineHeight: 34, fontWeight: '900' }, heroHeaderCopy: { flexGrow: 1, flexBasis: 150, minWidth: 120 }, heroStats: { flexGrow: 1, flexBasis: 220, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 7 }, heroStat: { minWidth: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 13, backgroundColor: 'rgba(255,255,255,.13)' }, heroStatIcon: { fontSize: 16 }, heroStatValue: { color: colors.white, fontSize: 15, lineHeight: 17, fontWeight: '900' }, heroStatLabel: { color: '#CBD7EA', fontSize: 7, fontWeight: '900', letterSpacing: 0.5 },
+  sharedHeroHeader: { marginHorizontal: 18, marginBottom: 2, borderRadius: 22, padding: 14, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 13 }, levelShield: { width: 58, height: 66, backgroundColor: colors.green, borderWidth: 3, borderColor: colors.gold, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, levelSmall: { color: colors.white, fontSize: 8, fontWeight: '900' }, levelNumber: { color: colors.white, fontSize: 31, lineHeight: 34, fontWeight: '900' }, heroHeaderCopy: { flexGrow: 1, flexBasis: 150, minWidth: 120 }, heroStats: { flexGrow: 1, flexBasis: 220, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 7 }, heroStat: { minWidth: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 13, backgroundColor: 'rgba(255,255,255,.13)' }, heroStatIcon: { fontSize: 16 }, heroStatValue: { color: colors.white, fontSize: 15, lineHeight: 17, fontWeight: '900' }, heroStatLabel: { color: '#CBD7EA', fontSize: 7, fontWeight: '900', letterSpacing: 0.5 }, headerLevelProgress: { flexBasis: '100%', width: '100%', padding: 11, borderRadius: 15, backgroundColor: 'rgba(6,25,55,.34)', gap: 8 }, headerLevelProgressCompact: { padding: 9, borderRadius: 13, gap: 6 }, headerLevelProgressCopy: { flexDirection: 'row', alignItems: 'center', gap: 10 }, headerLevelTitle: { color: colors.white, fontSize: 12, fontWeight: '900' }, headerLevelMeta: { color: '#CBD7EA', fontSize: 9, marginTop: 2 }, headerLevelRemaining: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: '#FFF3C9' }, headerLevelRemainingText: { color: '#7A5700', fontSize: 8, fontWeight: '900', letterSpacing: .6 }, headerLevelMetaCompact: { color: '#DCE5F2', fontSize: 8, fontWeight: '700' },
   sharedHeroHeaderCompact: { marginHorizontal: 14, padding: 12, borderRadius: 19, gap: 10 },
   levelShieldCompact: { width: 48, height: 54, borderRadius: 14 },
   levelNumberCompact: { fontSize: 25, lineHeight: 28 },

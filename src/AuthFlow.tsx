@@ -14,10 +14,13 @@ type LoginRole = 'parent' | 'hero';
 type Message = { tone: 'success' | 'error'; text: string } | null;
 
 export function AuthScreen() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const wide = width >= 900;
+  const phone = width < 600;
   const [role, setRole] = useState<LoginRole>('parent');
   const [signup, setSignup] = useState(false);
+  const compactSignIn = phone && !signup;
+  const shortPhone = compactSignIn && height < 760;
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -66,54 +69,56 @@ export function AuthScreen() {
     setMessage(error ? { tone: 'error', text: friendlyAuthError(error.message) } : { tone: 'success', text: `Password reset instructions were sent to ${email.trim()}.` });
   };
 
-  return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={[styles.authPage, width < 480 && styles.authPageNarrow]} keyboardShouldPersistTaps="handled">
-    <View style={[styles.authShell, !wide && styles.authShellStacked]}>
-      <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.brandPanel, !wide && styles.brandPanelCompact]}>
+  return <SafeAreaView style={styles.safe}><AppFrame><ScrollView contentContainerStyle={[styles.authPage, width < 480 && styles.authPageNarrow, compactSignIn && styles.authPageCompact]} keyboardShouldPersistTaps="handled">
+    <View style={[styles.authShell, !wide && styles.authShellStacked, phone && styles.authShellPhone]}>
+      <LinearGradient colors={[colors.navy, '#1D3D70', '#315A8D']} style={[styles.brandPanel, !wide && styles.brandPanelCompact, compactSignIn && styles.brandPanelPhone]}>
         <View style={styles.brandOrbOne} /><View style={styles.brandOrbTwo} />
-        <View style={styles.brandTop}><BrandWordmark reversed /></View>
-        <View style={styles.brandCopy}><Text style={[styles.brandHeadline, !wide && styles.brandHeadlineCompact]}>Make small wins shine.</Text><Text style={styles.brandLead}>A calmer way to turn everyday responsibilities into confidence, teamwork, and brighter habits.</Text></View>
+        <View style={styles.brandTop}><BrandWordmark reversed compact={compactSignIn && width < 380} /></View>
+        {compactSignIn
+          ? <Text style={styles.brandMobileTagline}>{brand.tagline}</Text>
+          : <View style={styles.brandCopy}><Text style={[styles.brandHeadline, !wide && styles.brandHeadlineCompact]}>Make small wins shine.</Text><Text style={styles.brandLead}>A calmer way to turn everyday responsibilities into confidence, teamwork, and brighter habits.</Text></View>}
         {wide && <View style={styles.benefitList}>
           <BrandBenefit icon="sparkles-outline" text="Quests that build independence" />
           <BrandBenefit icon="people-outline" text="A shared rhythm for the whole family" />
           <BrandBenefit icon="trophy-outline" text="Rewards that celebrate real effort" />
         </View>}
-        <View style={styles.brandFooter}><View style={styles.brandFooterLine} /><Text style={styles.brandFooterText}>{brand.familyPromise.toUpperCase()}</Text></View>
+        {!compactSignIn && <View style={styles.brandFooter}><View style={styles.brandFooterLine} /><Text style={styles.brandFooterText}>{brand.familyPromise.toUpperCase()}</Text></View>}
       </LinearGradient>
 
-      <View style={[styles.authFormPanel, !wide && styles.authFormPanelStacked]}>
-        <View style={styles.authFormHeader}><Text style={styles.authEyebrow}>{signup ? 'BEGIN YOUR ADVENTURE' : 'WELCOME BACK'}</Text><Text style={styles.authHeading}>{role === 'hero' ? 'Ready for your quests?' : signup ? 'Create your Party Leader account' : `Sign in to ${brand.name}`}</Text><Text style={styles.authCopy}>{role === 'hero' ? 'Use the username and PIN your Party Leader created.' : signup ? 'Create a household or join one with an invitation after confirming your email.' : 'Manage quests, celebrate progress, and keep your family moving.'}</Text></View>
+      <View style={[styles.authFormPanel, !wide && styles.authFormPanelStacked, compactSignIn && styles.authFormPanelPhone, shortPhone && styles.authFormPanelShort]}>
+        <View style={[styles.authFormHeader, compactSignIn && styles.authFormHeaderPhone]}>{!compactSignIn && <Text style={styles.authEyebrow}>{signup ? 'BEGIN YOUR ADVENTURE' : 'WELCOME BACK'}</Text>}<Text style={[styles.authHeading, compactSignIn && styles.authHeadingPhone]}>{role === 'hero' ? 'Ready for your quests?' : signup ? 'Create your Party Leader account' : `Sign in to ${brand.name}`}</Text>{!compactSignIn && <Text style={styles.authCopy}>{role === 'hero' ? 'Use the username and PIN your Party Leader created.' : signup ? 'Create a household or join one with an invitation after confirming your email.' : 'Manage quests, celebrate progress, and keep your family moving.'}</Text>}</View>
 
-        <View style={[styles.roleCards, width < 480 && styles.roleCardsNarrow]}>{(['parent', 'hero'] as const).map(item => {
+        <View style={[styles.roleCards, compactSignIn && styles.roleCardsPhone, width < 480 && !compactSignIn && styles.roleCardsNarrow]}>{(['parent', 'hero'] as const).map(item => {
           const active = role === item;
-          return <Pressable key={item} disabled={busy} onPress={() => changeRole(item)} style={[styles.roleCard, active && styles.roleCardActive]}><View style={[styles.roleIcon, active && styles.roleIconActive]}><Ionicons name={item === 'parent' ? 'people-outline' : 'flash-outline'} size={18} color={active ? colors.white : colors.navy} /></View><View style={{ flex: 1 }}><Text style={[styles.roleTitle, active && styles.roleTitleActive]}>{item === 'parent' ? 'Party Leader' : 'Hero'}</Text><Text style={[styles.roleDescription, active && styles.roleDescriptionActive]}>{item === 'parent' ? 'Manage the household' : 'Continue your quests'}</Text></View>{active && <Ionicons name="checkmark-circle" size={18} color={colors.gold} />}</Pressable>;
+          return <Pressable key={item} disabled={busy} onPress={() => changeRole(item)} style={[styles.roleCard, compactSignIn && styles.roleCardPhone, active && styles.roleCardActive]}><View style={[styles.roleIcon, compactSignIn && styles.roleIconPhone, active && styles.roleIconActive]}><Ionicons name={item === 'parent' ? 'people-outline' : 'flash-outline'} size={compactSignIn ? 16 : 18} color={active ? colors.white : colors.navy} /></View><View style={{ flex: 1 }}><Text style={[styles.roleTitle, compactSignIn && styles.roleTitlePhone, active && styles.roleTitleActive]}>{item === 'parent' ? 'Party Leader' : 'Hero'}</Text>{!compactSignIn && <Text style={[styles.roleDescription, active && styles.roleDescriptionActive]}>{item === 'parent' ? 'Manage the household' : 'Continue your quests'}</Text>}</View>{active && !compactSignIn && <Ionicons name="checkmark-circle" size={18} color={colors.gold} />}</Pressable>;
         })}</View>
 
         {message && <View accessibilityRole="alert" style={[styles.message, styles.authMessage, message.tone === 'success' ? styles.successMessage : styles.errorMessage]}><Ionicons name={message.tone === 'success' ? 'checkmark-circle-outline' : 'alert-circle-outline'} size={19} color={message.tone === 'success' ? '#315D1A' : '#9A3528'} /><Text style={[styles.messageText, styles.authMessageText, message.tone === 'success' ? styles.successText : styles.errorText]}>{message.text}</Text></View>}
 
-        <View style={styles.fields}>
+        <View style={[styles.fields, compactSignIn && styles.fieldsPhone]}>
           {role === 'parent' ? <>
             {signup && <AuthField label="Display name" icon="person-outline"><TextInput editable={!busy} placeholder="How your Heroes will know you" placeholderTextColor="#9298A8" value={name} onChangeText={setName} style={styles.authInput} /></AuthField>}
-            <AuthField label="Email address" icon="mail-outline"><TextInput editable={!busy} placeholder="you@example.com" placeholderTextColor="#9298A8" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} style={styles.authInput} /></AuthField>
-            <AuthField label="Password" icon="lock-closed-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder={signup ? 'Choose a secure password' : 'Enter your password'} placeholderTextColor="#9298A8" secureTextEntry={!showPassword} value={password} onChangeText={text => { setPassword(text); setMessage(null); }} style={styles.authInput} /></AuthField>
+            <AuthField compact={compactSignIn} label="Email address" icon="mail-outline"><TextInput editable={!busy} placeholder="you@example.com" placeholderTextColor="#9298A8" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} style={styles.authInput} /></AuthField>
+            <AuthField compact={compactSignIn} label="Password" icon="lock-closed-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder={signup ? 'Choose a secure password' : 'Enter your password'} placeholderTextColor="#9298A8" secureTextEntry={!showPassword} value={password} onChangeText={text => { setPassword(text); setMessage(null); }} style={styles.authInput} /></AuthField>
             {signup && <PasswordChecklist password={password} />}
             {signup && <AuthField label="Confirm password" icon="shield-checkmark-outline" trailing={<PasswordToggle visible={showConfirmPassword} onPress={() => setShowConfirmPassword(value => !value)} />}><TextInput editable={!busy} placeholder="Enter it once more" placeholderTextColor="#9298A8" secureTextEntry={!showConfirmPassword} value={confirmPassword} onChangeText={text => { setConfirmPassword(text); setMessage(null); }} style={styles.authInput} /></AuthField>}
           </> : <>
-            <AuthField label="Hero username" icon="person-circle-outline"><TextInput editable={!busy} placeholder="Your Hero username" placeholderTextColor="#9298A8" autoCapitalize="none" autoCorrect={false} value={username} onChangeText={text => setUsername(text.toLowerCase().replace(/\s/g, ''))} style={styles.authInput} /></AuthField>
-            <AuthField label="Six-digit PIN" icon="keypad-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder="••••••" placeholderTextColor="#9298A8" secureTextEntry={!showPassword} keyboardType="number-pad" maxLength={6} value={password} onChangeText={text => setPassword(text.replace(/\D/g, '').slice(0, 6))} style={styles.authInput} /></AuthField>
+            <AuthField compact={compactSignIn} label="Hero username" icon="person-circle-outline"><TextInput editable={!busy} placeholder="Your Hero username" placeholderTextColor="#9298A8" autoCapitalize="none" autoCorrect={false} value={username} onChangeText={text => setUsername(text.toLowerCase().replace(/\s/g, ''))} style={styles.authInput} /></AuthField>
+            <AuthField compact={compactSignIn} label="Six-digit PIN" icon="keypad-outline" trailing={<PasswordToggle visible={showPassword} onPress={() => setShowPassword(value => !value)} />}><TextInput editable={!busy} placeholder="••••••" placeholderTextColor="#9298A8" secureTextEntry={!showPassword} keyboardType="number-pad" maxLength={6} value={password} onChangeText={text => setPassword(text.replace(/\D/g, '').slice(0, 6))} style={styles.authInput} /></AuthField>
           </>}
         </View>
 
-        {role === 'parent' && !signup && <Pressable disabled={busy} onPress={forgotPassword} style={styles.forgotButton}><Text style={styles.forgotText}>Forgot password?</Text></Pressable>}
-        <Pressable accessibilityRole="button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.authPrimary, pressed && styles.authPrimaryPressed, busy && styles.primaryDisabled]}><Text style={styles.authPrimaryText}>{busy ? (signup ? 'Creating account…' : 'Signing in…') : role === 'hero' ? 'Enter Hero HQ' : signup ? 'Create account' : 'Sign in'}</Text><Ionicons name="arrow-forward" size={18} color={colors.white} /></Pressable>
-        {role === 'parent' && <View style={styles.accountPrompt}><Text style={styles.accountPromptText}>{signup ? `Already part of ${brand.name}?` : `New to ${brand.name}?`}</Text><Pressable disabled={busy} onPress={toggleSignup}><Text style={styles.accountPromptLink}>{signup ? 'Sign in' : 'Create an account'}</Text></Pressable></View>}
-        {role === 'hero' && <View style={styles.heroHelp}><Ionicons name="information-circle-outline" size={17} color={colors.muted} /><Text style={styles.heroHelpText}>Don’t know your username or PIN? Ask your Party Leader.</Text></View>}
+        {role === 'parent' && !signup && <Pressable disabled={busy} onPress={forgotPassword} style={[styles.forgotButton, compactSignIn && styles.forgotButtonPhone]}><Text style={styles.forgotText}>Forgot password?</Text></Pressable>}
+        <Pressable accessibilityRole="button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.authPrimary, compactSignIn && styles.authPrimaryPhone, pressed && styles.authPrimaryPressed, busy && styles.primaryDisabled]}><Text style={styles.authPrimaryText}>{busy ? (signup ? 'Creating account…' : 'Signing in…') : role === 'hero' ? 'Enter Hero HQ' : signup ? 'Create account' : 'Sign in'}</Text><Ionicons name="arrow-forward" size={18} color={colors.white} /></Pressable>
+        {role === 'parent' && <View style={[styles.accountPrompt, compactSignIn && styles.accountPromptPhone]}><Text style={styles.accountPromptText}>{signup ? `Already part of ${brand.name}?` : `New to ${brand.name}?`}</Text><Pressable disabled={busy} onPress={toggleSignup}><Text style={styles.accountPromptLink}>{signup ? 'Sign in' : 'Create an account'}</Text></Pressable></View>}
+        {role === 'hero' && <View style={[styles.heroHelp, compactSignIn && styles.heroHelpPhone]}><Ionicons name="information-circle-outline" size={17} color={colors.muted} /><Text style={styles.heroHelpText}>Don’t know your username or PIN? Ask your Party Leader.</Text></View>}
       </View>
     </View>
   </ScrollView></AppFrame></SafeAreaView>;
 }
 
-function AuthField({ label, icon, trailing, children }: { label: string; icon: string; trailing?: ReactNode; children: ReactNode }) {
-  return <View style={styles.fieldGroup}><Text style={styles.fieldLabel}>{label}</Text><View style={styles.fieldFrame}><Ionicons name={icon as never} size={19} color={colors.muted} />{children}{trailing}</View></View>;
+function AuthField({ label, icon, trailing, children, compact = false }: { label: string; icon: string; trailing?: ReactNode; children: ReactNode; compact?: boolean }) {
+  return <View style={[styles.fieldGroup, compact && styles.fieldGroupCompact]}><Text style={styles.fieldLabel}>{label}</Text><View style={[styles.fieldFrame, compact && styles.fieldFrameCompact]}><Ionicons name={icon as never} size={compact ? 18 : 19} color={colors.muted} />{children}{trailing}</View></View>;
 }
 
 function PasswordToggle({ visible, onPress }: { visible: boolean; onPress: () => void }) {
@@ -195,10 +200,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream },
   authPage: { flexGrow: 1, padding: 22, alignItems: 'center', justifyContent: 'center' },
   authPageNarrow: { padding: 12 },
+  authPageCompact: { justifyContent: 'flex-start', paddingVertical: 10 },
   authShell: { width: '100%', maxWidth: 1040, minHeight: 650, borderRadius: 30, overflow: 'hidden', backgroundColor: colors.white, flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(17,36,73,.08)', shadowColor: colors.navy, shadowOffset: { width: 0, height: 18 }, shadowOpacity: .15, shadowRadius: 36, elevation: 7 },
   authShellStacked: { maxWidth: 560, minHeight: 0, flexDirection: 'column' },
+  authShellPhone: { borderRadius: 22 },
   brandPanel: { flex: .92, padding: 42, justifyContent: 'space-between', overflow: 'hidden' },
   brandPanelCompact: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', minHeight: 0, padding: 26, justifyContent: 'flex-start', gap: 22 },
+  brandPanelPhone: { minHeight: 72, paddingHorizontal: 16, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   brandOrbOne: { position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: 'rgba(255,255,255,.055)', right: -75, top: -70 },
   brandOrbTwo: { position: 'absolute', width: 185, height: 185, borderRadius: 93, borderWidth: 1, borderColor: 'rgba(243,182,31,.18)', left: -70, bottom: -65 },
   brandTop: { flexDirection: 'row', alignItems: 'center', gap: 13 },
@@ -209,6 +217,7 @@ const styles = StyleSheet.create({
   brandHeadline: { color: colors.white, fontSize: 39, lineHeight: 46, fontWeight: '900', letterSpacing: -.8 },
   brandHeadlineCompact: { fontSize: 27, lineHeight: 33 },
   brandLead: { color: '#D7E3F2', fontSize: 14, lineHeight: 23, maxWidth: 380 },
+  brandMobileTagline: { flexShrink: 1, color: '#D7E3F2', fontSize: 10, lineHeight: 14, fontWeight: '700', textAlign: 'right' },
   benefitList: { gap: 13 },
   brandBenefit: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   brandBenefitIcon: { width: 33, height: 33, borderRadius: 11, backgroundColor: 'rgba(255,255,255,.1)', alignItems: 'center', justifyContent: 'center' },
@@ -218,24 +227,35 @@ const styles = StyleSheet.create({
   brandFooterText: { color: '#AFC1D9', fontSize: 8, fontWeight: '900', letterSpacing: 1.3 },
   authFormPanel: { flex: 1.08, paddingHorizontal: 50, paddingVertical: 42, justifyContent: 'center' },
   authFormPanelStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', paddingHorizontal: 24, paddingVertical: 31 },
+  authFormPanelPhone: { paddingHorizontal: 17, paddingVertical: 19 },
+  authFormPanelShort: { paddingVertical: 15 },
   authFormHeader: { gap: 6, marginBottom: 20 },
+  authFormHeaderPhone: { marginBottom: 12 },
   authEyebrow: { color: colors.green, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   authHeading: { color: colors.navy, fontSize: 29, lineHeight: 35, fontWeight: '900', letterSpacing: -.4 },
+  authHeadingPhone: { fontSize: 21, lineHeight: 26 },
   authCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, maxWidth: 440 },
   roleCards: { flexDirection: 'row', gap: 9, marginBottom: 18 },
   roleCardsNarrow: { flexDirection: 'column' },
+  roleCardsPhone: { gap: 7, marginBottom: 12 },
   roleCard: { flex: 1, minHeight: 67, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: '#FAF9F5', flexDirection: 'row', alignItems: 'center', gap: 9 },
+  roleCardPhone: { minHeight: 48, paddingVertical: 7, paddingHorizontal: 9, borderRadius: 13, gap: 7 },
   roleCardActive: { backgroundColor: colors.navy, borderColor: colors.navy },
   roleIcon: { width: 33, height: 33, borderRadius: 11, backgroundColor: '#E8EDF5', alignItems: 'center', justifyContent: 'center' },
+  roleIconPhone: { width: 29, height: 29, borderRadius: 9 },
   roleIconActive: { backgroundColor: 'rgba(255,255,255,.13)' },
   roleTitle: { color: colors.navy, fontSize: 11, fontWeight: '900' },
+  roleTitlePhone: { fontSize: 10 },
   roleTitleActive: { color: colors.white },
   roleDescription: { color: colors.muted, fontSize: 8, lineHeight: 12, marginTop: 2 },
   roleDescriptionActive: { color: '#CAD6E8' },
   fields: { gap: 12 },
+  fieldsPhone: { gap: 9 },
   fieldGroup: { gap: 6 },
+  fieldGroupCompact: { gap: 4 },
   fieldLabel: { color: colors.ink, fontSize: 10, fontWeight: '800' },
   fieldFrame: { minHeight: 51, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  fieldFrameCompact: { minHeight: 46, paddingHorizontal: 12, borderRadius: 12 },
   authInput: { flex: 1, minWidth: 0, paddingVertical: 13, color: colors.ink, fontSize: 16, outlineStyle: 'none' } as object,
   passwordToggle: { padding: 4 },
   passwordRequirements: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: -3 },
@@ -243,14 +263,18 @@ const styles = StyleSheet.create({
   passwordRequirementText: { color: colors.muted, fontSize: 8, fontWeight: '700' },
   passwordRequirementMet: { color: colors.green },
   authPrimary: { minHeight: 52, marginTop: 15, paddingHorizontal: 18, borderRadius: 14, backgroundColor: colors.green, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, shadowColor: colors.green, shadowOffset: { width: 0, height: 6 }, shadowOpacity: .18, shadowRadius: 10, elevation: 3 },
+  authPrimaryPhone: { minHeight: 48, marginTop: 11, borderRadius: 12 },
   authPrimaryPressed: { transform: [{ translateY: 1 }], opacity: .92 },
   authPrimaryText: { color: colors.white, fontSize: 13, fontWeight: '900' },
   forgotButton: { alignSelf: 'flex-end', paddingVertical: 7 },
+  forgotButtonPhone: { paddingVertical: 5 },
   forgotText: { color: colors.green, fontSize: 10, fontWeight: '800' },
   accountPrompt: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 16 },
+  accountPromptPhone: { marginTop: 11 },
   accountPromptText: { color: colors.muted, fontSize: 11 },
   accountPromptLink: { color: colors.green, fontSize: 11, fontWeight: '900' },
   heroHelp: { marginTop: 16, padding: 11, borderRadius: 12, backgroundColor: '#F4F1E9', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  heroHelpPhone: { marginTop: 11, paddingVertical: 8 },
   heroHelpText: { color: colors.muted, fontSize: 10, lineHeight: 15 },
   authMessage: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginBottom: 14 },
   authMessageText: { flex: 1 },

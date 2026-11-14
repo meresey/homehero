@@ -68,6 +68,7 @@ export type HeroProfile = {
   displayName: string;
   avatarEmoji: string;
   dateOfBirth: string;
+  schoolGrade?: number | null;
   status: 'active' | 'paused';
   joinedAt: string;
 };

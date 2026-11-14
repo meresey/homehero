@@ -1,0 +1,2061 @@
+{
+  "4": [
+    {
+      "title": "School supplies",
+      "questions": [
+        {
+          "id": "G4-A1",
+          "topic": "1.1 Whole numbers · round to the nearest ten",
+          "prompt": "The school store has 486 pencils. About how many is that to the nearest ten?",
+          "hint": "Compare 486 with 480 and 490.",
+          "solution": "490. It is 4 away from 490 and 6 away from 480.",
+          "answers": [
+            "490"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G4-A2",
+          "topic": "1.2 Addition · combine quantities",
+          "prompt": "The library has 376 storybooks and receives 248 more. How many storybooks does it have now?",
+          "hint": "Add the ones first and regroup when a place reaches ten.",
+          "solution": "624 books. 376 + 248 = 624.",
+          "answers": [
+            "624"
+          ],
+          "answerPrompt": "Enter the number in books."
+        },
+        {
+          "id": "G4-A3",
+          "topic": "1.3 Subtraction · find what remains",
+          "prompt": "A teacher has 750 sheets of paper and uses 286. How many sheets are left?",
+          "hint": "You can subtract 300, then add back the extra you took away.",
+          "solution": "464 sheets. 750 − 300 + 14 = 464.",
+          "answers": [
+            "464"
+          ],
+          "answerPrompt": "Enter the number in sheets."
+        },
+        {
+          "id": "G4-A4",
+          "topic": "1.4 Multiplication · use equal groups",
+          "prompt": "A shop sends 24 packs of exercise books. Each pack has 12 books. How many books are in the delivery?",
+          "hint": "Split 12 into 10 and 2.",
+          "solution": "288 books. 24 × 10 + 24 × 2 = 240 + 48 = 288.",
+          "answers": [
+            "288"
+          ],
+          "answerPrompt": "Enter the number in books."
+        },
+        {
+          "id": "G4-A5",
+          "topic": "1.5 Division · share equally",
+          "prompt": "A teacher shares 96 crayons equally among 8 groups. How many crayons does each group get?",
+          "hint": "Find the number that makes 96 when multiplied by 8.",
+          "solution": "12 crayons. 96 ÷ 8 = 12.",
+          "answers": [
+            "12"
+          ],
+          "answerPrompt": "Enter the number in crayons."
+        }
+      ]
+    },
+    {
+      "title": "Getting ready for activity day",
+      "questions": [
+        {
+          "id": "G4-B1",
+          "topic": "1.6 Fractions · express part of a whole",
+          "prompt": "A sheet of stickers is divided into 8 equal squares. Three squares have been used. What fraction of the sheet has been used?",
+          "hint": "Put the number used above the total number of equal parts.",
+          "solution": "3/8. Three of the eight equal squares have been used.",
+          "answers": [
+            "3/8"
+          ],
+          "answerPrompt": "Enter a fraction or mixed number."
+        },
+        {
+          "id": "G4-B2",
+          "topic": "1.7 Decimals · compare hundredths",
+          "prompt": "Amina jumps 1.26 m and Njeri jumps 1.29 m. Who jumps farther?",
+          "hint": "The ones and tenths match. Compare the hundredths.",
+          "solution": "Njeri. 9 hundredths is more than 6 hundredths, so 1.29 m is farther.",
+          "answers": [
+            "Njeri"
+          ],
+          "options": [
+            "They jump the same distance",
+            "Njeri",
+            "Amina"
+          ]
+        },
+        {
+          "id": "G4-B3",
+          "topic": "2.1 Length · convert metres to centimetres",
+          "prompt": "The finish-line ribbon is 2 m 35 cm long. What is its length in centimetres?",
+          "hint": "One metre is 100 centimetres.",
+          "solution": "235 cm. 2 m = 200 cm, then add 35 cm.",
+          "answers": [
+            "235"
+          ],
+          "answerPrompt": "Enter the number in cm."
+        },
+        {
+          "id": "G4-B4",
+          "topic": "2.6 Time · find a duration",
+          "prompt": "Practice starts at 3:15 p.m. and ends at 3:45 p.m. How many minutes does it last?",
+          "hint": "Both times are in the same hour.",
+          "solution": "30 minutes. 45 − 15 = 30.",
+          "answers": [
+            "30"
+          ],
+          "answerPrompt": "Enter the number in minutes."
+        },
+        {
+          "id": "G4-B5",
+          "topic": "4.1 Data · read a table",
+          "prompt": "A lost-and-found table lists 3 jumpers, 2 water bottles and 4 caps. How many more caps than water bottles are listed?",
+          "hint": "Compare the counts in those two rows.",
+          "solution": "2. 4 − 2 = 2.",
+          "answers": [
+            "2"
+          ],
+          "answerPrompt": "Enter a number."
+        }
+      ]
+    },
+    {
+      "title": "Setting up a class stall",
+      "questions": [
+        {
+          "id": "G4-C1",
+          "topic": "2.7 Money · find the total for three items",
+          "prompt": "Your list has glue for KSh 85, card for KSh 60 and string for KSh 45. What is the total cost?",
+          "hint": "Add the prices for all three items once.",
+          "solution": "KSh 190. 85 + 60 + 45 = 190.",
+          "answers": [
+            "190"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        },
+        {
+          "id": "G4-C2",
+          "topic": "3.3 Plane figures · identify lines of symmetry",
+          "prompt": "A square sign is blank on both sides. How many different straight fold lines would make its two halves match exactly?",
+          "hint": "Think about the lines through opposite corners and through the middles of opposite sides.",
+          "solution": "4. There are two diagonals and two lines through the midpoints of opposite sides.",
+          "answers": [
+            "4"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G4-C3",
+          "topic": "3.1 Position and direction · identify turns",
+          "prompt": "A spinner points at 12 on a clock face. It makes a quarter turn clockwise. Which number does it point at?",
+          "hint": "Go in the direction the clock hands move. A quarter turn covers three hour marks.",
+          "solution": "3. Moving three marks clockwise from 12 reaches 3.",
+          "answers": [
+            "3"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G4-C4",
+          "topic": "2.1 Length · find perimeter",
+          "prompt": "A rectangular display board is 90 cm long and 60 cm wide. How much trim will go around all four edges?",
+          "hint": "There are two long edges and two short edges.",
+          "solution": "300 cm. 90 + 60 + 90 + 60 = 300.",
+          "answers": [
+            "300"
+          ],
+          "answerPrompt": "Enter the number in cm."
+        },
+        {
+          "id": "G4-C5",
+          "topic": "1.8 Use of letters · write an expression",
+          "prompt": "A cash box has x coins. You add 5 more. Which expression shows the new number of coins? Choose x − 5, x + 5 or 5x.",
+          "hint": "Adding five increases the number by exactly five.",
+          "solution": "x + 5. The starting amount is x and the increase is 5.",
+          "answers": [
+            "x + 5"
+          ],
+          "options": [
+            "x − 5",
+            "5x",
+            "x + 5"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Lay out the classroom",
+      "questions": [
+        {
+          "id": "G4-D1",
+          "topic": "2.2 Area · count square units",
+          "prompt": "A rectangular mat covers 6 rows of floor tiles, with 4 identical square tiles in each row. How many tiles does the mat cover?",
+          "hint": "Multiply the number of rows by the tiles per row.",
+          "solution": "24 square tiles. 6 × 4 = 24.",
+          "answers": [
+            "24"
+          ],
+          "answerPrompt": "Enter the number in square tiles."
+        },
+        {
+          "id": "G4-D2",
+          "topic": "2.2 Area · compare two areas",
+          "prompt": "A blue mat covers 5 rows of 5 square tiles. A red mat covers 6 rows of 4 of the same tiles. Which mat covers more tiles, and by how many?",
+          "hint": "Find how many tiles each mat covers first.",
+          "solution": "Blue by 1 tile. The blue mat covers 25 and the red mat covers 24.",
+          "answers": [
+            "Blue by 1 tile"
+          ],
+          "options": [
+            "Blue by 1 tile",
+            "Red by 1 tile",
+            "They cover the same number of tiles"
+          ]
+        },
+        {
+          "id": "G4-D3",
+          "topic": "2.3 Volume · count cubes in a stack",
+          "prompt": "A solid block has 3 layers of small cubes. Each layer has 8 cubes. How many small cubes make the whole block?",
+          "hint": "Count 8 cubes for every layer.",
+          "solution": "24 cubes. 3 × 8 = 24, so the volume is 24 unit cubes.",
+          "answers": [
+            "24"
+          ],
+          "answerPrompt": "Enter the number in cubes."
+        },
+        {
+          "id": "G4-D4",
+          "topic": "2.3 Volume · complete a cube",
+          "prompt": "A solid cube should have 4 layers of 16 small cubes. You have built 3 full layers. How many cubes have you used?",
+          "hint": "Count the completed layers only.",
+          "solution": "48 cubes. 3 × 16 = 48.",
+          "answers": [
+            "48"
+          ],
+          "answerPrompt": "Enter the number in cubes."
+        },
+        {
+          "id": "G4-D5",
+          "topic": "3.2 Angles · recognise an angle in an object",
+          "prompt": "Which object clearly shows an angle at a corner? Choose the corner of a rectangular exercise book, the smooth rim of a round plate, or the middle of a straight ruler edge.",
+          "hint": "Look for two straight edges that meet.",
+          "solution": "The book corner. Two straight edges meet there.",
+          "answers": [
+            "The book corner"
+          ],
+          "options": [
+            "The book corner",
+            "The round plate rim",
+            "The middle of the ruler edge"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Prepare the class picnic",
+      "questions": [
+        {
+          "id": "G4-E1",
+          "topic": "2.4 Capacity · add litres",
+          "prompt": "One container holds 5 L of water and another holds 3 L. How much water is there altogether?",
+          "hint": "Both amounts are in litres.",
+          "solution": "8 L. 5 + 3 = 8.",
+          "answers": [
+            "8"
+          ],
+          "answerPrompt": "Enter the number in L."
+        },
+        {
+          "id": "G4-E2",
+          "topic": "2.4 Capacity · measure half-litres",
+          "prompt": "A jug holds 2 L of juice. How many full half-litre cups can be poured?",
+          "hint": "Two half-litre cups make one litre.",
+          "solution": "4 cups. Two cups per litre for two litres gives 4.",
+          "answers": [
+            "4"
+          ],
+          "answerPrompt": "Enter the number in cups."
+        },
+        {
+          "id": "G4-E3",
+          "topic": "2.5 Mass · add kilograms",
+          "prompt": "A bag of rice weighs 3 kg and a bag of maize flour weighs 2 kg. What is their total mass?",
+          "hint": "Add the two masses in kilograms.",
+          "solution": "5 kg. 3 + 2 = 5.",
+          "answers": [
+            "5"
+          ],
+          "answerPrompt": "Enter the number in kg."
+        },
+        {
+          "id": "G4-E4",
+          "topic": "2.5 Mass · use half-kilogram measures",
+          "prompt": "You put four 1/2 kg weights on one side of a balance. What total mass is on that side?",
+          "hint": "Pair the half-kilogram weights into whole kilograms.",
+          "solution": "2 kg. Two pairs of half-kilogram weights make 2 kg.",
+          "answers": [
+            "2"
+          ],
+          "answerPrompt": "Enter the number in kg."
+        },
+        {
+          "id": "G4-E5",
+          "topic": "2.7 Money · convert shillings and cents",
+          "prompt": "A classroom shop labels a pencil KSh 12. What is this amount in cents?",
+          "hint": "One shilling is 100 cents.",
+          "solution": "1,200 cents. 12 × 100 = 1,200.",
+          "answers": [
+            "1200"
+          ],
+          "answerPrompt": "Enter the number in cents."
+        }
+      ]
+    },
+    {
+      "title": "Pack resources for the library",
+      "questions": [
+        {
+          "id": "G4-F1",
+          "topic": "1.1 Whole numbers · find the value of a digit",
+          "prompt": "The library records 7,248 books. What is the value of the digit 7?",
+          "hint": "The 7 is four places from the right.",
+          "solution": "7,000. The 7 is in the thousands place.",
+          "answers": [
+            "7000"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G4-F2",
+          "topic": "1.2 Addition · add with regrouping",
+          "prompt": "Two school libraries hold 1,637 and 2,784 books. How many books do they hold altogether?",
+          "hint": "Add the ones first and regroup each time a place reaches ten.",
+          "solution": "4,421 books. 1,637 + 2,784 = 4,421.",
+          "answers": [
+            "4421"
+          ],
+          "answerPrompt": "Enter the number in books."
+        },
+        {
+          "id": "G4-F3",
+          "topic": "1.3 Subtraction · compare counts",
+          "prompt": "One reading club borrowed 703 books and another borrowed 485. How many more did the first club borrow?",
+          "hint": "Subtract the smaller count from the larger one.",
+          "solution": "218 books. 703 − 485 = 218.",
+          "answers": [
+            "218"
+          ],
+          "answerPrompt": "Enter the number in books."
+        },
+        {
+          "id": "G4-F4",
+          "topic": "1.4 Multiplication · count equal rows",
+          "prompt": "Each of 8 trays holds 17 name cards. How many cards are there altogether?",
+          "hint": "Multiply 8 by 10 and by 7, then add.",
+          "solution": "136 cards. 80 + 56 = 136.",
+          "answers": [
+            "136"
+          ],
+          "answerPrompt": "Enter the number in cards."
+        },
+        {
+          "id": "G4-F5",
+          "topic": "1.5 Division · make equal packs",
+          "prompt": "A librarian places 84 bookmarks into packs of 7. How many full packs can she make?",
+          "hint": "Find how many groups of 7 make 84.",
+          "solution": "12 packs. 84 ÷ 7 = 12.",
+          "answers": [
+            "12"
+          ],
+          "answerPrompt": "Enter the number in packs."
+        }
+      ]
+    },
+    {
+      "title": "Make games for activity day",
+      "questions": [
+        {
+          "id": "G4-G1",
+          "topic": "1.6 Fractions · convert an improper fraction",
+          "prompt": "A game gives a team 9 quarter-points. Write its score as a mixed number.",
+          "hint": "Four quarter-points make one whole point.",
+          "solution": "2 1/4 points. 9 quarters make 2 wholes and 1 quarter.",
+          "answers": [
+            "2 1/4"
+          ],
+          "answerPrompt": "Enter a fraction or mixed number in points."
+        },
+        {
+          "id": "G4-G2",
+          "topic": "1.7 Decimals · identify hundredths",
+          "prompt": "A paper strip measures 0.47 m. Which digit is in the hundredths place?",
+          "hint": "The hundredths place is the second place to the right of the decimal point.",
+          "solution": "7. The 4 is in the tenths place and the 7 is in the hundredths place.",
+          "answers": [
+            "7"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G4-G3",
+          "topic": "1.8 Use of letters · simplify an expression",
+          "prompt": "One bag holds x counters and a second bag also holds x counters. Choose the total from x + 2, 2x or x − 2.",
+          "hint": "There are two groups of x.",
+          "solution": "2x. x + x = 2x.",
+          "answers": [
+            "2x"
+          ],
+          "options": [
+            "x + 2",
+            "x − 2",
+            "2x"
+          ]
+        },
+        {
+          "id": "G4-G4",
+          "topic": "3.1 Position and direction · identify an anticlockwise turn",
+          "prompt": "A spinner starts at 12 and makes a quarter turn anticlockwise. Which number does it point at?",
+          "hint": "Move three hour marks in the opposite direction to the clock hands.",
+          "solution": "9. The marks are 11, 10 and 9.",
+          "answers": [
+            "9"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G4-G5",
+          "topic": "3.2 Angles · compare turns",
+          "prompt": "Two players start facing forward. One turns a quarter turn and the other turns a half turn. Who turns through the larger angle?",
+          "hint": "A half turn is made up of two quarter turns.",
+          "solution": "The player who makes a half turn. That turn is twice as large.",
+          "answers": [
+            "The player who makes a half turn"
+          ],
+          "options": [
+            "The player who makes a half turn",
+            "The player who makes a quarter turn",
+            "Both turn through the same angle"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Review the activity day",
+      "questions": [
+        {
+          "id": "G4-H1",
+          "topic": "2.6 Time · convert hours and minutes",
+          "prompt": "The event lasts 1 hour and 20 minutes. How long is that in minutes?",
+          "hint": "One hour is 60 minutes.",
+          "solution": "80 minutes. 60 + 20 = 80.",
+          "answers": [
+            "80"
+          ],
+          "answerPrompt": "Enter the number in minutes."
+        },
+        {
+          "id": "G4-H2",
+          "topic": "3.3 Plane figures · identify a shape",
+          "prompt": "A pennant has three straight sides. What shape is its outline?",
+          "hint": "Count the sides of the outline.",
+          "solution": "Triangle. A triangle has three sides.",
+          "answers": [
+            "Triangle"
+          ],
+          "options": [
+            "Circle",
+            "Triangle",
+            "Rectangle"
+          ]
+        },
+        {
+          "id": "G4-H3",
+          "topic": "4.1 Data · read recorded values",
+          "prompt": "A class table records cups collected as follows: Monday 2, Tuesday 4, Wednesday 3. Which day had the largest count?",
+          "hint": "Look for the largest number in the table.",
+          "solution": "Tuesday. 4 is greater than both 2 and 3.",
+          "answers": [
+            "Tuesday"
+          ],
+          "options": [
+            "Tuesday",
+            "Monday",
+            "Wednesday"
+          ]
+        },
+        {
+          "id": "G4-H4",
+          "topic": "1.1 Whole numbers · identify a factor",
+          "prompt": "Which could be the number of children per team if 32 children are split into equal teams with nobody left over? Choose 5, 6 or 8.",
+          "hint": "Try dividing 32 by each choice.",
+          "solution": "8. 32 ÷ 8 = 4 with no remainder.",
+          "answers": [
+            "8"
+          ],
+          "options": [
+            "5",
+            "6",
+            "8"
+          ]
+        },
+        {
+          "id": "G4-H5",
+          "topic": "2.1 Length · subtract metres and centimetres",
+          "prompt": "A 3 m ribbon has 1 m 25 cm cut off. How much ribbon remains in centimetres?",
+          "hint": "Write both lengths in centimetres before subtracting.",
+          "solution": "175 cm. 300 − 125 = 175.",
+          "answers": [
+            "175"
+          ],
+          "answerPrompt": "Enter the number in cm."
+        }
+      ]
+    }
+  ],
+  "5": [
+    {
+      "title": "Plan a snack on KSh 300",
+      "questions": [
+        {
+          "id": "G5-A1",
+          "topic": "2.7 Money · total part of a budget",
+          "prompt": "What is the cost of bread and milk together?",
+          "context": "For this set, use these fictional shop prices. Bread costs KSh 65, milk costs KSh 80, bananas cost KSh 45, eggs cost KSh 90, and juice costs KSh 70. The family has KSh 300. Buy at most one of each listed item.",
+          "hint": "Add the two listed prices.",
+          "solution": "KSh 145. 65 + 80 = 145.",
+          "answers": [
+            "145"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        },
+        {
+          "id": "G5-A2",
+          "topic": "2.7 Money · calculate money left",
+          "prompt": "You buy bread, milk and bananas. How much money is left?",
+          "context": "For this set, use these fictional shop prices. Bread costs KSh 65, milk costs KSh 80, bananas cost KSh 45, eggs cost KSh 90, and juice costs KSh 70. The family has KSh 300. Buy at most one of each listed item.",
+          "hint": "Find the cost of the three items before subtracting it from the budget.",
+          "solution": "KSh 110. 300 − (65 + 80 + 45) = 110.",
+          "answers": [
+            "110"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        },
+        {
+          "id": "G5-A3",
+          "topic": "2.7 Money · check a proposed basket",
+          "prompt": "You buy bread, milk, bananas and eggs. How much money will you have left?",
+          "context": "For this set, use these fictional shop prices. Bread costs KSh 65, milk costs KSh 80, bananas cost KSh 45, eggs cost KSh 90, and juice costs KSh 70. The family has KSh 300. Buy at most one of each listed item.",
+          "hint": "Add the four prices and compare the total with KSh 300.",
+          "solution": "KSh 20. The total is KSh 280, so 300 − 280 = 20.",
+          "answers": [
+            "20"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        },
+        {
+          "id": "G5-A4",
+          "topic": "2.7 Money · find how far a purchase exceeds a budget",
+          "prompt": "How many shillings over budget would buying all five items put you?",
+          "context": "For this set, use these fictional shop prices. Bread costs KSh 65, milk costs KSh 80, bananas cost KSh 45, eggs cost KSh 90, and juice costs KSh 70. The family has KSh 300. Buy at most one of each listed item.",
+          "hint": "Add all five prices, then subtract the budget.",
+          "solution": "KSh 50. The total is KSh 350, and 350 − 300 = 50.",
+          "answers": [
+            "50"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        },
+        {
+          "id": "G5-A5",
+          "topic": "2.7 Money · choose a basket within a budget",
+          "prompt": "Milk and eggs must be included. Choose two more different items from bread, bananas and juice. Keep the total at or below KSh 300 and choose the basket with its correct total.",
+          "context": "For this set, use these fictional shop prices. Bread costs KSh 65, milk costs KSh 80, bananas cost KSh 45, eggs cost KSh 90, and juice costs KSh 70. The family has KSh 300. Buy at most one of each listed item.",
+          "hint": "Milk and eggs cost KSh 170. You have KSh 130 for two more items.",
+          "solution": "Accept bread and bananas with KSh 280, or bananas and juice with KSh 285. Bread and juice would bring the total to KSh 305.",
+          "answers": [
+            "Bread and bananas · KSh 280",
+            "Bananas and juice · KSh 285"
+          ],
+          "options": [
+            "Bread and juice · KSh 305",
+            "Bread and bananas · KSh 270",
+            "Bread and bananas · KSh 280",
+            "Bananas and juice · KSh 285"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "The school garden",
+      "questions": [
+        {
+          "id": "G5-B1",
+          "topic": "1.6 Fractions · add fractions with related denominators",
+          "prompt": "Kale takes up 1/4 of a garden bed and spinach takes up another 1/8. What fraction of the bed do they cover together?",
+          "hint": "Rewrite 1/4 in eighths.",
+          "solution": "3/8. 1/4 = 2/8, so 2/8 + 1/8 = 3/8.",
+          "answers": [
+            "3/8"
+          ],
+          "answerPrompt": "Enter a fraction or mixed number."
+        },
+        {
+          "id": "G5-B2",
+          "topic": "1.8 Simple equations · find one unknown",
+          "prompt": "A tray held x seedlings. After 9 were planted, 15 remained. How many seedlings were in the tray at first?",
+          "hint": "Undo the subtraction by adding.",
+          "solution": "24 seedlings. x − 9 = 15, so x = 15 + 9 = 24.",
+          "answers": [
+            "24"
+          ],
+          "answerPrompt": "Enter the number in seedlings."
+        },
+        {
+          "id": "G5-B3",
+          "topic": "2.2 Area · find the area of a rectangle",
+          "prompt": "A rectangular seed tray is 32 cm long and 18 cm wide. What is its area in square centimetres?",
+          "hint": "Multiply the length by the width.",
+          "solution": "576 cm². 32 × 18 = 32 × (20 − 2) = 576.",
+          "answers": [
+            "576"
+          ],
+          "answerPrompt": "Enter the number in cm²."
+        },
+        {
+          "id": "G5-B4",
+          "topic": "2.4 Capacity · add litres and millilitres",
+          "prompt": "A watering can holds 2 L 750 mL. You pour that water and another 850 mL into a bucket. How many millilitres are in the bucket?",
+          "hint": "Change 2 L to millilitres first.",
+          "solution": "3,600 mL. 2,000 + 750 + 850 = 3,600.",
+          "answers": [
+            "3600"
+          ],
+          "answerPrompt": "Enter the number in mL."
+        },
+        {
+          "id": "G5-B5",
+          "topic": "3.1 Lines · identify parallel lines",
+          "prompt": "Two straight garden paths run side by side. They stay the same distance apart. Are they parallel or perpendicular?",
+          "hint": "Perpendicular lines meet at a right angle.",
+          "solution": "Parallel. The straight paths stay equally far apart.",
+          "answers": [
+            "Parallel"
+          ],
+          "options": [
+            "Perpendicular",
+            "Parallel"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Library open day",
+      "questions": [
+        {
+          "id": "G5-C1",
+          "topic": "1.1 Whole numbers · round to the nearest hundred",
+          "prompt": "An online catalogue has 18,456 books. Round this count to the nearest hundred.",
+          "hint": "Check whether 456 is closer to 400 or 500.",
+          "solution": "18,500. The tens digit is 5, so the hundreds round up.",
+          "answers": [
+            "18500"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G5-C2",
+          "topic": "1.1 Whole numbers · find a least common multiple",
+          "prompt": "One reading group meets every 4 days and another every 6 days. Both meet today. In how many days will they next meet on the same day?",
+          "hint": "List multiples of 4 and 6 until the first match.",
+          "solution": "12 days. 12 is the first positive multiple shared by 4 and 6.",
+          "answers": [
+            "12"
+          ],
+          "answerPrompt": "Enter the number in days."
+        },
+        {
+          "id": "G5-C3",
+          "topic": "2.3 Volume · calculate a cuboid’s volume",
+          "prompt": "A small storage box measures 15 cm by 10 cm by 8 cm inside. What is its volume in cubic centimetres?",
+          "hint": "Multiply the area of the base by the height.",
+          "solution": "1,200 cm³. 15 × 10 × 8 = 1,200.",
+          "answers": [
+            "1200"
+          ],
+          "answerPrompt": "Enter the number in cm³."
+        },
+        {
+          "id": "G5-C4",
+          "topic": "3.2 Angles · match a turn to degrees",
+          "prompt": "A book display starts with its front facing you. It makes a half turn. Through how many degrees does it turn?",
+          "hint": "A full turn is 360°.",
+          "solution": "180°. Half of 360° is 180°.",
+          "answers": [
+            "180"
+          ],
+          "answerPrompt": "Enter the number in °."
+        },
+        {
+          "id": "G5-C5",
+          "topic": "4.1 Data representation · interpret frequencies",
+          "prompt": "The borrowing table records 12 stories, 7 comics and 5 poetry books. How many books were borrowed altogether?",
+          "hint": "Add the three frequencies.",
+          "solution": "24 books. 12 + 7 + 5 = 24.",
+          "answers": [
+            "24"
+          ],
+          "answerPrompt": "Enter the number in books."
+        }
+      ]
+    },
+    {
+      "title": "Check the stock records",
+      "questions": [
+        {
+          "id": "G5-D1",
+          "topic": "1.2 Addition · add large counts",
+          "prompt": "Two depots dispatched 127,458 and 214,367 packs this year. How many packs did they dispatch together?",
+          "hint": "Line up the place values before adding.",
+          "solution": "341,825 packs. 127,458 + 214,367 = 341,825.",
+          "answers": [
+            "341825"
+          ],
+          "answerPrompt": "Enter the number in packs."
+        },
+        {
+          "id": "G5-D2",
+          "topic": "1.2 Addition · estimate a sum",
+          "prompt": "Two print shops produced 26,218 and 31,396 flyers. Round each count to the nearest thousand and estimate the total.",
+          "hint": "Round each number before you add.",
+          "solution": "About 57,000 flyers. 26,000 + 31,000 = 57,000.",
+          "answers": [
+            "57000"
+          ],
+          "answerPrompt": "Enter the number in flyers."
+        },
+        {
+          "id": "G5-D3",
+          "topic": "1.3 Subtraction · find the remaining stock",
+          "prompt": "A depot had 314,206 labels and shipped 128,459. How many labels are left?",
+          "hint": "Line up place values and regroup across empty places.",
+          "solution": "185,747 labels. 314,206 − 128,459 = 185,747.",
+          "answers": [
+            "185747"
+          ],
+          "answerPrompt": "Enter the number in labels."
+        },
+        {
+          "id": "G5-D4",
+          "topic": "1.3 Subtraction · combine inflow and outflow",
+          "prompt": "A warehouse has 12,500 notebooks. It receives 2,450 and sends out 3,600. What is the new count?",
+          "hint": "Add what arrived and subtract what went out.",
+          "solution": "11,350 notebooks. 12,500 + 2,450 − 3,600 = 11,350.",
+          "answers": [
+            "11350"
+          ],
+          "answerPrompt": "Enter the number in notebooks."
+        },
+        {
+          "id": "G5-D5",
+          "topic": "1.4 Multiplication · multiply a three-digit number",
+          "prompt": "A printer packs 128 cards into each box. How many cards are in 6 boxes?",
+          "hint": "Multiply the hundreds, tens and ones by six.",
+          "solution": "768 cards. 600 + 120 + 48 = 768.",
+          "answers": [
+            "768"
+          ],
+          "answerPrompt": "Enter the number in cards."
+        }
+      ]
+    },
+    {
+      "title": "Send out event supplies",
+      "questions": [
+        {
+          "id": "G5-E1",
+          "topic": "1.4 Multiplication · estimate a product",
+          "prompt": "There are 297 labels on each roll. Estimate the number on 19 rolls by rounding both factors to the nearest ten.",
+          "hint": "Round 297 to 300 and 19 to 20.",
+          "solution": "About 6,000 labels. 300 × 20 = 6,000.",
+          "answers": [
+            "6000"
+          ],
+          "answerPrompt": "Enter the number in labels."
+        },
+        {
+          "id": "G5-E2",
+          "topic": "1.5 Division · share a three-digit total",
+          "prompt": "A team packs 864 leaflets equally into 8 bags. How many go in each bag?",
+          "hint": "Split 864 into 800 and 64.",
+          "solution": "108 leaflets. 800 ÷ 8 + 64 ÷ 8 = 100 + 8.",
+          "answers": [
+            "108"
+          ],
+          "answerPrompt": "Enter the number in leaflets."
+        },
+        {
+          "id": "G5-E3",
+          "topic": "1.5 Division · estimate a quotient",
+          "prompt": "A teacher has 397 counters for 19 tables. Estimate the number per table by rounding both numbers to the nearest ten.",
+          "hint": "Round 397 to 400 and 19 to 20.",
+          "solution": "About 20 counters. 400 ÷ 20 = 20.",
+          "answers": [
+            "20"
+          ],
+          "answerPrompt": "Enter the number in counters."
+        },
+        {
+          "id": "G5-E4",
+          "topic": "1.6 Fractions · compare related denominators",
+          "prompt": "Kendi has completed 3/4 of a mural, and Musa has completed 5/8 of an equal-sized mural. Who has painted more?",
+          "hint": "Write both fractions in eighths.",
+          "solution": "Kendi. 3/4 = 6/8, which is greater than 5/8.",
+          "answers": [
+            "Kendi"
+          ],
+          "options": [
+            "Kendi",
+            "Musa",
+            "They have painted equal areas"
+          ]
+        },
+        {
+          "id": "G5-E5",
+          "topic": "1.8 Simple equations · form an equation",
+          "prompt": "A crate had x bottles. After adding 12 bottles there were 39. Choose the equation that fits: x − 12 = 39, x + 12 = 39 or 12x = 39.",
+          "hint": "The total increased by 12.",
+          "solution": "x + 12 = 39. The original count plus 12 equals 39.",
+          "answers": [
+            "x + 12 = 39"
+          ],
+          "options": [
+            "x − 12 = 39",
+            "12x = 39",
+            "x + 12 = 39"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Plan a route and pack a bag",
+      "questions": [
+        {
+          "id": "G5-F1",
+          "topic": "1.7 Decimals · add tenths",
+          "prompt": "Two pieces of string measure 4.7 m and 2.8 m. What is their total length?",
+          "hint": "Line up the decimal points.",
+          "solution": "7.5 m. 4.7 + 2.8 = 7.5.",
+          "answers": [
+            "7.5"
+          ],
+          "answerPrompt": "Enter the number in m."
+        },
+        {
+          "id": "G5-F2",
+          "topic": "1.7 Decimals · multiply a decimal by 1,000",
+          "prompt": "The route map uses 1,000 m for each kilometre. A path is 1.275 km long. Multiply 1.275 by 1,000 to find the length in metres.",
+          "hint": "When multiplying by 1,000, the value of each digit becomes 1,000 times greater.",
+          "solution": "1,275 m. 1.275 × 1,000 = 1,275.",
+          "answers": [
+            "1275"
+          ],
+          "answerPrompt": "Enter the number in m."
+        },
+        {
+          "id": "G5-F3",
+          "topic": "2.1 Length · convert kilometres to metres",
+          "prompt": "A school trail is 2 km 450 m long. How long is it in metres?",
+          "hint": "One kilometre is 1,000 metres.",
+          "solution": "2,450 m. 2,000 + 450 = 2,450.",
+          "answers": [
+            "2450"
+          ],
+          "answerPrompt": "Enter the number in m."
+        },
+        {
+          "id": "G5-F4",
+          "topic": "2.1 Length · add kilometres and metres",
+          "prompt": "A walk covers 1 km 650 m in the morning and 2 km 550 m in the afternoon. What is the total distance in kilometres and metres?",
+          "hint": "Add metres first. Exchange 1,000 m for 1 km.",
+          "solution": "4 km 200 m. The metres add to 1,200 m and the kilometres to 3 km before regrouping.",
+          "answers": [
+            "4 km 200 m"
+          ],
+          "options": [
+            "3 km 300 m",
+            "4 km 200 m",
+            "3 km 200 m"
+          ]
+        },
+        {
+          "id": "G5-F5",
+          "topic": "2.5 Mass · convert kilograms to grammes",
+          "prompt": "A packed bag has a mass of 3 kg 250 g. What is its mass in grammes?",
+          "hint": "One kilogram is 1,000 grammes.",
+          "solution": "3,250 g. 3,000 + 250 = 3,250.",
+          "answers": [
+            "3250"
+          ],
+          "answerPrompt": "Enter the number in g."
+        }
+      ]
+    },
+    {
+      "title": "Set up a games room",
+      "questions": [
+        {
+          "id": "G5-G1",
+          "topic": "2.2 Area · find a square’s area",
+          "prompt": "A square floor sign has sides of 35 cm. What is its area in square centimetres?",
+          "hint": "Multiply the length of one side by itself.",
+          "solution": "1,225 cm². 35 × 35 = 1,225.",
+          "answers": [
+            "1225"
+          ],
+          "answerPrompt": "Enter the number in cm²."
+        },
+        {
+          "id": "G5-G2",
+          "topic": "2.3 Volume · find a cube’s volume",
+          "prompt": "A cube-shaped speaker case measures 9 cm along each inside edge. What is its inside volume?",
+          "hint": "Multiply three equal edge lengths.",
+          "solution": "729 cm³. 9 × 9 × 9 = 729.",
+          "answers": [
+            "729"
+          ],
+          "answerPrompt": "Enter the number in cm³."
+        },
+        {
+          "id": "G5-G3",
+          "topic": "3.1 Lines · recognise perpendicular lines",
+          "prompt": "Two straight strips of tape cross at a right angle. Are the strips parallel or perpendicular?",
+          "hint": "Think about the word for lines that form a 90° angle.",
+          "solution": "Perpendicular. They meet at a right angle.",
+          "answers": [
+            "Perpendicular"
+          ],
+          "options": [
+            "Perpendicular",
+            "Parallel"
+          ]
+        },
+        {
+          "id": "G5-G4",
+          "topic": "3.2 Angles · relate a quarter turn to degrees",
+          "prompt": "A game arrow turns a quarter of a full circle. How many degrees does it turn?",
+          "hint": "Divide 360° by four.",
+          "solution": "90°. 360° ÷ 4 = 90°.",
+          "answers": [
+            "90"
+          ],
+          "answerPrompt": "Enter the number in °."
+        },
+        {
+          "id": "G5-G5",
+          "topic": "3.3 3-D objects · recognise a solid",
+          "prompt": "A cereal carton has six rectangular faces and is longer than it is wide. Choose its shape: cube, cuboid or cylinder.",
+          "hint": "Look for a solid box with rectangular faces.",
+          "solution": "Cuboid. A cylinder has curved sides, and a cube’s faces are squares.",
+          "answers": [
+            "Cuboid"
+          ],
+          "options": [
+            "Cylinder",
+            "Cuboid",
+            "Cube"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Run a cooking club",
+      "questions": [
+        {
+          "id": "G5-H1",
+          "topic": "2.4 Capacity · subtract litres and millilitres",
+          "prompt": "A jug holds 3 L of water. You pour out 750 mL. How many millilitres remain?",
+          "hint": "Convert 3 L to millilitres before subtracting.",
+          "solution": "2,250 mL. 3,000 − 750 = 2,250.",
+          "answers": [
+            "2250"
+          ],
+          "answerPrompt": "Enter the number in mL."
+        },
+        {
+          "id": "G5-H2",
+          "topic": "2.5 Mass · add kilograms and grammes",
+          "prompt": "Two sacks of ingredients weigh 2 kg 750 g and 1 kg 600 g. What is their total mass in kilograms and grammes?",
+          "hint": "Add the grammes and exchange each 1,000 g for 1 kg.",
+          "solution": "4 kg 350 g. 3 kg + 1,350 g = 4 kg 350 g.",
+          "answers": [
+            "4 kg 350 g"
+          ],
+          "options": [
+            "3 kg 350 g",
+            "4 kg 250 g",
+            "4 kg 350 g"
+          ]
+        },
+        {
+          "id": "G5-H3",
+          "topic": "2.6 Time · convert minutes to seconds",
+          "prompt": "The timer is set for 4 minutes. How many seconds is that?",
+          "hint": "Each minute has 60 seconds.",
+          "solution": "240 seconds. 4 × 60 = 240.",
+          "answers": [
+            "240"
+          ],
+          "answerPrompt": "Enter the number in seconds."
+        },
+        {
+          "id": "G5-H4",
+          "topic": "2.6 Time · add minutes and seconds",
+          "prompt": "A short activity takes 2 min 45 s to set up and 1 min 35 s to run. What is the total time in minutes and seconds?",
+          "hint": "Add seconds first and regroup 60 seconds as one minute.",
+          "solution": "4 min 20 s. 45 + 35 = 80 s, so the total is 3 min + 1 min 20 s.",
+          "answers": [
+            "4 min 20 s"
+          ],
+          "options": [
+            "4 min 20 s",
+            "3 min 20 s",
+            "4 min 10 s"
+          ]
+        },
+        {
+          "id": "G5-H5",
+          "topic": "3.3 3-D objects · identify a plane shape on a solid",
+          "prompt": "A round tin is shaped like a cylinder. What 2-D shape is its flat base?",
+          "hint": "Imagine tracing around the base on paper.",
+          "solution": "Circle. The flat base has a circular boundary.",
+          "answers": [
+            "Circle"
+          ],
+          "options": [
+            "Rectangle",
+            "Triangle",
+            "Circle"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Prepare for another open day",
+      "questions": [
+        {
+          "id": "G5-I1",
+          "topic": "4.1 Data representation · complete a frequency table",
+          "prompt": "Six visitors chose these activities: reading, chess, reading, art, chess, reading. What frequency belongs in the reading row?",
+          "hint": "Put one tally next to reading each time it appears.",
+          "solution": "3. Reading appears in the first, third and sixth positions.",
+          "answers": [
+            "3"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G5-I2",
+          "topic": "1.1 Whole numbers · use a divisibility test",
+          "prompt": "The event has 435 badges. Can they be grouped into packs of 10 without leftovers?",
+          "hint": "Look at the last digit.",
+          "solution": "No. A multiple of 10 ends in 0, and 435 ends in 5.",
+          "answers": [
+            "No"
+          ],
+          "options": [
+            "Yes",
+            "No"
+          ]
+        },
+        {
+          "id": "G5-I3",
+          "topic": "1.6 Fractions · subtract with related denominators",
+          "prompt": "A club used 5/6 of its noticeboard and then cleared 1/3 of the whole board. What fraction is still in use?",
+          "hint": "Write 1/3 in sixths.",
+          "solution": "1/2. 5/6 − 2/6 = 3/6 = 1/2.",
+          "answers": [
+            "1/2"
+          ],
+          "answerPrompt": "Enter a fraction or mixed number."
+        },
+        {
+          "id": "G5-I4",
+          "topic": "1.1 Whole numbers · find the highest common factor",
+          "prompt": "A teacher has 18 red markers and 24 blue markers. What is the greatest number of identical bundles she can make using all the markers?",
+          "hint": "Find the largest number that divides both counts exactly.",
+          "solution": "6 bundles. Each bundle gets 3 red markers and 4 blue markers.",
+          "answers": [
+            "6"
+          ],
+          "answerPrompt": "Enter the number in bundles."
+        },
+        {
+          "id": "G5-I5",
+          "topic": "2.7 Money · understand saving",
+          "prompt": "You plan to buy a KSh 240 item in 4 weeks. If you save the same amount each week, how much should you set aside weekly?",
+          "hint": "Divide the target by the number of weeks.",
+          "solution": "KSh 60. 240 ÷ 4 = 60.",
+          "answers": [
+            "60"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        }
+      ]
+    }
+  ],
+  "6": [
+    {
+      "title": "Fundraising stall",
+      "questions": [
+        {
+          "id": "G6-A1",
+          "topic": "2.6 Money · calculate profit",
+          "prompt": "A club spends KSh 1,350 on supplies and collects KSh 1,890 in sales. What is its profit?",
+          "hint": "Subtract what the club spent from what it received.",
+          "solution": "KSh 540. 1,890 − 1,350 = 540.",
+          "answers": [
+            "540"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        },
+        {
+          "id": "G6-A2",
+          "topic": "2.6 Money · calculate loss",
+          "prompt": "A second stall spends KSh 840 and collects KSh 720. What is its loss?",
+          "hint": "For the amount lost, subtract sales from cost.",
+          "solution": "KSh 120. 840 − 720 = 120.",
+          "answers": [
+            "120"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        },
+        {
+          "id": "G6-A3",
+          "topic": "1.4 Fractions · convert a fraction to a percentage",
+          "prompt": "The club sells 3/5 of the wristbands it made. What percentage does it sell?",
+          "hint": "Rewrite 3/5 with a denominator of 100.",
+          "solution": "60%. 3/5 = 60/100.",
+          "answers": [
+            "60"
+          ],
+          "answerPrompt": "Enter the number in %."
+        },
+        {
+          "id": "G6-A4",
+          "topic": "1.6 Inequalities · form a simple inequality",
+          "prompt": "The stall wants to collect more than KSh 2,000. It has collected KSh 1,650. Which inequality describes the extra amount x it needs? Choose x > 350, x < 350 or x = 350.",
+          "hint": "KSh 350 more would bring the total to exactly KSh 2,000.",
+          "solution": "x > 350. The target is more than KSh 2,000, so the extra amount must exceed KSh 350.",
+          "answers": [
+            "x > 350"
+          ],
+          "options": [
+            "x = 350",
+            "x > 350",
+            "x < 350"
+          ]
+        },
+        {
+          "id": "G6-A5",
+          "topic": "4.1 Bar graphs · interpret a scale",
+          "prompt": "In a bar graph of wristband sales, each grid step equals 5 wristbands. The Tuesday bar reaches 4 steps and the Friday bar reaches 7. How many more wristbands were sold on Friday?",
+          "hint": "Find the difference in steps, then use the scale.",
+          "solution": "15 wristbands. (7 − 4) × 5 = 15.",
+          "answers": [
+            "15"
+          ],
+          "answerPrompt": "Enter the number in wristbands."
+        }
+      ]
+    },
+    {
+      "title": "Build a display",
+      "questions": [
+        {
+          "id": "G6-B1",
+          "topic": "1.1 Whole numbers · apply a square root",
+          "prompt": "A square mosaic has 81 tiles, with the same number of tiles in every row and column. How many tiles are in one row?",
+          "hint": "Find the whole number that gives 81 when multiplied by itself.",
+          "solution": "9 tiles. 9 × 9 = 81.",
+          "answers": [
+            "9"
+          ],
+          "answerPrompt": "Enter the number in tiles."
+        },
+        {
+          "id": "G6-B2",
+          "topic": "2.1 Length · convert centimetres and millimetres",
+          "prompt": "A strip measures 8 cm 7 mm. What is its total length in millimetres?",
+          "hint": "One centimetre is 10 millimetres.",
+          "solution": "87 mm. 8 × 10 + 7 = 87.",
+          "answers": [
+            "87"
+          ],
+          "answerPrompt": "Enter the number in mm."
+        },
+        {
+          "id": "G6-B3",
+          "topic": "2.2 Area · calculate a triangle’s area",
+          "prompt": "A triangular sign has a base of 24 cm and a perpendicular height of 15 cm. What is its area?",
+          "hint": "Find half the area of a rectangle with the same base and height.",
+          "solution": "180 cm². 24 × 15 ÷ 2 = 180.",
+          "answers": [
+            "180"
+          ],
+          "answerPrompt": "Enter the number in cm²."
+        },
+        {
+          "id": "G6-B4",
+          "topic": "3.2 Angles · use angles on a straight line",
+          "prompt": "A brace splits a straight angle into two angles. One is 68°. How large is the other?",
+          "hint": "Angles along a straight line sum to 180°.",
+          "solution": "112°. 180° − 68° = 112°.",
+          "answers": [
+            "112"
+          ],
+          "answerPrompt": "Enter the number in °."
+        },
+        {
+          "id": "G6-B5",
+          "topic": "3.3 3-D objects · identify faces, edges and vertices",
+          "prompt": "A rectangular carton is shaped like a cuboid. In order, how many faces, edges and vertices does it have?",
+          "hint": "Count the top and bottom first, then account for what joins them.",
+          "solution": "6 faces, 12 edges, 8 vertices. Four side faces join the top and bottom. There are four edges on each end and four joining edges, with four corners on each end.",
+          "answers": [
+            "6 faces, 12 edges, 8 vertices"
+          ],
+          "options": [
+            "6 faces, 8 edges, 12 vertices",
+            "6 faces, 12 edges, 8 vertices",
+            "8 faces, 12 edges, 6 vertices"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Prepare for a school trip",
+      "questions": [
+        {
+          "id": "G6-C1",
+          "topic": "2.5 Time · convert 12-hour to 24-hour time",
+          "prompt": "The bus leaves at 2:35 p.m. How is that written on a 24-hour timetable?",
+          "hint": "For this afternoon time, add 12 to the hour.",
+          "solution": "14:35. 2 + 12 = 14, and the minutes stay the same.",
+          "answers": [
+            "14:35"
+          ],
+          "answerPrompt": "Enter a time as HH:MM."
+        },
+        {
+          "id": "G6-C2",
+          "topic": "2.5 Time · interpret a travel timetable",
+          "prompt": "The bus timetable lists departure at 07:50 and arrival at 09:15 on the same day. How long is the journey in minutes?",
+          "hint": "Count to 08:00 first, then count the remaining minutes.",
+          "solution": "85 minutes. 10 + 60 + 15 = 85.",
+          "answers": [
+            "85"
+          ],
+          "answerPrompt": "Enter the number in minutes."
+        },
+        {
+          "id": "G6-C3",
+          "topic": "1.4 Fractions · add mixed numbers",
+          "prompt": "A route has one section of 2 3/4 km and a second section of 1 2/3 km. What is the total distance?",
+          "hint": "Write both fractions in twelfths before adding.",
+          "solution": "4 5/12 km. 2 + 1 + 9/12 + 8/12 = 3 + 17/12 = 4 5/12.",
+          "answers": [
+            "4 5/12"
+          ],
+          "answerPrompt": "Enter a fraction or mixed number in km."
+        },
+        {
+          "id": "G6-C4",
+          "topic": "1.5 Decimals · round to two places",
+          "prompt": "A distance reading is 3.478 km. Round it to two decimal places.",
+          "hint": "The third decimal digit tells you whether to round the second digit up.",
+          "solution": "3.48 km. The third decimal digit is 8, so the hundredths digit rises from 7 to 8.",
+          "answers": [
+            "3.48"
+          ],
+          "answerPrompt": "Enter the number in km."
+        },
+        {
+          "id": "G6-C5",
+          "topic": "2.3 Capacity · convert cubic centimetres to millilitres",
+          "prompt": "A container has an inside volume of 750 cm³. How many millilitres can it hold?",
+          "hint": "One cubic centimetre holds one millilitre.",
+          "solution": "750 mL. The numerical value stays the same because 1 cm³ = 1 mL.",
+          "answers": [
+            "750"
+          ],
+          "answerPrompt": "Enter the number in mL."
+        }
+      ]
+    },
+    {
+      "title": "Organise supplies for a school network",
+      "questions": [
+        {
+          "id": "G6-D1",
+          "topic": "1.1 Whole numbers · use place value in the millions",
+          "prompt": "A shared catalogue records 2,406,318 items. What is the value of the digit 4?",
+          "hint": "The 4 is in the hundred thousands place.",
+          "solution": "400,000. Its value is 4 × 100,000.",
+          "answers": [
+            "400000"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G6-D2",
+          "topic": "1.2 Multiplication · multiply a four-digit number by a two-digit number",
+          "prompt": "A supplier prints 1,248 worksheets for each of 24 schools. How many worksheets are printed?",
+          "hint": "Multiply by 20 and by 4, then add.",
+          "solution": "29,952 worksheets. 24,960 + 4,992 = 29,952.",
+          "answers": [
+            "29952"
+          ],
+          "answerPrompt": "Enter the number in worksheets."
+        },
+        {
+          "id": "G6-D3",
+          "topic": "1.2 Multiplication · estimate a product",
+          "prompt": "There are 298 cards in each of 19 bundles. Round both numbers to the nearest ten and estimate the total.",
+          "hint": "Use 300 cards and 20 bundles.",
+          "solution": "About 6,000 cards. 300 × 20 = 6,000.",
+          "answers": [
+            "6000"
+          ],
+          "answerPrompt": "Enter the number in cards."
+        },
+        {
+          "id": "G6-D4",
+          "topic": "1.3 Division · divide by a three-digit number",
+          "prompt": "A depot sends 3,600 booklets in equal packs of 120. How many packs are sent?",
+          "hint": "Divide both numbers by 10 before working out the quotient.",
+          "solution": "30 packs. 360 ÷ 12 = 30.",
+          "answers": [
+            "30"
+          ],
+          "answerPrompt": "Enter the number in packs."
+        },
+        {
+          "id": "G6-D5",
+          "topic": "1.3 Division · estimate a quotient",
+          "prompt": "A depot puts 2,378 cards into bundles of 61. Round both numbers to the nearest ten and estimate the number of bundles.",
+          "hint": "The rounded numbers are 2,380 and 60. Find the nearest whole number of bundles.",
+          "solution": "About 40 bundles. 2,380 ÷ 60 is just under 40.",
+          "answers": [
+            "40"
+          ],
+          "answerPrompt": "Enter the number in bundles."
+        }
+      ]
+    },
+    {
+      "title": "Deliver materials to the garden",
+      "questions": [
+        {
+          "id": "G6-E1",
+          "topic": "1.5 Decimals · subtract to four decimal places",
+          "prompt": "A precision scale reads 3.6250 kg before some soil is removed and 2.4085 kg afterwards. How much mass was removed?",
+          "hint": "Line up the decimal places before subtracting.",
+          "solution": "1.2165 kg. 3.6250 − 2.4085 = 1.2165.",
+          "answers": [
+            "1.2165"
+          ],
+          "answerPrompt": "Enter the number in kg."
+        },
+        {
+          "id": "G6-E2",
+          "topic": "2.4 Mass · convert tonnes to kilograms",
+          "prompt": "A delivery weighs 2 tonnes 350 kg. What is its mass in kilograms?",
+          "hint": "One tonne is 1,000 kg.",
+          "solution": "2,350 kg. 2,000 + 350 = 2,350.",
+          "answers": [
+            "2350"
+          ],
+          "answerPrompt": "Enter the number in kg."
+        },
+        {
+          "id": "G6-E3",
+          "topic": "2.4 Mass · add tonnes and kilograms",
+          "prompt": "One truck brings 1 t 750 kg of gravel and another brings 2 t 400 kg. What is the total in tonnes and kilograms?",
+          "hint": "Add kilograms first and exchange each 1,000 kg for 1 t.",
+          "solution": "4 t 150 kg. 3 t + 1,150 kg = 4 t 150 kg.",
+          "answers": [
+            "4 t 150 kg"
+          ],
+          "options": [
+            "4 t 150 kg",
+            "3 t 150 kg",
+            "4 t 50 kg"
+          ]
+        },
+        {
+          "id": "G6-E4",
+          "topic": "2.1 Length · determine a circle’s circumference",
+          "prompt": "A circular garden ring has a diameter of 70 cm. What is the length around it? Use π = 22/7.",
+          "hint": "Multiply the diameter by π.",
+          "solution": "220 cm. 70 × 22/7 = 220.",
+          "answers": [
+            "220"
+          ],
+          "answerPrompt": "Enter the number in cm."
+        },
+        {
+          "id": "G6-E5",
+          "topic": "2.3 Capacity · convert millilitres to cubic centimetres",
+          "prompt": "A measuring jug holds 450 mL of water. How many cubic centimetres of space does the water occupy?",
+          "hint": "1 mL occupies 1 cm³.",
+          "solution": "450 cm³. The conversion is one to one.",
+          "answers": [
+            "450"
+          ],
+          "answerPrompt": "Enter the number in cm³."
+        }
+      ]
+    },
+    {
+      "title": "Draw a site plan",
+      "questions": [
+        {
+          "id": "G6-F1",
+          "topic": "3.1 Lines · identify a perpendicular construction",
+          "prompt": "A new path must cross an existing straight path at 90°. What relationship should the two centre lines have?",
+          "hint": "Think of the word used when two lines meet at a right angle.",
+          "solution": "Perpendicular. Perpendicular lines meet at 90°.",
+          "answers": [
+            "Perpendicular"
+          ],
+          "options": [
+            "Parallel",
+            "Perpendicular"
+          ]
+        },
+        {
+          "id": "G6-F2",
+          "topic": "3.1 Lines · use a line bisector",
+          "prompt": "On a plan, a straight 18 cm line is bisected. How long is each half?",
+          "hint": "To bisect is to divide into two equal parts.",
+          "solution": "9 cm. 18 ÷ 2 = 9.",
+          "answers": [
+            "9"
+          ],
+          "answerPrompt": "Enter the number in cm."
+        },
+        {
+          "id": "G6-F3",
+          "topic": "2.2 Area · find the area of a combined shape",
+          "prompt": "A cardboard sign is made from a 16 cm by 12 cm rectangle and a triangle with a 16 cm base and 12 cm perpendicular height. Their interiors do not overlap. What is their total area?",
+          "hint": "Find the two areas separately, then add them.",
+          "solution": "288 cm². The rectangle is 192 cm² and the triangle is 96 cm².",
+          "answers": [
+            "288"
+          ],
+          "answerPrompt": "Enter the number in cm²."
+        },
+        {
+          "id": "G6-F4",
+          "topic": "3.2 Angles · use the angle sum in a triangle",
+          "prompt": "A triangular frame has interior angles of 52° and 71°. What is its third interior angle?",
+          "hint": "The interior angles of a triangle sum to 180°.",
+          "solution": "57°. 180° − 52° − 71° = 57°.",
+          "answers": [
+            "57"
+          ],
+          "answerPrompt": "Enter the number in °."
+        },
+        {
+          "id": "G6-F5",
+          "topic": "3.3 3-D objects · identify plane shapes on solids",
+          "prompt": "A cylinder-shaped tin is taken apart. What plane shape are its two flat ends?",
+          "hint": "Imagine tracing either flat end on paper.",
+          "solution": "Circles. The two flat ends of a cylinder are circular.",
+          "answers": [
+            "Circles"
+          ],
+          "options": [
+            "Squares",
+            "Triangles",
+            "Circles"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Review costs and activity records",
+      "questions": [
+        {
+          "id": "G6-G1",
+          "topic": "1.6 Inequalities · solve a simple inequality",
+          "prompt": "A group has 12 seedlings and will add x more. It needs fewer than 30 seedlings in total. Choose the solution: x < 18, x > 18 or x = 18.",
+          "hint": "Subtract 12 from both sides of 12 + x < 30.",
+          "solution": "x < 18. Adding exactly 18 would reach 30.",
+          "answers": [
+            "x < 18"
+          ],
+          "options": [
+            "x = 18",
+            "x < 18",
+            "x > 18"
+          ]
+        },
+        {
+          "id": "G6-G2",
+          "topic": "4.1 Bar graphs · use a vertical scale",
+          "prompt": "On a graph of books collected, one grid step equals 4 books. How many steps high should a bar for 28 books be?",
+          "hint": "Divide the count by the number of books per step.",
+          "solution": "7 steps. 28 ÷ 4 = 7.",
+          "answers": [
+            "7"
+          ],
+          "answerPrompt": "Enter the number in steps."
+        },
+        {
+          "id": "G6-G3",
+          "topic": "1.4 Fractions · find a reciprocal",
+          "prompt": "A maths club records 2/5 on a number card. What is its reciprocal?",
+          "hint": "Swap the numerator and denominator.",
+          "solution": "5/2. The product of 2/5 and 5/2 is 1.",
+          "answers": [
+            "5/2"
+          ],
+          "answerPrompt": "Enter a fraction or mixed number."
+        },
+        {
+          "id": "G6-G4",
+          "topic": "1.3 Division · combine operations with division",
+          "prompt": "A team receives 84 cards, sets 12 aside, and shares the rest equally among 6 groups. How many cards does each group get?",
+          "hint": "Subtract the cards set aside before dividing.",
+          "solution": "12 cards. (84 − 12) ÷ 6 = 12.",
+          "answers": [
+            "12"
+          ],
+          "answerPrompt": "Enter the number in cards."
+        },
+        {
+          "id": "G6-G5",
+          "topic": "2.6 Money · determine a selling price",
+          "prompt": "A club bought a display stand for KSh 780 and wants a profit of KSh 170. What selling price would earn exactly that profit?",
+          "hint": "Add the desired profit to the buying price.",
+          "solution": "KSh 950. 780 + 170 = 950.",
+          "answers": [
+            "950"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        }
+      ]
+    }
+  ],
+  "7": [
+    {
+      "title": "Running a sports day",
+      "questions": [
+        {
+          "id": "G7-A1",
+          "topic": "1.2 Factors · apply the greatest common divisor",
+          "prompt": "A coach has 36 bibs and 48 cones. She wants the greatest possible number of identical kits, using all the bibs and cones. How many kits can she make?",
+          "hint": "The number of kits must divide both 36 and 48 exactly.",
+          "solution": "12 kits. The greatest common divisor is 12, giving 3 bibs and 4 cones per kit.",
+          "answers": [
+            "12"
+          ],
+          "answerPrompt": "Enter the number in kits."
+        },
+        {
+          "id": "G7-A2",
+          "topic": "2.2 Linear equations · solve a cost problem",
+          "prompt": "A team rents six identical games and pays a single KSh 120 delivery fee. The total is KSh 870. What is the rental cost of each game?",
+          "hint": "Subtract the delivery fee before dividing.",
+          "solution": "KSh 125. If each game costs x, then 6x + 120 = 870. This gives 6x = 750 and x = 125.",
+          "answers": [
+            "125"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        },
+        {
+          "id": "G7-A3",
+          "topic": "2.3 Linear inequalities · express a range",
+          "prompt": "A relay team needs at least 4 runners and at most 8. Write one compound inequality for the number of runners n.",
+          "hint": "Both endpoints are allowed.",
+          "solution": "4 ≤ n ≤ 8. The lower and upper limits both include equality.",
+          "answers": [
+            "4 ≤ n ≤ 8"
+          ],
+          "options": [
+            "4 < n < 8",
+            "4 ≤ n < 8",
+            "4 ≤ n ≤ 8"
+          ]
+        },
+        {
+          "id": "G7-A4",
+          "topic": "3.5 Time, distance and speed · calculate speed",
+          "prompt": "A runner covers 120 m in 20 seconds at a steady speed. What is the speed in metres per second?",
+          "hint": "Divide distance by time.",
+          "solution": "6 m/s. 120 ÷ 20 = 6.",
+          "answers": [
+            "6"
+          ],
+          "answerPrompt": "Enter the number in m/s."
+        },
+        {
+          "id": "G7-A5",
+          "topic": "4.1 Angles · find a missing angle at a point",
+          "prompt": "A spinner is divided into three slices. Two slices have angles of 95° and 115° at the centre. What is the angle of the third slice?",
+          "hint": "A full turn around the centre is 360°.",
+          "solution": "150°. 360° − 95° − 115° = 150°.",
+          "answers": [
+            "150"
+          ],
+          "answerPrompt": "Enter the number in °."
+        }
+      ]
+    },
+    {
+      "title": "Equip the school garden",
+      "questions": [
+        {
+          "id": "G7-B1",
+          "topic": "1.3 Fractions · multiply a fraction by a whole number",
+          "prompt": "Each of 6 garden beds needs 3/4 of a bag of compost. How many bags’ worth of compost are needed? Give the exact amount.",
+          "hint": "Multiply 6 by 3/4 before converting to a mixed number.",
+          "solution": "4 1/2 bags. 6 × 3/4 = 18/4 = 4 1/2.",
+          "answers": [
+            "4 1/2"
+          ],
+          "answerPrompt": "Enter a fraction or mixed number in bags."
+        },
+        {
+          "id": "G7-B2",
+          "topic": "2.1 Algebraic expressions · form and simplify an expression",
+          "prompt": "A seedling tray costs x shillings. One class buys 3 trays and a second class buys 5. What is the simplified expression for their total cost?",
+          "hint": "Combine 3x and 5x because x is the same price for all trays.",
+          "solution": "8x. 3x + 5x = (3 + 5)x = 8x.",
+          "answers": [
+            "8x"
+          ],
+          "options": [
+            "15x",
+            "8x",
+            "8 + x"
+          ]
+        },
+        {
+          "id": "G7-B3",
+          "topic": "3.1 Pythagorean relationship · find a diagonal",
+          "prompt": "A rectangular garden is 9 m wide and 12 m long. How long is the straight path from one corner to the opposite corner?",
+          "hint": "The path is the hypotenuse of a right triangle.",
+          "solution": "15 m. The squared length is 9² + 12² = 81 + 144 = 225. The square root of 225 is 15.",
+          "answers": [
+            "15"
+          ],
+          "answerPrompt": "Enter the number in m."
+        },
+        {
+          "id": "G7-B4",
+          "topic": "3.4 Volume and capacity · convert a tank volume to litres",
+          "prompt": "A cuboid tank measures 1.2 m by 0.5 m by 0.5 m inside. How many litres can it hold when full?",
+          "hint": "Calculate the volume in cubic metres, then use 1 m³ = 1,000 L.",
+          "solution": "300 L. 1.2 × 0.5 × 0.5 = 0.3 m³. Then 0.3 × 1,000 = 300 L.",
+          "answers": [
+            "300"
+          ],
+          "answerPrompt": "Enter the number in L."
+        },
+        {
+          "id": "G7-B5",
+          "topic": "3.7 Money · calculate a discounted price",
+          "prompt": "A wheelbarrow marked KSh 4,800 is offered at a 15% discount. What is the sale price?",
+          "hint": "Find 15% of the marked price and subtract it.",
+          "solution": "KSh 4,080. The discount is 0.15 × 4,800 = KSh 720, leaving 4,800 − 720 = 4,080.",
+          "answers": [
+            "4080"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        }
+      ]
+    },
+    {
+      "title": "Club survey and equipment",
+      "questions": [
+        {
+          "id": "G7-C1",
+          "topic": "5.1 Data handling · calculate a pie chart angle",
+          "prompt": "Of 40 learners, 15 vote for football as their first choice. What angle should the football sector take in a pie chart?",
+          "hint": "Multiply the fraction 15/40 by 360°.",
+          "solution": "135°. 15/40 × 360° = 135°.",
+          "answers": [
+            "135"
+          ],
+          "answerPrompt": "Enter the number in °."
+        },
+        {
+          "id": "G7-C2",
+          "topic": "5.1 Data handling · interpret a pie chart",
+          "prompt": "A pie chart shows choices made by 60 learners. The music sector is 72°. How many learners chose music?",
+          "hint": "Find the fraction of a full turn covered by 72°.",
+          "solution": "12 learners. 72/360 = 1/5, and 60 ÷ 5 = 12.",
+          "answers": [
+            "12"
+          ],
+          "answerPrompt": "Enter the number in learners."
+        },
+        {
+          "id": "G7-C3",
+          "topic": "3.7 Money · calculate percentage profit",
+          "prompt": "A club spends KSh 1,200 making wristbands and sells them for KSh 1,500. What is its percentage profit?",
+          "hint": "First find the profit. Then express it as a percentage of the cost.",
+          "solution": "25%. Profit is 1,500 − 1,200 = KSh 300. Then 300 ÷ 1,200 × 100% = 25%.",
+          "answers": [
+            "25"
+          ],
+          "answerPrompt": "Enter the number in %."
+        },
+        {
+          "id": "G7-C4",
+          "topic": "3.6 Temperature · convert Celsius to kelvin",
+          "prompt": "A thermometer reads 27°C. Convert this to kelvin using K = °C + 273.15.",
+          "hint": "Add the given offset to the Celsius reading.",
+          "solution": "300.15 K. 27 + 273.15 = 300.15.",
+          "answers": [
+            "300.15"
+          ],
+          "answerPrompt": "Enter the number in K."
+        },
+        {
+          "id": "G7-C5",
+          "topic": "4.2 Geometrical constructions · reason about an angle bisector",
+          "prompt": "To mark a 90° corner on a club sign, you draw its bisector with a ruler and compass. How large is each of the two angles it creates?",
+          "hint": "A bisector splits an angle into two equal angles.",
+          "solution": "45° each. 90° ÷ 2 = 45°.",
+          "answers": [
+            "45"
+          ],
+          "answerPrompt": "Enter the number in °."
+        }
+      ]
+    },
+    {
+      "title": "Coordinate a delivery",
+      "questions": [
+        {
+          "id": "G7-D1",
+          "topic": "1.1 Whole numbers · round a population count",
+          "prompt": "A fictional county planning report lists a total of 3,748,216 visits. Round the number to the nearest million.",
+          "hint": "Look at the hundred thousands digit.",
+          "solution": "4,000,000. The hundred thousands digit is 7, so round up.",
+          "answers": [
+            "4000000"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G7-D2",
+          "topic": "1.1 Whole numbers · combine operations",
+          "prompt": "A supplier has 14 cartons of 120 notebooks, delivers 960 notebooks, then receives 250 more. How many are now in stock?",
+          "hint": "Find the starting stock by multiplying first.",
+          "solution": "970 notebooks. 14 × 120 − 960 + 250 = 970.",
+          "answers": [
+            "970"
+          ],
+          "answerPrompt": "Enter the number in notebooks."
+        },
+        {
+          "id": "G7-D3",
+          "topic": "1.2 Factors · express a number as prime factors",
+          "prompt": "A workshop prints 84 passes. Express 84 as a product of prime factors.",
+          "hint": "Start with 84 = 2 × 42, then factor 42.",
+          "solution": "2² × 3 × 7. 42 = 2 × 3 × 7.",
+          "answers": [
+            "2² × 3 × 7"
+          ],
+          "options": [
+            "2 × 3 × 7",
+            "2² × 21",
+            "2² × 3 × 7"
+          ]
+        },
+        {
+          "id": "G7-D4",
+          "topic": "1.4 Decimals · multiply a decimal by a whole number",
+          "prompt": "Each crate weighs 12.75 kg. How much do 8 crates weigh in total?",
+          "hint": "Calculate 12 × 8 and 0.75 × 8 separately.",
+          "solution": "102 kg. 96 + 6 = 102.",
+          "answers": [
+            "102"
+          ],
+          "answerPrompt": "Enter the number in kg."
+        },
+        {
+          "id": "G7-D5",
+          "topic": "1.4 Decimals · divide a decimal by a whole number",
+          "prompt": "A 9.45 m roll of tape is cut into 7 equal lengths. How long is each piece?",
+          "hint": "Think of 9.45 m as 945 centimetres.",
+          "solution": "1.35 m. 945 ÷ 7 = 135 cm = 1.35 m.",
+          "answers": [
+            "1.35"
+          ],
+          "answerPrompt": "Enter the number in m."
+        }
+      ]
+    },
+    {
+      "title": "Design a garden path",
+      "questions": [
+        {
+          "id": "G7-E1",
+          "topic": "1.5 Squares and square roots · square a decimal",
+          "prompt": "A square paving tile has sides of 0.8 m. What is 0.8 squared, the numerical value of its area in square metres?",
+          "hint": "Multiply 0.8 by 0.8.",
+          "solution": "0.64. 8 tenths × 8 tenths = 64 hundredths.",
+          "answers": [
+            "0.64"
+          ],
+          "answerPrompt": "Enter a number."
+        },
+        {
+          "id": "G7-E2",
+          "topic": "1.5 Squares and square roots · find the square root of a fraction",
+          "prompt": "A square sample of fabric has an area of 9/16 m². How long is one side?",
+          "hint": "Find the square root of the numerator and denominator.",
+          "solution": "3/4 m. (3/4)² = 9/16.",
+          "answers": [
+            "3/4"
+          ],
+          "answerPrompt": "Enter a fraction or mixed number in m."
+        },
+        {
+          "id": "G7-E3",
+          "topic": "3.2 Length · find a perimeter",
+          "prompt": "A four-sided garden has boundary lengths of 7 m, 5 m, 6 m and 4 m. How much edging runs around it?",
+          "hint": "Add all four boundary lengths.",
+          "solution": "22 m. 7 + 5 + 6 + 4 = 22.",
+          "answers": [
+            "22"
+          ],
+          "answerPrompt": "Enter the number in m."
+        },
+        {
+          "id": "G7-E4",
+          "topic": "3.2 Length · find a circumference",
+          "prompt": "A circular pond is 14 m across through its centre. How long is its perimeter? Use π = 22/7.",
+          "hint": "The length across the centre is the diameter.",
+          "solution": "44 m. Circumference = 14 × 22/7 = 44.",
+          "answers": [
+            "44"
+          ],
+          "answerPrompt": "Enter the number in m."
+        },
+        {
+          "id": "G7-E5",
+          "topic": "3.3 Area · find the area of a trapezium",
+          "prompt": "A trapezium-shaped flower bed has parallel sides of 8 m and 12 m, with a perpendicular distance of 5 m between them. What is its area?",
+          "hint": "Average the two parallel sides, then multiply by the height.",
+          "solution": "50 m². (8 + 12) ÷ 2 × 5 = 50.",
+          "answers": [
+            "50"
+          ],
+          "answerPrompt": "Enter the number in m²."
+        }
+      ]
+    },
+    {
+      "title": "Make a scale drawing",
+      "questions": [
+        {
+          "id": "G7-F1",
+          "topic": "2.1 Algebraic expressions · simplify like terms",
+          "prompt": "A designer draws 7 identical panels of width x and removes 2 panel widths from the plan. What is 7x − 2x simplified?",
+          "hint": "Subtract the numbers multiplying x.",
+          "solution": "5x. (7 − 2)x = 5x.",
+          "answers": [
+            "5x"
+          ],
+          "options": [
+            "5x",
+            "9x",
+            "5"
+          ]
+        },
+        {
+          "id": "G7-F2",
+          "topic": "2.2 Linear equations · solve when the unknown is on both sides",
+          "prompt": "One printer charges KSh 200 plus KSh 25 per poster. Another charges KSh 80 plus KSh 40 per poster. At how many posters do the prices match?",
+          "hint": "Write 200 + 25x = 80 + 40x and collect like terms.",
+          "solution": "8 posters. 120 = 15x, so x = 8. Each price is KSh 400.",
+          "answers": [
+            "8"
+          ],
+          "answerPrompt": "Enter the number in posters."
+        },
+        {
+          "id": "G7-F3",
+          "topic": "2.3 Linear inequalities · interpret endpoint symbols",
+          "prompt": "A storage shelf allows heights above 20 cm and up to 32 cm. Choose the correct statement for height h: 20 ≤ h ≤ 32, 20 < h ≤ 32, or 20 < h < 32.",
+          "hint": "Check whether exactly 20 cm or exactly 32 cm is allowed.",
+          "solution": "20 < h ≤ 32. 20 is excluded and 32 is included.",
+          "answers": [
+            "20 < h ≤ 32"
+          ],
+          "options": [
+            "20 < h < 32",
+            "20 < h ≤ 32",
+            "20 ≤ h ≤ 32"
+          ]
+        },
+        {
+          "id": "G7-F4",
+          "topic": "3.1 Pythagorean relationship · find a missing leg",
+          "prompt": "A rectangular noticeboard has a 100 cm diagonal and is 80 cm wide. How tall is it?",
+          "hint": "The diagonal is the hypotenuse. Subtract the square of the width from its square.",
+          "solution": "60 cm. 100² − 80² = 3,600, and the positive square root is 60.",
+          "answers": [
+            "60"
+          ],
+          "answerPrompt": "Enter the number in cm."
+        },
+        {
+          "id": "G7-F5",
+          "topic": "4.2 Geometrical constructions · select a compass setting",
+          "prompt": "You need to construct a circle 10 cm across using a ruler and compass. How far apart should the compass point and pencil be?",
+          "hint": "Set the compass to the radius, which is half the diameter.",
+          "solution": "5 cm. 10 ÷ 2 = 5.",
+          "answers": [
+            "5"
+          ],
+          "answerPrompt": "Enter the number in cm."
+        }
+      ]
+    },
+    {
+      "title": "Measure the school grounds",
+      "questions": [
+        {
+          "id": "G7-G1",
+          "topic": "1.3 Fractions · divide a fraction by a whole number",
+          "prompt": "Three equal samples are cut from a 3/4 m strip. How long is each sample?",
+          "hint": "Dividing by 3 is the same as multiplying by 1/3.",
+          "solution": "1/4 m. 3/4 × 1/3 = 1/4.",
+          "answers": [
+            "1/4"
+          ],
+          "answerPrompt": "Enter a fraction or mixed number in m."
+        },
+        {
+          "id": "G7-G2",
+          "topic": "3.3 Area · calculate a border’s area",
+          "prompt": "A rectangular play space is 12 m by 8 m. A marked rectangle inside it is 10 m by 6 m. What area lies outside the marked rectangle but inside the play space?",
+          "hint": "Subtract the inside area from the outside area.",
+          "solution": "36 m². 12 × 8 − 10 × 6 = 96 − 60 = 36.",
+          "answers": [
+            "36"
+          ],
+          "answerPrompt": "Enter the number in m²."
+        },
+        {
+          "id": "G7-G3",
+          "topic": "3.4 Volume and capacity · calculate a cylinder’s volume",
+          "prompt": "A cylindrical model has a radius of 7 cm and a height of 10 cm. What is its volume? Use π = 22/7.",
+          "hint": "Multiply the area of the circular base by the height.",
+          "solution": "1,540 cm³. 22/7 × 7² × 10 = 1,540.",
+          "answers": [
+            "1540"
+          ],
+          "answerPrompt": "Enter the number in cm³."
+        },
+        {
+          "id": "G7-G4",
+          "topic": "3.5 Time, distance and speed · convert speed units",
+          "prompt": "A cyclist travels at 18 km/h. What is that in metres per second?",
+          "hint": "Change 18 km to metres and one hour to seconds.",
+          "solution": "5 m/s. 18,000 ÷ 3,600 = 5.",
+          "answers": [
+            "5"
+          ],
+          "answerPrompt": "Enter the number in m/s."
+        },
+        {
+          "id": "G7-G5",
+          "topic": "3.6 Temperature · convert kelvin to Celsius",
+          "prompt": "A sensor shows 293.15 K. Convert it to degrees Celsius using °C = K − 273.15.",
+          "hint": "Subtract the given offset.",
+          "solution": "20°C. 293.15 − 273.15 = 20.",
+          "answers": [
+            "20"
+          ],
+          "answerPrompt": "Enter the number in °C."
+        }
+      ]
+    },
+    {
+      "title": "Review the club’s plans",
+      "questions": [
+        {
+          "id": "G7-H1",
+          "topic": "4.1 Angles · find an interior angle of a parallelogram",
+          "prompt": "Two interior angles of a parallelogram-shaped sign share a side. One is 65°. What is the other?",
+          "hint": "Adjacent interior angles in a parallelogram sum to 180°.",
+          "solution": "115°. 180° − 65° = 115°.",
+          "answers": [
+            "115"
+          ],
+          "answerPrompt": "Enter the number in °."
+        },
+        {
+          "id": "G7-H2",
+          "topic": "5.1 Data handling · interpret a travel graph",
+          "prompt": "On a distance-from-school graph, a walker is 2 km from school at 09:30 and remains 2 km away until 09:45. The line is horizontal throughout. How many minutes did that horizontal section last?",
+          "hint": "Subtract the starting time from the ending time.",
+          "solution": "15 minutes. From 09:30 to 09:45 is 15 minutes at the same recorded distance.",
+          "answers": [
+            "15"
+          ],
+          "answerPrompt": "Enter the number in minutes."
+        },
+        {
+          "id": "G7-H3",
+          "topic": "3.7 Money · calculate a mobile-money total",
+          "prompt": "In a fictional payment exercise, the transfer to a supplier is KSh 2,650 and the service fee is KSh 35. What total leaves the sender’s balance?",
+          "hint": "Add the transfer amount and the stated fee.",
+          "solution": "KSh 2,685. 2,650 + 35 = 2,685.",
+          "answers": [
+            "2685"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        },
+        {
+          "id": "G7-H4",
+          "topic": "5.1 Data handling · select a bar graph scale",
+          "prompt": "A school survey counts 20, 35 and 50 votes. Which scale makes all bars end on grid marks and uses at most ten grid steps: 1, 5 or 10 votes per step?",
+          "hint": "Test which number divides all three counts and keeps the largest count within ten steps.",
+          "solution": "5 votes per step. The bars reach 4, 7 and 10 steps.",
+          "answers": [
+            "5 votes per step"
+          ],
+          "options": [
+            "1 vote per step",
+            "10 votes per step",
+            "5 votes per step"
+          ]
+        },
+        {
+          "id": "G7-H5",
+          "topic": "3.7 Money · calculate commission",
+          "prompt": "A club sells KSh 8,400 worth of tickets. The ticket agent earns 5% commission on those sales. How much does the agent earn?",
+          "hint": "Find five hundredths of the sales total.",
+          "solution": "KSh 420. 0.05 × 8,400 = 420.",
+          "answers": [
+            "420"
+          ],
+          "answerPrompt": "Enter the number in KSh."
+        }
+      ]
+    }
+  ]
+}

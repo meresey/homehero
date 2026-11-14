@@ -5,7 +5,7 @@ import { backendEnabled, supabase } from './lib/supabase';
 import { BadgeDefinition, BadgeProgress, HeroProfile, Quest, QuestAssignment, QuestCompletion, QuestKind, QuestStatus, Reward, RewardRedemption, StreakAward } from './types';
 import { coinFriendlyMessage } from './economy';
 
-type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child'; displayName: string };
+type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child'; displayName: string; timezone: string };
 export type ParentDashboardSummary = {
   leaderName: string;
   heroNames: string[];
@@ -109,14 +109,14 @@ export function useHomeHeroData() {
         childIds = (links ?? []).map(link => link.child_id);
         childId = childIds[0] ?? null;
       }
-      const nextFamily: FamilyContext = { householdId: membership.household_id, householdName: household.name, inviteCode: household.invite_code, childId, role: membership.role, displayName: ownProfile.display_name };
+      const nextFamily: FamilyContext = { householdId: membership.household_id, householdName: household.name, inviteCode: household.invite_code, childId, role: membership.role, displayName: ownProfile.display_name, timezone: household.timezone };
       setFamily(nextFamily);
 
       if (membership.role === 'parent') {
         const today = dateKey(new Date(), household.timezone);
         const weekStart = startOfWeek(today);
         const weekEnd = addDays(weekStart, 6);
-        const [heroesResult, managedResult, todayResult, openGuildResult, weekResult, assignmentsResult, goalsResult] = await Promise.all([
+        const [heroesResult, managedResult, todayResult, openGuildResult, weekResult, assignmentsResult, goalsResult, mathsGradesResult] = await Promise.all([
           childIds.length
             ? supabase.from('profiles').select('id,display_name,date_of_birth').in('id', childIds)
             : Promise.resolve({ data: [], error: null }),
@@ -131,6 +131,9 @@ export function useHomeHeroData() {
             : Promise.resolve({ data: [], error: null }),
           childIds.length
             ? supabase.from('weekly_goals').select('child_id,target_stars').eq('household_id', membership.household_id).eq('week_start', weekStart)
+            : Promise.resolve({ data: [], error: null }),
+          childIds.length
+            ? supabase.from('hero_maths_grades').select('child_id,school_grade').eq('household_id', membership.household_id).in('child_id', childIds)
             : Promise.resolve({ data: [], error: null }),
         ]);
         const { data: heroProfiles, error: heroesError } = heroesResult;
@@ -147,12 +150,14 @@ export function useHomeHeroData() {
         if (weekError) throw weekError;
         if (assignmentsError) throw assignmentsError;
         if (goalsError) throw goalsError;
+        const gradeByHero = new Map((mathsGradesResult.data ?? []).map(row => [row.child_id, row.school_grade]));
         setHeroes((heroProfiles ?? []).map(profile => ({
           id: profile.id,
           householdId: membership.household_id,
           displayName: profile.display_name,
           avatarEmoji: '🦸',
           dateOfBirth: profile.date_of_birth ?? '',
+          schoolGrade: gradeByHero.get(profile.id),
           status: 'active',
           joinedAt: '',
         })));

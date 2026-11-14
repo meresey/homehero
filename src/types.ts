@@ -28,6 +28,7 @@ export type Quest = {
   expiredAt?: string;
   householdId?: string;
   catalogQuestId?: string;
+  catalogSlug?: string;
   visibility?: 'household';
   childId?: string;
   heroName?: string;

@@ -27,9 +27,12 @@ import { COIN_ICON, coinFriendlyMessage, coinLabel } from './economy';
 import { rewardLifecycleLabel, sortRewardEntitlements } from './rewardLifecycle';
 import { BrandWordmark } from './BrandWordmark';
 import { MathsGradeSettings, MathsQuest, MathsTodayCard } from './DailyMaths';
-import { isMathsGrade, mathsComplete, MATHS_XP } from './maths';
+import { isMathsGrade, mathsComplete, mathsDate, MATHS_XP } from './maths';
 import type { MathsAttempt } from './maths';
 import { useDailyMaths } from './useDailyMaths';
+import { isReadingQuest, readingStoryById, selectReadingStory } from './reading';
+import { ReadingQuest } from './ReadingQuest';
+import type { ReadingProgress } from './ReadingQuest';
 
 type Role = 'child' | 'parent';
 type ChildTab = 'today' | 'week' | 'store' | 'hero';
@@ -47,6 +50,9 @@ export function HomeHeroApp() {
   const [childTab, setChildTab] = useState<ChildTab>('today');
   const [parentTab, setParentTab] = useState<ParentTab>('home');
   const [timerQuest, setTimerQuest] = useState<Quest | null>(null);
+  const [reading, setReading] = useState<{ heroId: string; key: string; day: string; quest: Quest } | null>(null);
+  const [readingByQuest, setReadingByQuest, readingHydrated] = usePersistentState<Record<string, ReadingProgress>>('home-hero.reading.v1', {});
+  const startingReading = useRef(false);
   const [signingOut, setSigningOut] = useState(false);
   const [enrollingHero, setEnrollingHero] = useState(false);
   const [managedHero, setManagedHero] = useState<ManagedHeroAccount | null>(null);
@@ -56,10 +62,11 @@ export function HomeHeroApp() {
   const heroId = activeRole === 'child'
     ? data.backendEnabled ? data.family?.childId ?? null : householdData.selectedHero.id
     : null;
+  const householdTimeZone = data.family?.timezone ?? householdData.state.household.timezone;
   const maths = useDailyMaths({
     householdId: data.backendEnabled ? data.family?.householdId ?? null : householdData.state.household.id,
     heroId,
-    timeZone: data.family?.timezone ?? householdData.state.household.timezone,
+    timeZone: householdTimeZone,
   });
   const [openMaths, setOpenMaths] = useState<{ heroId: string; attempt: MathsAttempt } | null>(null);
   const startingMaths = useRef(false);
@@ -124,8 +131,67 @@ export function HomeHeroApp() {
       if (data.backendEnabled) await data.refresh();
     }} />;
 
+  async function openReading(quest: Quest) {
+    if (!heroId || startingReading.current || !readingHydrated) return;
+    startingReading.current = true;
+    const now = new Date();
+    const day = mathsDate(now, householdTimeZone);
+    const key = `${heroId}:${quest.id}:${day}`;
+    try {
+      let activeQuest = quest;
+      if (quest.kind === 'timer' && quest.status !== 'in_progress') {
+        const times = data.backendEnabled
+          ? await data.startReadingTimer(quest)
+          : { timerStartedAt: now.toISOString(), timerEndsAt: new Date(now.getTime() + (quest.timerMinutes ?? 20) * 60_000).toISOString() };
+        if (!data.backendEnabled) householdData.startTimerQuest(quest, times.timerStartedAt, times.timerEndsAt);
+        activeQuest = { ...quest, ...times, status: 'in_progress' };
+      }
+      const dateOfBirth = data.backendEnabled ? data.family?.dateOfBirth ?? '' : householdData.selectedHero.dateOfBirth;
+      const story = selectReadingStory(day, maths.day?.grade ?? null, dateOfBirth);
+      setReadingByQuest(current => {
+        const existing = current[key];
+        if (existing && readingStoryById(existing.storyId)) return current;
+        const recent = Object.fromEntries(Object.entries(current).filter(([storedKey]) => storedKey.endsWith(`:${day}`)));
+        return { ...recent, [key]: { storyId: story.id, scene: 'story', answered: 0 } };
+      });
+      setReading({ heroId, key, day, quest: activeQuest });
+    } catch (cause) {
+      showError(cause);
+    } finally {
+      startingReading.current = false;
+    }
+  }
+
+  const readingProgress = reading ? readingByQuest[reading.key] : undefined;
+  const readingStory = readingProgress ? readingStoryById(readingProgress.storyId) : undefined;
+
+  async function submitReading() {
+    if (!reading || !readingProgress || !readingStory || readingProgress.answered < readingStory.questions.length) return;
+    if (mathsDate(new Date(), householdTimeZone) !== reading.day) {
+      throw new Error('A new day has started. Reopen Reading Adventure to continue.');
+    }
+    try {
+      if (reading.quest.kind === 'timer') {
+        if (data.backendEnabled) await data.finishTimer(reading.quest);
+        else householdData.finishTimerQuest(reading.quest);
+      } else if (data.backendEnabled) {
+        await data.completeQuest(reading.quest);
+      } else {
+        householdData.submitQuestForApproval(reading.quest);
+      }
+    } catch (cause) {
+      throw new Error(cause && typeof cause === 'object' && 'message' in cause ? String(cause.message) : 'Could not submit this quest. Try again.');
+    }
+    setReading(null);
+    Alert.alert('Reading quest submitted!', 'Your Party Leader can now review it.');
+  }
+
   const complete = async (quest: Quest) => {
     if (['rewarded', 'pending_approval', 'expired'].includes(quest.status)) return;
+    if (isReadingQuest(quest)) {
+      await openReading(quest);
+      return;
+    }
     if (quest.kind === 'timer') {
       try {
         const now = new Date();
@@ -263,6 +329,7 @@ export function HomeHeroApp() {
 
   const signOut = async () => {
     setOpenMaths(null);
+    setReading(null);
     setMathsStartError(null);
     if (!supabase || signingOut) return;
     setSigningOut(true);
@@ -327,6 +394,10 @@ export function HomeHeroApp() {
       {openMaths && openMaths.heroId === heroId && !signingOut && <MathsQuest initial={openMaths.attempt}
         onRecord={maths.record} onClose={() => { setOpenMaths(null); void maths.refresh(); }}
         onCompleted={() => { if (data.backendEnabled) void data.refresh(); }} />}
+      {reading && reading.heroId === heroId && readingProgress && readingStory && !signingOut &&
+        <ReadingQuest key={reading.key} story={readingStory} progress={readingProgress} timerEndsAt={reading.quest.timerEndsAt}
+          onProgress={progress => setReadingByQuest(current => ({ ...current, [reading.key]: progress }))}
+          onClose={() => setReading(null)} onSubmit={submitReading} />}
       <TimerModal quest={timerQuest} onClose={() => setTimerQuest(null)} onFinish={async () => { if (!timerQuest) return; try { if (data.backendEnabled) await data.finishTimer(timerQuest); else householdData.finishTimerQuest(timerQuest); setTimerQuest(null); Alert.alert('Timer complete!', `${timerQuest.title} was sent to your Party Leader for approval.`); } catch (cause) { showError(cause); } }} />
     </SafeAreaView>
   );
@@ -358,7 +429,9 @@ function ChildToday({ quests, onQuest, mobile, maths, mathsAvailable, mathsDone 
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Today's quests</Text><Text style={styles.muted}>{earned} of {total} complete</Text></View><Pill>{total ? Math.round(earned / total * 100) : 0}%</Pill></View>
       {maths}
-      {quests.map(quest => <QuestCard key={quest.id} quest={quest} onPress={() => onQuest(quest)} />)}
+      {quests.map(quest => <QuestCard key={quest.id}
+        quest={isReadingQuest(quest) ? { ...quest, description: 'Read a story and answer 3 questions' } : quest}
+        onPress={() => onQuest(quest)} />)}
       {!mobile && <Panel style={{ backgroundColor: '#FFF7DE' }}><Text style={styles.tipTitle}>⚡ Perfect week in reach</Text><Text style={styles.muted}>Keep your daily quests going through Sunday to earn +5 bonus XP.</Text></Panel>}
     </ScrollView>
   );

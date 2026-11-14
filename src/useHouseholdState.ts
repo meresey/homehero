@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initialHouseholdState } from './householdData';
 import { HeroBalance, HeroProfile, HeroSummary, HouseholdState, Quest } from './types';
 import { isQuestAgeAppropriate } from './ageEligibility';
+import { isReadingQuest } from './reading';
 
 const HOUSEHOLD_STORAGE_KEY = 'home-hero.household.v2';
 
@@ -241,7 +242,7 @@ function completeFinishedTimers(state: HouseholdState, now: Date) {
   let changed = false;
   let next = state;
   Object.entries(state.heroQuests).forEach(([heroId, quests]) => quests.forEach(quest => {
-    if (quest.kind === 'timer' && quest.status === 'in_progress' && quest.timerEndsAt && new Date(quest.timerEndsAt) <= now) {
+    if (quest.kind === 'timer' && !isReadingQuest(quest) && quest.status === 'in_progress' && quest.timerEndsAt && new Date(quest.timerEndsAt) <= now) {
       next = submitFinishedTimer(next, heroId, quest.id, now);
       changed = true;
     }

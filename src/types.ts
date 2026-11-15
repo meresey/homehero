@@ -1,5 +1,6 @@
 export type QuestKind = 'daily' | 'timer' | 'guild' | 'bedtime';
 export type QuestStatus = 'available' | 'in_progress' | 'pending_approval' | 'rewarded' | 'expired';
+export type SchoolSchedule = 'year_round' | 'term_weekdays';
 export type GuildScheduleMode = 'any_week' | 'specific_day';
 
 export type Quest = {
@@ -17,6 +18,7 @@ export type Quest = {
   cutoffLabel?: string;
   cadence?: 'daily' | 'weekly' | 'guild';
   scheduleLabel?: string;
+  schoolSchedule?: SchoolSchedule;
   guildScheduleMode?: GuildScheduleMode;
   guildDayOfWeek?: number;
   minimumAge?: number;

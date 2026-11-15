@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { SchoolSchedule } from '../types';
 
 export type QuestAdminInput = {
   householdId: string;
@@ -14,6 +15,7 @@ export type QuestAdminInput = {
   daysOfWeek: number[];
   localCutoff?: string;
   scheduleLabel?: string;
+  schoolSchedule?: SchoolSchedule;
   minimumAge?: number;
   maximumAge?: number;
 };
@@ -35,6 +37,7 @@ export async function saveQuest(input: QuestAdminInput) {
     p_days_of_week: input.daysOfWeek,
     p_local_cutoff: input.localCutoff ?? null,
     p_schedule_label: input.scheduleLabel ?? null,
+    p_school_schedule: input.schoolSchedule ?? 'year_round',
     p_minimum_age: input.minimumAge ?? null,
     p_maximum_age: input.maximumAge ?? null,
     p_catalog_quest_id: input.catalogQuestId ?? null,

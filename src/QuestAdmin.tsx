@@ -3,14 +3,15 @@ import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, Te
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { EmptyState, PageHeading, Panel, Pill } from './components';
 import { colors } from './theme';
-import { GuildScheduleMode, HeroProfile, Quest, QuestAssignment } from './types';
+import { GuildScheduleMode, SchoolSchedule, HeroProfile, Quest, QuestAssignment } from './types';
 import { EmojiPickerField } from './EmojiPicker';
 import { COIN_ICON, coinFriendlyMessage } from './economy';
 import { calculateAge, formatQuestAgeRange } from './ageEligibility';
 import { questXpForKind } from './questXp';
+import { questSchoolSchedule } from './schoolCalendar';
 
 type Category = 'all' | 'daily' | 'weekly' | 'guild';
-type Draft = { title: string; description: string; emoji: string; cadence: Exclude<Category, 'all'>; scheduleLabel: string; guildScheduleMode: GuildScheduleMode; guildDayOfWeek: number; stars: string; timerMinutes: string; minimumAge: string; maximumAge: string };
+type Draft = { title: string; description: string; emoji: string; cadence: Exclude<Category, 'all'>; scheduleLabel: string; schoolSchedule: SchoolSchedule; guildScheduleMode: GuildScheduleMode; guildDayOfWeek: number; stars: string; timerMinutes: string; minimumAge: string; maximumAge: string };
 
 const weekdays = [
   { value: 1, short: 'Mon', label: 'Monday' },
@@ -22,7 +23,7 @@ const weekdays = [
   { value: 7, short: 'Sun', label: 'Sunday' },
 ] as const;
 
-const emptyDraft: Draft = { title: '', description: '', emoji: '✨', cadence: 'daily', scheduleLabel: 'Every day', guildScheduleMode: 'any_week', guildDayOfWeek: 6, stars: '1', timerMinutes: '', minimumAge: '', maximumAge: '' };
+const emptyDraft: Draft = { title: '', description: '', emoji: '✨', cadence: 'daily', scheduleLabel: 'Every day', schoolSchedule: 'year_round', guildScheduleMode: 'any_week', guildDayOfWeek: 6, stars: '1', timerMinutes: '', minimumAge: '', maximumAge: '' };
 
 type QuestAdminProps = { quests: Quest[]; retiredQuests?: Quest[]; pendingTemplateIds?: string[]; heroes?: HeroProfile[]; assignments?: QuestAssignment[]; catalog?: Quest[]; onSave: (quest: Quest, heroIds: string[]) => boolean | Promise<boolean>; onRemove: (id: string) => boolean | Promise<boolean>; onRestore: (id: string) => boolean | Promise<boolean> };
 
@@ -98,7 +99,7 @@ export function QuestAdmin({ quests, retiredQuests = [], pendingTemplateIds = []
         <View style={styles.questCopy}>
           <View style={styles.titleRow}><Text style={styles.questTitle}>{q.title}</Text><Pill tone={q.cadence === 'guild' ? 'purple' : q.cadence === 'weekly' ? 'gold' : 'green'}>{(q.cadence ?? 'daily').toUpperCase()}</Pill></View>
           {!mobile && <Text style={styles.description}>{q.description}</Text>}
-          <Text style={styles.meta}>{q.scheduleLabel ?? 'Every day'}{!mobile && `  ·  ${formatQuestAgeRange(q)}`}  ·  {COIN_ICON} {q.stars}  ·  ✦ {q.xp} XP{q.timerMinutes ? `  ·  ◷ ${q.timerMinutes} min` : ''}</Text>
+          <Text style={styles.meta}>{q.scheduleLabel ?? 'Every day'}{questSchoolSchedule(q) === 'term_weekdays' && ' · School terms'}{!mobile && `  ·  ${formatQuestAgeRange(q)}`}  ·  {COIN_ICON} {q.stars}  ·  ✦ {q.xp} XP{q.timerMinutes ? `  ·  ◷ ${q.timerMinutes} min` : ''}</Text>
           {view === 'household' && <Text style={styles.assigned}>{assignmentIds(q.id).length ? `Assigned to ${heroes.filter(hero => assignmentIds(q.id).includes(hero.id)).map(hero => `${hero.avatarEmoji} ${hero.displayName}`).join(', ')}` : 'Not assigned to a Hero'}</Text>}
           {view === 'household' && pendingTemplateIds.includes(q.templateId ?? q.id) && <Text style={styles.pendingNote}>Pending approval · review before retiring</Text>}
           {view === 'retired' && <Text style={styles.retiredNote}>Past completions and earned points are preserved.</Text>}
@@ -133,7 +134,7 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
   useEffect(() => {
     setFormError(null); setSaving(false);
     if (!value || value === 'new') return setDraft(emptyDraft);
-    setDraft({ title: value.title, description: value.description, emoji: value.emoji, cadence: value.cadence ?? 'daily', scheduleLabel: value.scheduleLabel ?? 'Every day', guildScheduleMode: value.guildScheduleMode ?? (dayFromLabel(value.scheduleLabel) ? 'specific_day' : 'any_week'), guildDayOfWeek: value.guildDayOfWeek ?? dayFromLabel(value.scheduleLabel) ?? 6, stars: String(value.stars), timerMinutes: value.kind === 'guild' ? '' : value.timerMinutes ? String(value.timerMinutes) : '', minimumAge: value.minimumAge == null ? '' : String(value.minimumAge), maximumAge: value.maximumAge == null ? '' : String(value.maximumAge) });
+    setDraft({ title: value.title, description: value.description, emoji: value.emoji, cadence: value.cadence ?? 'daily', scheduleLabel: value.scheduleLabel ?? 'Every day', schoolSchedule: questSchoolSchedule(value), guildScheduleMode: value.guildScheduleMode ?? (dayFromLabel(value.scheduleLabel) ? 'specific_day' : 'any_week'), guildDayOfWeek: value.guildDayOfWeek ?? dayFromLabel(value.scheduleLabel) ?? 6, stars: String(value.stars), timerMinutes: value.kind === 'guild' ? '' : value.timerMinutes ? String(value.timerMinutes) : '', minimumAge: value.minimumAge == null ? '' : String(value.minimumAge), maximumAge: value.maximumAge == null ? '' : String(value.maximumAge) });
   }, [value]);
   if (!value) return null;
   const set = <K extends keyof Draft>(key: K, next: Draft[K]) => { setFormError(null); setDraft(old => ({ ...old, [key]: next })); };
@@ -149,6 +150,9 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
   const submit = async () => {
     if (saving) return;
     setFormError(null);
+    if (draft.schoolSchedule === 'term_weekdays' && draft.cadence === 'guild' && draft.guildScheduleMode === 'specific_day' && draft.guildDayOfWeek > 5) {
+      return setFormError('Choose a weekday or change the school calendar setting to Year-round.');
+    }
     if (!draft.title.trim()) return setFormError('Give this quest a short, encouraging name.');
     const stars = Math.max(0, Number.parseInt(draft.stars, 10) || 0); const timer = draft.cadence === 'guild' ? undefined : Number.parseInt(draft.timerMinutes, 10) || undefined;
     if (stars > 100) return setFormError('Coins must be between 0 and 100.');
@@ -163,7 +167,7 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
     const scheduleLabel = draft.cadence === 'guild'
       ? draft.guildScheduleMode === 'any_week' ? 'Any day this week' : weekdays.find(day => day.value === draft.guildDayOfWeek)?.label ?? 'Saturday'
       : draft.scheduleLabel.trim() || 'Every day';
-    const quest = { id: value === 'new' ? `quest-${Date.now()}` : value.id, templateId: isExisting && value !== 'new' ? value.templateId ?? value.id : undefined, catalogQuestId: value === 'new' ? undefined : value.catalogQuestId, title: draft.title.trim(), description: draft.description.trim() || 'A new heroic challenge', emoji: draft.emoji.trim() || '✨', cadence: draft.cadence, scheduleLabel, guildScheduleMode, guildDayOfWeek, kind, cutoffLabel: value === 'new' ? undefined : value.cutoffLabel, status: 'available' as const, stars, xp, timerMinutes: timer, minimumAge, maximumAge };
+    const quest = { id: value === 'new' ? `quest-${Date.now()}` : value.id, templateId: isExisting && value !== 'new' ? value.templateId ?? value.id : undefined, catalogQuestId: value === 'new' ? undefined : value.catalogQuestId, title: draft.title.trim(), description: draft.description.trim() || 'A new heroic challenge', emoji: draft.emoji.trim() || '✨', cadence: draft.cadence, scheduleLabel, schoolSchedule: draft.schoolSchedule, guildScheduleMode, guildDayOfWeek, kind, cutoffLabel: value === 'new' ? undefined : value.cutoffLabel, status: 'available' as const, stars, xp, timerMinutes: timer, minimumAge, maximumAge };
     const eligible = selectedHeroIds.filter(id => { const hero = heroes.find(item => item.id === id); return hero && isAgeEligible(quest, hero); });
     setSaving(true);
     try {
@@ -190,6 +194,13 @@ function QuestEditor({ value, heroes, selectedHeroIds, onSelectedHeroIds, isExis
         </View>
         {draft.guildScheduleMode === 'specific_day' && <View style={styles.weekdays}>{weekdays.map(day => <Pressable accessibilityLabel={day.label} key={day.value} onPress={() => set('guildDayOfWeek', day.value)} style={[styles.weekday, draft.guildDayOfWeek === day.value && styles.weekdayActive]}><Text style={[styles.weekdayText, draft.guildDayOfWeek === day.value && styles.weekdayTextActive]}>{day.short}</Text></Pressable>)}</View>}
       </Field> : <Field label="Schedule"><TextInput value={draft.scheduleLabel} onChangeText={text => set('scheduleLabel', text)} placeholder="Mon–Fri" style={styles.input} /></Field>}
+      <Field label="School calendar">
+        <View style={styles.segment}>
+          <Pressable accessibilityRole="button" accessibilityState={{ selected: draft.schoolSchedule === 'year_round' }} onPress={() => set('schoolSchedule', 'year_round')} style={[styles.segmentItem, draft.schoolSchedule === 'year_round' && styles.segmentActive]}><Text style={[styles.segmentText, draft.schoolSchedule === 'year_round' && styles.segmentTextActive]}>Year-round</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityState={{ selected: draft.schoolSchedule === 'term_weekdays' }} onPress={() => set('schoolSchedule', 'term_weekdays')} style={[styles.segmentItem, draft.schoolSchedule === 'term_weekdays' && styles.segmentActive]}><Text style={[styles.segmentText, draft.schoolSchedule === 'term_weekdays' && styles.segmentTextActive]}>Term weekdays</Text></Pressable>
+        </View>
+        {draft.schoolSchedule === 'term_weekdays' && <Text style={styles.fieldHint}>Available Monday to Friday during Kenya’s primary and junior school terms. School breaks are skipped.</Text>}
+      </Field>
       <Field label="Age suitability"><Text style={styles.fieldHint}>Leave both fields blank to make this quest available to all ages.</Text><View style={styles.twoColumns}><TextInput accessibilityLabel="Minimum age" value={draft.minimumAge} onChangeText={text => set('minimumAge', text.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="Minimum age" style={[styles.input, styles.half]} /><TextInput accessibilityLabel="Maximum age" value={draft.maximumAge} onChangeText={text => set('maximumAge', text.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="Maximum age" style={[styles.input, styles.half]} /></View></Field>
       <Field label="Assign to Heroes"><Text style={styles.fieldHint}>Each Hero keeps their own completion status. Ineligible Heroes cannot be selected. You can save the quest without an assignment.</Text><View style={styles.heroChoices}>{heroes.map(hero => { const eligible = isAgeEligible(previewQuest, hero); const selected = eligible && selectedHeroIds.includes(hero.id); const age = calculateAge(hero.dateOfBirth); return <Pressable key={hero.id} disabled={!eligible || saving} onPress={() => onSelectedHeroIds(selected ? selectedHeroIds.filter(id => id !== hero.id) : [...selectedHeroIds, hero.id])} style={[styles.heroChoice, selected && styles.heroChoiceSelected, !eligible && styles.heroChoiceDisabled]}><Text style={styles.heroChoiceEmoji}>{hero.avatarEmoji}</Text><Text style={[styles.heroChoiceText, selected && styles.heroChoiceTextSelected]}>{hero.displayName}</Text><Text style={styles.heroAge}>{age === null ? 'Age not set' : `Age ${age}`}</Text></Pressable>; })}</View></Field>
       <Field label="Coins"><TextInput value={draft.stars} onChangeText={text => set('stars', text)} keyboardType="number-pad" style={[styles.input, styles.smallField]} /></Field>

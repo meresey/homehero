@@ -31,6 +31,7 @@ import { isMathsGrade, mathsComplete, mathsDate, MATHS_XP } from './maths';
 import type { MathsAttempt } from './maths';
 import { useDailyMaths } from './useDailyMaths';
 import { isReadingQuest, readingStoryById, selectReadingStory } from './reading';
+import { questSchoolSchedule, showScheduledQuest } from './schoolCalendar';
 import { ReadingQuest } from './ReadingQuest';
 import type { ReadingProgress } from './ReadingQuest';
 
@@ -188,6 +189,7 @@ export function HomeHeroApp() {
 
   const complete = async (quest: Quest) => {
     if (['rewarded', 'pending_approval', 'expired'].includes(quest.status)) return;
+    if (!showScheduledQuest(questSchoolSchedule(quest), quest.status, mathsDate(new Date(), householdTimeZone))) return;
     if (isReadingQuest(quest)) {
       await openReading(quest);
       return;
@@ -273,7 +275,7 @@ export function HomeHeroApp() {
         const daysOfWeek = quest.cadence === 'guild'
           ? quest.guildScheduleMode === 'specific_day' ? [quest.guildDayOfWeek ?? 6] : [1,2,3,4,5,6,7]
           : quest.cadence === 'weekly' ? [1] : [1,2,3,4,5,6,7];
-        await saveQuestToDatabase({ householdId: data.family.householdId, childIds: heroIds, templateId: quest.templateId, catalogQuestId: quest.catalogQuestId, title: quest.title, description: quest.description, iconKey: quest.emoji, cadence: quest.cadence ?? 'daily', stars: quest.stars, timerMinutes: quest.timerMinutes, daysOfWeek, scheduleLabel: quest.scheduleLabel, minimumAge: quest.minimumAge, maximumAge: quest.maximumAge });
+        await saveQuestToDatabase({ householdId: data.family.householdId, childIds: heroIds, templateId: quest.templateId, catalogQuestId: quest.catalogQuestId, title: quest.title, description: quest.description, iconKey: quest.emoji, cadence: quest.cadence ?? 'daily', stars: quest.stars, timerMinutes: quest.timerMinutes, daysOfWeek, scheduleLabel: quest.scheduleLabel, schoolSchedule: quest.schoolSchedule, minimumAge: quest.minimumAge, maximumAge: quest.maximumAge });
         await data.refresh(); Alert.alert('Quest saved', `“${quest.title}” is ready.`);
         return true;
       } catch (cause) { throw cause; }

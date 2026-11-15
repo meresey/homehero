@@ -4,6 +4,8 @@ import { initialHouseholdState } from './householdData';
 import { HeroBalance, HeroProfile, HeroSummary, HouseholdState, Quest } from './types';
 import { isQuestAgeAppropriate } from './ageEligibility';
 import { isReadingQuest } from './reading';
+import { questSchoolSchedule, showScheduledQuest } from './schoolCalendar';
+import { mathsDate } from './maths';
 
 const HOUSEHOLD_STORAGE_KEY = 'home-hero.household.v2';
 
@@ -13,11 +15,13 @@ export function useHouseholdState(enabled = true) {
   const selectedHeroId = state.selectedHero.heroId ?? state.heroes[0]?.id;
   const selectedHero = state.heroes.find(hero => hero.id === selectedHeroId) ?? state.heroes[0];
   const selectedBalance = state.balances.find(balance => balance.heroId === selectedHero?.id) ?? emptyBalance(selectedHero?.id);
+  const schoolDay = mathsDate(new Date(), state.household.timezone);
   const selectedAllQuests = state.heroQuests[selectedHero?.id] ?? [];
   const selectedQuests = selectedAllQuests.filter(quest => {
     const templateId = quest.templateId ?? quest.id;
     return state.questAssignments.some(assignment => assignment.heroId === selectedHero?.id && assignment.questId === templateId && assignment.active)
-      && isQuestAgeAppropriate(quest, selectedHero?.dateOfBirth ?? '');
+      && isQuestAgeAppropriate(quest, selectedHero?.dateOfBirth ?? '')
+      && showScheduledQuest(questSchoolSchedule(quest), quest.status, schoolDay);
   });
   const selectedBadges = state.heroBadges
     .filter(earned => earned.heroId === selectedHero?.id)
@@ -167,7 +171,7 @@ export function useHouseholdState(enabled = true) {
     setState(current => awardCompletedStreaks(current));
   }, [enabled, hydrated, state.completionHistory]);
 
-  const summaries = useMemo(() => state.heroes.map(hero => buildSummary(state, hero)), [state]);
+  const summaries = useMemo(() => state.heroes.map(hero => buildSummary(state, hero, schoolDay)), [state, schoolDay]);
 
   return {
     state,
@@ -287,9 +291,9 @@ function awardCompletedStreaks(state: HouseholdState) {
 
 function emptyBalance(heroId = ''): HeroBalance { return { heroId, stars: 0, lifetimeXp: 0 }; }
 
-function buildSummary(state: HouseholdState, hero: HeroProfile): HeroSummary {
+function buildSummary(state: HouseholdState, hero: HeroProfile, schoolDay: string): HeroSummary {
   const balance = state.balances.find(item => item.heroId === hero.id) ?? emptyBalance(hero.id);
-  const quests = (state.heroQuests[hero.id] ?? []).filter(quest => state.questAssignments.some(assignment => assignment.heroId === hero.id && assignment.questId === (quest.templateId ?? quest.id) && assignment.active) && isQuestAgeAppropriate(quest, hero.dateOfBirth));
+  const quests = (state.heroQuests[hero.id] ?? []).filter(quest => state.questAssignments.some(assignment => assignment.heroId === hero.id && assignment.questId === (quest.templateId ?? quest.id) && assignment.active) && isQuestAgeAppropriate(quest, hero.dateOfBirth) && showScheduledQuest(questSchoolSchedule(quest), quest.status, schoolDay));
   return {
     heroId: hero.id,
     displayName: hero.displayName,

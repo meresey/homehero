@@ -4,6 +4,8 @@ import { initialQuests } from './data';
 import { backendEnabled, supabase } from './lib/supabase';
 import { BadgeDefinition, BadgeProgress, HeroProfile, Quest, QuestAssignment, QuestCompletion, QuestKind, QuestStatus, Reward, RewardRedemption, StreakAward } from './types';
 import { coinFriendlyMessage } from './economy';
+import { respectsSchoolSchedule, showScheduledQuest } from './schoolCalendar';
+import type { SchoolSchedule } from './types';
 
 type FamilyContext = { householdId: string; householdName: string; inviteCode: string; childId: string | null; role: 'parent' | 'child'; displayName: string; timezone: string; dateOfBirth: string };
 export type ParentDashboardSummary = {
@@ -123,11 +125,11 @@ export function useHomeHeroData() {
           childIds.length
             ? supabase.from('managed_hero_accounts').select('user_id,username').eq('household_id', membership.household_id).in('user_id', childIds).order('created_at')
             : Promise.resolve({ data: [], error: null }),
-          supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_templates(title,kind)').eq('household_id', membership.household_id).eq('occurrence_date', today),
-          supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_assignments!inner(days_of_week),quest_templates!inner(title,kind)').eq('household_id', membership.household_id).eq('quest_templates.kind', 'guild').gte('occurrence_date', weekStart).lte('occurrence_date', today).in('status', ['available','pending_approval','rewarded']),
+          supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_templates(title,kind,school_schedule)').eq('household_id', membership.household_id).eq('occurrence_date', today),
+          supabase.from('quest_instances').select('id,child_id,status,cutoff_at,quest_assignments!inner(days_of_week),quest_templates!inner(title,kind,school_schedule)').eq('household_id', membership.household_id).eq('quest_templates.kind', 'guild').gte('occurrence_date', weekStart).lte('occurrence_date', today).in('status', ['available','pending_approval','rewarded']),
           supabase.from('quest_instances').select('child_id,star_reward_snapshot').eq('household_id', membership.household_id).eq('status', 'rewarded').gte('occurrence_date', weekStart).lte('occurrence_date', weekEnd),
           childIds.length
-            ? supabase.from('quest_assignments').select('id,quest_template_id,child_id,created_at,starts_on,ends_on,days_of_week,quest_templates(star_reward,is_active,kind,minimum_age,maximum_age)').in('child_id', childIds).eq('active', true)
+            ? supabase.from('quest_assignments').select('id,quest_template_id,child_id,created_at,starts_on,ends_on,days_of_week,quest_templates(star_reward,is_active,kind,minimum_age,maximum_age,school_schedule)').in('child_id', childIds).eq('active', true)
             : Promise.resolve({ data: [], error: null }),
           childIds.length
             ? supabase.from('weekly_goals').select('child_id,target_stars').eq('household_id', membership.household_id).eq('week_start', weekStart)
@@ -172,7 +174,9 @@ export function useHomeHeroData() {
           daysOfWeek: assignment.days_of_week,
         })));
         const activeWeeklyGuildRows = (openGuildRows ?? []).filter(row => ((row.quest_assignments as unknown as { days_of_week: number[] })?.days_of_week ?? []).length === 7);
-        const dashboardRows = mergeRowsById(todayRows ?? [], activeWeeklyGuildRows);
+        const dashboardRows = mergeRowsById(todayRows ?? [], activeWeeklyGuildRows).filter(row =>
+          showScheduledQuest((row.quest_templates as unknown as { school_schedule?: SchoolSchedule })?.school_schedule, row.status, today)
+        );
         const earnedByHero = new Map<string, number>();
         for (const row of weekRows ?? []) earnedByHero.set(row.child_id, (earnedByHero.get(row.child_id) ?? 0) + row.star_reward_snapshot);
         const goalByHero = new Map((goals ?? []).map(goal => [goal.child_id, goal.target_stars]));
@@ -206,10 +210,10 @@ export function useHomeHeroData() {
           safeZone: safeZoneRow && safeTemplate ? { title: safeTemplate.title, heroName: heroNamesById.get(safeZoneRow.child_id) ?? 'Hero', cutoffAt: safeZoneRow.cutoff_at as string } : null,
         });
         const [catalogResult, rewardCatalogResult, questsResult, retiredQuestsResult, pendingResult, timersResult] = await Promise.all([
-          supabase.from('quest_catalog').select('id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('is_active', true).order('created_at'),
+          supabase.from('quest_catalog').select('id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age,school_schedule').eq('is_active', true).order('created_at'),
           supabase.from('reward_catalog').select('id,title,description,icon_key,star_cost').eq('is_active', true).order('star_cost'),
-          supabase.from('quest_templates').select('id,catalog_quest_id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('household_id',membership.household_id).eq('is_active',true).order('created_at'),
-          supabase.from('quest_templates').select('id,catalog_quest_id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age').eq('household_id',membership.household_id).eq('is_active',false).order('archived_at', { ascending: false }),
+          supabase.from('quest_templates').select('id,catalog_quest_id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age,school_schedule').eq('household_id',membership.household_id).eq('is_active',true).order('created_at'),
+          supabase.from('quest_templates').select('id,catalog_quest_id,title,description,icon_key,kind,cadence,schedule_label,star_reward,xp_reward,timer_seconds,minimum_age,maximum_age,school_schedule').eq('household_id',membership.household_id).eq('is_active',false).order('archived_at', { ascending: false }),
           supabase.from('quest_instances').select('id,child_id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('household_id', membership.household_id).eq('status', 'pending_approval').order('completed_at', { ascending: false }),
           supabase.from('quest_instances').select('id,child_id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age)').eq('household_id', membership.household_id).eq('status', 'in_progress').eq('quest_templates.kind', 'timer').order('timer_expected_end_at'),
         ]);
@@ -244,8 +248,8 @@ export function useHomeHeroData() {
         const today = dateKey(new Date(), household.timezone);
         const weekStart = startOfWeek(today);
         const [questsResult, weeklyGuildResult, badgesResult, completionsResult, streaksResult] = await Promise.all([
-          supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active,quest_catalog(slug))').eq('child_id',childId).eq('occurrence_date',today).eq('quest_templates.is_active',true).order('available_at'),
-          supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_assignments!inner(days_of_week),quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active,quest_catalog(slug))').eq('child_id',childId).eq('quest_templates.kind','guild').eq('quest_templates.is_active',true).gte('occurrence_date',weekStart).lte('occurrence_date',today).in('status',['available','pending_approval','rewarded']).order('available_at'),
+          supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active,school_schedule,quest_catalog(slug))').eq('child_id',childId).eq('occurrence_date',today).eq('quest_templates.is_active',true).order('available_at'),
+          supabase.from('quest_instances').select('id,quest_template_id,status,star_reward_snapshot,xp_reward_snapshot,cutoff_at,timer_started_at,timer_expected_end_at,submitted_at,quest_assignments!inner(days_of_week),quest_templates!inner(title,description,icon_key,kind,cadence,schedule_label,timer_seconds,minimum_age,maximum_age,is_active,school_schedule,quest_catalog(slug))').eq('child_id',childId).eq('quest_templates.kind','guild').eq('quest_templates.is_active',true).gte('occurrence_date',weekStart).lte('occurrence_date',today).in('status',['available','pending_approval','rewarded']).order('available_at'),
           supabase.rpc('get_my_badge_progress'),
           supabase.from('quest_instances').select('id,child_id,quest_template_id,occurrence_date,star_reward_snapshot,xp_reward_snapshot,rewarded_at,quest_templates!inner(title,icon_key,kind)').eq('child_id',childId).eq('status','rewarded').order('occurrence_date',{ ascending: false }).limit(1000),
           supabase.from('streak_awards').select('id,child_id,assignment_id,week_start,xp_awarded,created_at').eq('child_id',childId).order('week_start',{ ascending: false }).limit(100),
@@ -260,7 +264,9 @@ export function useHomeHeroData() {
         if (completionsError) throw completionsError;
         if (streaksError) throw streaksError;
         const activeWeeklyGuildRows = (weeklyGuildRows ?? []).filter(row => ((row.quest_assignments as unknown as { days_of_week: number[] })?.days_of_week ?? []).length === 7);
-        setQuests(mergeRowsById(data ?? [], activeWeeklyGuildRows).map(mapInstance));
+        setQuests(mergeRowsById(data ?? [], activeWeeklyGuildRows).map(mapInstance).filter(quest =>
+          showScheduledQuest(quest.schoolSchedule, quest.status, today)
+        ));
         setCompletionHistory((completionRows ?? []).map(mapCompletion));
         setStreakAwards((streakRows ?? []).map(row => ({ id: row.id, heroId: row.child_id, questId: row.assignment_id, weekStart: row.week_start, xpAwarded: row.xp_awarded, awardedAt: row.created_at })));
         setPendingQuests([]);
@@ -350,6 +356,19 @@ export function useHomeHeroData() {
   }, [refresh]);
 
   useEffect(() => {
+    if (!family?.timezone || !session?.user.id) return;
+    const timeZone = family.timezone;
+    let today = dateKey(new Date(), timeZone);
+    const interval = setInterval(() => {
+      const nextDay = dateKey(new Date(), timeZone);
+      if (today === nextDay) return;
+      today = nextDay;
+      void refresh();
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [family?.timezone, session?.user.id, refresh]);
+
+  useEffect(() => {
     if (!supabase || !session?.user.id || family?.role !== 'parent') return;
     const client = supabase;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
@@ -428,10 +447,12 @@ function mergeRowsById<T extends { id: string }>(first: T[], second: T[]) { cons
 function calculateWeeklyAvailability(rows: any[], childId: string, dateOfBirth: string | null, weekStart: string) {
   let total = 0;
   for (const row of rows.filter(item => item.child_id === childId)) {
-    const template = row.quest_templates as { star_reward: number; is_active: boolean; kind: QuestKind; minimum_age: number | null; maximum_age: number | null } | null;
+    const template = row.quest_templates as { star_reward: number; is_active: boolean; kind: QuestKind; minimum_age: number | null; maximum_age: number | null; school_schedule: SchoolSchedule } | null;
     if (!template?.is_active) continue;
     if (template.kind === 'guild' && (row.days_of_week as number[]).length === 7) {
-      const activeDuringWeek = row.starts_on <= addDays(weekStart, 6) && (!row.ends_on || row.ends_on >= weekStart);
+      const activeDuringWeek = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)).some(day =>
+        day >= row.starts_on && (!row.ends_on || day <= row.ends_on) && respectsSchoolSchedule(template.school_schedule, day)
+      );
       const age = dateOfBirth ? ageOnDate(dateOfBirth, weekStart) : null;
       if (activeDuringWeek && (age === null || template.minimum_age === null || age >= template.minimum_age) && (age === null || template.maximum_age === null || age <= template.maximum_age)) total += template.star_reward;
       continue;
@@ -439,7 +460,7 @@ function calculateWeeklyAvailability(rows: any[], childId: string, dateOfBirth: 
     for (let dayOffset = 0; dayOffset < 7; dayOffset += 1) {
       const occurrenceDate = addDays(weekStart, dayOffset);
       const isoDay = dayOffset + 1;
-      if (!(row.days_of_week as number[]).includes(isoDay)) continue;
+      if (!(row.days_of_week as number[]).includes(isoDay) || !respectsSchoolSchedule(template.school_schedule, occurrenceDate)) continue;
       if (occurrenceDate < row.starts_on || (row.ends_on && occurrenceDate > row.ends_on)) continue;
       const age = dateOfBirth ? ageOnDate(dateOfBirth, occurrenceDate) : null;
       if (age !== null && template.minimum_age !== null && age < template.minimum_age) continue;
@@ -458,9 +479,9 @@ function ageOnDate(dateOfBirth: string, date: string) {
   return age;
 }
 
-function mapTemplate(row: any): Quest { return { id: row.id, templateId: row.id, catalogQuestId: row.catalog_quest_id ?? undefined, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
-function mapCatalogQuest(row: any): Quest { return { id: row.id, catalogQuestId: row.id, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
-function mapInstance(row: any): Quest { const t = row.quest_templates; return { id: row.id, instanceId: row.id, templateId: row.quest_template_id, catalogSlug: t.quest_catalog?.slug, title: t.title, description: t.description ?? '', emoji: t.icon_key?.length <= 3 ? t.icon_key : '✨', kind: t.kind as QuestKind, cadence: t.cadence, scheduleLabel: t.schedule_label, status: row.status as QuestStatus, stars: row.star_reward_snapshot, xp: row.xp_reward_snapshot, timerMinutes: t.timer_seconds ? t.timer_seconds / 60 : undefined, timerStartedAt: row.timer_started_at ?? undefined, timerEndsAt: row.timer_expected_end_at ?? undefined, timerCompletedAt: row.submitted_at ?? undefined, minimumAge: t.minimum_age ?? undefined, maximumAge: t.maximum_age ?? undefined, cutoffLabel: row.cutoff_at ? new Date(row.cutoff_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : undefined }; }
+function mapTemplate(row: any): Quest { return { id: row.id, templateId: row.id, catalogQuestId: row.catalog_quest_id ?? undefined, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', schoolSchedule: row.school_schedule, status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
+function mapCatalogQuest(row: any): Quest { return { id: row.id, catalogQuestId: row.id, title: row.title, description: row.description ?? '', emoji: row.icon_key?.length <= 3 ? row.icon_key : '✨', kind: row.kind as QuestKind, cadence: row.cadence, scheduleLabel: row.schedule_label ?? 'Every day', schoolSchedule: row.school_schedule, status: 'available', stars: row.star_reward, xp: row.xp_reward, timerMinutes: row.timer_seconds ? row.timer_seconds / 60 : undefined, minimumAge: row.minimum_age ?? undefined, maximumAge: row.maximum_age ?? undefined }; }
+function mapInstance(row: any): Quest { const t = row.quest_templates; return { id: row.id, instanceId: row.id, templateId: row.quest_template_id, catalogSlug: t.quest_catalog?.slug, title: t.title, description: t.description ?? '', emoji: t.icon_key?.length <= 3 ? t.icon_key : '✨', kind: t.kind as QuestKind, cadence: t.cadence, scheduleLabel: t.schedule_label, schoolSchedule: t.school_schedule, status: row.status as QuestStatus, stars: row.star_reward_snapshot, xp: row.xp_reward_snapshot, timerMinutes: t.timer_seconds ? t.timer_seconds / 60 : undefined, timerStartedAt: row.timer_started_at ?? undefined, timerEndsAt: row.timer_expected_end_at ?? undefined, timerCompletedAt: row.submitted_at ?? undefined, minimumAge: t.minimum_age ?? undefined, maximumAge: t.maximum_age ?? undefined, cutoffLabel: row.cutoff_at ? new Date(row.cutoff_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : undefined }; }
 function mapCompletion(row: any): QuestCompletion { const template = row.quest_templates; return { id: row.id, heroId: row.child_id, questId: row.quest_template_id, questTitle: template.title, questEmoji: template.icon_key?.length <= 3 ? template.icon_key : '✨', questKind: template.kind as QuestKind, stars: row.star_reward_snapshot, xp: row.xp_reward_snapshot, completedAt: `${row.occurrence_date}T12:00:00` }; }
 function mapReward(row: any): Reward { return { id: row.id, rewardId: row.id, catalogRewardId: row.catalog_reward_id ?? undefined, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }
 function mapCatalogReward(row: any): Reward { return { id: row.id, catalogRewardId: row.id, title: row.title, subtitle: row.description ?? 'Parent-approved reward', emoji: row.icon_key || '🎁', cost: row.star_cost }; }

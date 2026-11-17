@@ -1,3 +1,5 @@
+import type { QuestHours, QuestWindow } from './questWindows';
+
 export type QuestKind = 'daily' | 'timer' | 'guild' | 'bedtime';
 export type QuestStatus = 'available' | 'in_progress' | 'pending_approval' | 'rewarded' | 'expired';
 export type SchoolSchedule = 'year_round' | 'term_weekdays';
@@ -16,6 +18,9 @@ export type Quest = {
   xp: number;
   timerMinutes?: number;
   cutoffLabel?: string;
+  cutoffAt?: string;
+  expiresAt?: string;
+  window?: QuestWindow;
   cadence?: 'daily' | 'weekly' | 'guild';
   scheduleLabel?: string;
   schoolSchedule?: SchoolSchedule;
@@ -62,6 +67,7 @@ export type Household = {
   id: string;
   name: string;
   timezone: string;
+  questHours?: QuestHours;
   heroIds: string[];
 };
 

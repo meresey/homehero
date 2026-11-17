@@ -1,3 +1,4 @@
+import type { QuestWindow } from '../questWindows';
 import { supabase } from './supabase';
 import type { SchoolSchedule } from '../types';
 
@@ -16,6 +17,7 @@ export type QuestAdminInput = {
   localCutoff?: string;
   scheduleLabel?: string;
   schoolSchedule?: SchoolSchedule;
+  window?: QuestWindow;
   minimumAge?: number;
   maximumAge?: number;
 };
@@ -38,6 +40,7 @@ export async function saveQuest(input: QuestAdminInput) {
     p_local_cutoff: input.localCutoff ?? null,
     p_schedule_label: input.scheduleLabel ?? null,
     p_school_schedule: input.schoolSchedule ?? 'year_round',
+    p_time_window: input.window ?? 'anytime',
     p_minimum_age: input.minimumAge ?? null,
     p_maximum_age: input.maximumAge ?? null,
     p_catalog_quest_id: input.catalogQuestId ?? null,

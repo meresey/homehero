@@ -1,3 +1,6 @@
+import { QuestHoursSettings } from './QuestHoursSettings';
+import { defaultQuestHours, questClock, questWindowState } from './questWindows';
+import type { QuestHours } from './questWindows';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, SafeAreaView, ScrollView, SectionList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -64,6 +67,11 @@ export function HomeHeroApp() {
     ? data.backendEnabled ? data.family?.childId ?? null : householdData.selectedHero.id
     : null;
   const householdTimeZone = data.family?.timezone ?? householdData.state.household.timezone;
+  const questHours = (data.backendEnabled ? data.family?.questHours : householdData.state.household.questHours) ?? defaultQuestHours;
+  function currentQuestWindow(quest: Quest) {
+    const now = new Date();
+    return questWindowState(quest, now, questClock(now, householdTimeZone), questHours);
+  }
   const maths = useDailyMaths({
     householdId: data.backendEnabled ? data.family?.householdId ?? null : householdData.state.household.id,
     heroId,
@@ -125,12 +133,20 @@ export function HomeHeroApp() {
     }
   }
 
-  const mathsSettings = activeRole === 'parent' && <MathsGradeSettings
+  const learningAndQuestSettings = activeRole === 'parent' && <>
+    <MathsGradeSettings
     heroes={data.backendEnabled ? data.heroes : householdData.state.heroes.map(hero => ({ ...hero, schoolGrade: maths.localGrades[hero.id] }))}
     onSave={async (childId, grade) => {
       await maths.setGrade(childId, grade);
       if (data.backendEnabled) await data.refresh();
-    }} />;
+    }} />
+    <QuestHoursSettings hours={questHours} timezone={householdTimeZone} onSave={async (hours) => {
+      if (!supabase) return householdData.setQuestHours(hours);
+      const { error } = await supabase.rpc('set_household_quest_hours', { p_household_id: data.family?.householdId, p_hours: hours });
+      if (error) throw error;
+      await data.refresh();
+    }} />
+  </>;
 
   async function openReading(quest: Quest) {
     if (!heroId || startingReading.current || !readingHydrated) return;
@@ -142,7 +158,7 @@ export function HomeHeroApp() {
       let activeQuest = quest;
       if (quest.kind === 'timer' && quest.status !== 'in_progress') {
         const times = data.backendEnabled
-          ? await data.startReadingTimer(quest)
+          ? await data.startTimer(quest)
           : { timerStartedAt: now.toISOString(), timerEndsAt: new Date(now.getTime() + (quest.timerMinutes ?? 20) * 60_000).toISOString() };
         if (!data.backendEnabled) householdData.startTimerQuest(quest, times.timerStartedAt, times.timerEndsAt);
         activeQuest = { ...quest, ...times, status: 'in_progress' };
@@ -171,6 +187,8 @@ export function HomeHeroApp() {
     if (mathsDate(new Date(), householdTimeZone) !== reading.day) {
       throw new Error('A new day has started. Reopen Reading Adventure to continue.');
     }
+    const eligibility = currentQuestWindow({ ...reading.quest, status: 'in_progress' });
+    if (eligibility.kind !== 'open') throw new Error(eligibility.label);
     try {
       if (reading.quest.kind === 'timer') {
         if (data.backendEnabled) await data.finishTimer(reading.quest);
@@ -190,6 +208,8 @@ export function HomeHeroApp() {
   const complete = async (quest: Quest) => {
     if (['rewarded', 'pending_approval', 'expired'].includes(quest.status)) return;
     if (!showScheduledQuest(questSchoolSchedule(quest), quest.status, mathsDate(new Date(), householdTimeZone))) return;
+    const eligibility = currentQuestWindow(quest);
+    if (eligibility.kind !== 'open') return;
     if (isReadingQuest(quest)) {
       await openReading(quest);
       return;
@@ -197,8 +217,8 @@ export function HomeHeroApp() {
     if (quest.kind === 'timer') {
       try {
         const now = new Date();
-        const startedAt = quest.timerStartedAt ?? now.toISOString();
-        const endsAt = quest.timerEndsAt ?? new Date(now.getTime() + (quest.timerMinutes ?? 20) * 60_000).toISOString();
+        let startedAt = quest.timerStartedAt ?? now.toISOString();
+        let endsAt = quest.timerEndsAt ?? new Date(now.getTime() + (quest.timerMinutes ?? 20) * 60_000).toISOString();
         if (new Date(endsAt).getTime() <= now.getTime()) {
           if (data.backendEnabled) await data.finishTimer(quest);
           else householdData.finishTimerQuest(quest);
@@ -206,8 +226,11 @@ export function HomeHeroApp() {
           return;
         }
         if (quest.status !== 'in_progress') {
-          if (data.backendEnabled) await data.startTimer(quest);
-          else householdData.startTimerQuest(quest, startedAt, endsAt);
+          if (data.backendEnabled) {
+            const times = await data.startTimer(quest);
+            startedAt = times.timerStartedAt;
+            endsAt = times.timerEndsAt;
+          } else householdData.startTimerQuest(quest, startedAt, endsAt);
         }
         setTimerQuest({ ...quest, status: 'in_progress', timerStartedAt: startedAt, timerEndsAt: endsAt });
       } catch (cause) { showError(cause); }
@@ -275,7 +298,7 @@ export function HomeHeroApp() {
         const daysOfWeek = quest.cadence === 'guild'
           ? quest.guildScheduleMode === 'specific_day' ? [quest.guildDayOfWeek ?? 6] : [1,2,3,4,5,6,7]
           : quest.cadence === 'weekly' ? [1] : [1,2,3,4,5,6,7];
-        await saveQuestToDatabase({ householdId: data.family.householdId, childIds: heroIds, templateId: quest.templateId, catalogQuestId: quest.catalogQuestId, title: quest.title, description: quest.description, iconKey: quest.emoji, cadence: quest.cadence ?? 'daily', stars: quest.stars, timerMinutes: quest.timerMinutes, daysOfWeek, scheduleLabel: quest.scheduleLabel, schoolSchedule: quest.schoolSchedule, minimumAge: quest.minimumAge, maximumAge: quest.maximumAge });
+        await saveQuestToDatabase({ householdId: data.family.householdId, childIds: heroIds, templateId: quest.templateId, catalogQuestId: quest.catalogQuestId, title: quest.title, description: quest.description, iconKey: quest.emoji, cadence: quest.cadence ?? 'daily', stars: quest.stars, timerMinutes: quest.timerMinutes, daysOfWeek, scheduleLabel: quest.scheduleLabel, schoolSchedule: quest.schoolSchedule, window: quest.window, minimumAge: quest.minimumAge, maximumAge: quest.maximumAge });
         await data.refresh(); Alert.alert('Quest saved', `“${quest.title}” is ready.`);
         return true;
       } catch (cause) { throw cause; }
@@ -367,7 +390,7 @@ export function HomeHeroApp() {
             ? <TodayHeader name={heroName} level={currentHeroLevel.level} stars={stars} onProfile={() => setChildTab('hero')} />
             : <HeroHeader name={heroName} level={currentHeroLevel} stars={stars} xp={xp} badges={earnedBadgeCount} compact={mobile} />}
           <View style={styles.screen}>
-            {childTab === 'today' && <ChildToday quests={quests} onQuest={complete} mathsDay={maths.day}
+            {childTab === 'today' && <ChildToday quests={quests} onQuest={complete} questHours={questHours} timezone={householdTimeZone} mathsDay={maths.day}
               mathsError={mathsStartError ?? (!maths.day ? maths.error : null)}
               onMaths={() => void startMaths()} onMathsRetry={() => void maths.refresh()} />}
             {childTab === 'week' && <WeeklyBoard history={data.backendEnabled ? data.completionHistory : householdData.state.completionHistory.filter(item => item.heroId === householdData.selectedHero.id)} quests={quests} streakAwards={data.backendEnabled ? data.streakAwards : householdData.state.streakAwards.filter(item => item.heroId === householdData.selectedHero.id)} />}
@@ -380,8 +403,8 @@ export function HomeHeroApp() {
         </>
       ) : (
         <>
-          {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard mathsSettings={mathsSettings} household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} onOpenAttention={heroId => { householdData.setSelectedHero(heroId); setParentTab('approvals'); }} />}
-          {parentTab === 'home' && data.backendEnabled && <ParentHome mathsSettings={mathsSettings} householdName={data.family?.householdName ?? 'Your household'} householdId={data.family!.householdId} currentUserId={data.session!.user.id} dashboard={data.parentDashboard} pendingQuests={data.pendingQuests} pendingRewards={data.pendingRewards} runningTimers={data.runningTimers} onEnrollHero={() => setEnrollingHero(true)} onManageHero={setManagedHero} onOpenReview={() => setParentTab('approvals')} onOpenQuests={() => setParentTab('quests')} onOpenRewards={() => setParentTab('rewards')} />}
+          {parentTab === 'home' && !data.backendEnabled && <HouseholdDashboard questSettings={learningAndQuestSettings} household={householdData.state.household} heroes={householdData.summaries} levels={levelDefinitions} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onViewHero={heroId => { householdData.setSelectedHero(heroId); setRole('child'); setChildTab('today'); }} onOpenAttention={heroId => { householdData.setSelectedHero(heroId); setParentTab('approvals'); }} />}
+          {parentTab === 'home' && data.backendEnabled && <ParentHome questSettings={learningAndQuestSettings} householdName={data.family?.householdName ?? 'Your household'} householdId={data.family!.householdId} currentUserId={data.session!.user.id} dashboard={data.parentDashboard} pendingQuests={data.pendingQuests} pendingRewards={data.pendingRewards} runningTimers={data.runningTimers} onEnrollHero={() => setEnrollingHero(true)} onManageHero={setManagedHero} onOpenReview={() => setParentTab('approvals')} onOpenQuests={() => setParentTab('quests')} onOpenRewards={() => setParentTab('rewards')} />}
           {parentTab === 'quests' && <QuestAdmin quests={quests} retiredQuests={data.backendEnabled ? data.retiredQuests : localRetiredQuests} pendingTemplateIds={data.backendEnabled ? data.pendingQuests.map(item => item.templateId ?? item.id) : householdData.state.guildApprovals.filter(item => item.status === 'pending').map(item => item.questId)} heroes={data.backendEnabled ? data.heroes : householdData.state.heroes} assignments={data.backendEnabled ? data.questAssignments : householdData.state.questAssignments} catalog={data.backendEnabled ? data.questCatalog : demoQuestCatalog} onSave={saveQuest} onRemove={removeQuest} onRestore={restoreQuest} />}
           {parentTab === 'approvals' && !data.backendEnabled && <HouseholdReview heroes={householdData.summaries} heroQuests={householdData.state.heroQuests} rewards={localRewards} guildApprovals={householdData.state.guildApprovals} rewardRequests={householdData.state.rewardRequests} onReviewGuild={householdData.reviewGuildApproval} onReviewReward={householdData.reviewRewardRequest} onFulfillReward={householdData.fulfillRewardRequest} />}
           {parentTab === 'approvals' && data.backendEnabled && <Approvals quests={data.pendingQuests} runningTimers={data.runningTimers} rewards={data.pendingRewards} reviewQuest={reviewQuest} reviewReward={reviewReward} fulfillReward={fulfillReward} />}
@@ -401,7 +424,10 @@ export function HomeHeroApp() {
         <ReadingQuest key={reading.key} story={readingStory} progress={readingProgress} timerEndsAt={reading.quest.timerEndsAt}
           onProgress={progress => setReadingByQuest(current => ({ ...current, [reading.key]: progress }))}
           onClose={() => setReading(null)} onSubmit={submitReading} />}
-      <TimerModal quest={timerQuest} onClose={() => setTimerQuest(null)} onFinish={async () => { if (!timerQuest) return; try { if (data.backendEnabled) await data.finishTimer(timerQuest); else householdData.finishTimerQuest(timerQuest); setTimerQuest(null); Alert.alert('Timer complete!', `${timerQuest.title} was sent to your Party Leader for approval.`); } catch (cause) { showError(cause); } }} />
+      <TimerModal quest={timerQuest} onClose={() => setTimerQuest(null)} onFinish={async () => { if (!timerQuest) return; try {
+        const eligibility = currentQuestWindow(timerQuest);
+        if (eligibility.kind !== 'open') { setTimerQuest(null); Alert.alert(eligibility.label ?? 'Window closed'); return; }
+        if (data.backendEnabled) await data.finishTimer(timerQuest); else householdData.finishTimerQuest(timerQuest); setTimerQuest(null); Alert.alert('Timer complete!', `${timerQuest.title} was sent to your Party Leader for approval.`); } catch (cause) { showError(cause); } }} />
     </SafeAreaView>
   );
 }
@@ -443,11 +469,19 @@ function TodayHeader({ name, level, stars, onProfile }: {
   </LinearGradient>;
 }
 
-function ChildToday({ quests, onQuest, mathsDay, mathsError, onMaths, onMathsRetry }: {
+function ChildToday({ quests, onQuest, mathsDay, mathsError, onMaths, onMathsRetry, questHours, timezone }: {
   quests: Quest[]; onQuest: (quest: Quest) => void; mathsDay: MathsDay | null;
+  questHours: QuestHours; timezone: string;
   mathsError: string | null; onMaths: () => void; onMathsRetry: () => void;
 }) {
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showClosed, setShowClosed] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1_000);
+    return () => clearInterval(interval);
+  }, []);
+  const clock = questClock(now, timezone);
   const attempt = mathsDay?.attempt;
   const grade = attempt?.grade ?? mathsDay?.grade ?? null;
   const mathsQuest: Quest | null = isMathsGrade(grade) ? {
@@ -457,19 +491,26 @@ function ChildToday({ quests, onQuest, mathsDay, mathsError, onMaths, onMathsRet
     stars: 0, xp: MATHS_XP,
   } : null;
   const todayQuests = mathsQuest ? [...quests, mathsQuest] : quests;
-  const inProgress = todayQuests.filter(quest => quest.status === 'in_progress');
-  const ready = todayQuests.filter(quest => quest.status === 'available');
+  const upcoming = todayQuests.filter(quest => ['available', 'in_progress', 'expired'].includes(quest.status));
+  const windowStates = new Map(upcoming.map(quest => [quest, questWindowState(quest, now, clock, questHours)]));
+  const open = upcoming.filter(quest => windowStates.get(quest)?.kind === 'open');
+  const inProgress = open.filter(quest => quest.status === 'in_progress');
+  const ready = open.filter(quest => quest.status === 'available');
+  const later = upcoming.filter(quest => windowStates.get(quest)?.kind === 'later');
+  const closed = upcoming.filter(quest => windowStates.get(quest)?.kind === 'closed');
   const waiting = todayQuests.filter(quest => quest.status === 'pending_approval');
   const completed = todayQuests.filter(quest => quest.status === 'rewarded');
   const earned = completed.length;
-  const total = inProgress.length + ready.length + waiting.length + earned;
+  const total = upcoming.length + waiting.length + earned;
   const hasWork = inProgress.length > 0 || ready.length > 0;
   const card = (quest: Quest) => {
     const isMaths = quest === mathsQuest;
     const actionLabel = isMaths && quest.status !== 'in_progress'
       ? quest.status === 'rewarded' ? 'See results' : 'Start'
       : undefined;
-    return <QuestCard key={quest.id} actionLabel={actionLabel}
+    const eligibility = windowStates.get(quest);
+    return <QuestCard key={quest.id} actionLabel={actionLabel} timingLabel={eligibility?.label}
+      locked={eligibility != null && eligibility.kind !== 'open'}
       quest={isReadingQuest(quest) ? { ...quest, description: 'Read a story and answer 3 questions' } : quest}
       onPress={isMaths ? onMaths : () => onQuest(quest)} />;
   };
@@ -488,8 +529,12 @@ function ChildToday({ quests, onQuest, mathsDay, mathsError, onMaths, onMathsRet
       : <QuestCard
         quest={{ id: 'maths-error', title: 'Daily Maths', description: 'Could not load this quest.', emoji: '🔢', kind: 'daily', status: 'available', stars: 0, xp: 0 }}
         actionLabel="Try again" onPress={onMathsRetry} />)}
-    {!hasWork && !mathsError && <Panel>
-      <Text style={styles.cardTitle}>{waiting.length ? 'You’re caught up' : earned ? 'All quests complete!' : 'No quests today'}</Text>
+    {later.length > 0 && <View style={styles.todaySection}>
+      <Text accessibilityRole="header" style={styles.cardTitle}>Later today</Text>
+      {later.map(card)}
+    </View>}
+    {!hasWork && !later.length && !mathsError && <Panel>
+      <Text style={styles.cardTitle}>{waiting.length ? 'You’re caught up' : closed.length ? 'No quests open now' : earned ? 'All quests complete!' : 'No quests today'}</Text>
       <Text style={styles.muted}>{waiting.length ? 'Your Party Leader will review what you sent.' : earned ? 'Check back tomorrow for more quests.' : 'Check back when your next quests are due.'}</Text>
     </Panel>}
     {waiting.length > 0 && <View style={styles.todaySection}>
@@ -503,6 +548,14 @@ function ChildToday({ quests, onQuest, mathsDay, mathsError, onMaths, onMathsRet
         <Ionicons name={showCompleted ? 'chevron-up' : 'chevron-down'} size={18} color={colors.navy} />
       </Pressable>
       {showCompleted && completed.map(card)}
+    </View>}
+    {closed.length > 0 && <View style={styles.todaySection}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showClosed }}
+        style={styles.todayCompletedToggle} onPress={() => setShowClosed(value => !value)}>
+        <Text style={styles.cardTitle}>Closed today ({closed.length})</Text>
+        <Ionicons name={showClosed ? 'chevron-up' : 'chevron-down'} size={18} color={colors.navy} />
+      </Pressable>
+      {showClosed && closed.map(card)}
     </View>}
   </ScrollView>;
 }
@@ -600,7 +653,7 @@ function badgeCategoryLabel(category: string) {
   return ({ quests: 'Quest achievements', reading: 'Reading & learning', focus: 'Focus & timers', teamwork: 'Guild & family', bedtime: 'Safe Zone', 'weekly-goals': 'Weekly goals', 'perfect-days': 'Perfect days', consistency: 'Streaks & consistency', exploration: 'Quest exploration', rewards: 'Hero Shop' } as Record<string, string>)[category] ?? 'More achievements';
 }
 
-function ParentHome({ mathsSettings, householdName, householdId, currentUserId, dashboard, pendingQuests, pendingRewards, runningTimers, onEnrollHero, onManageHero, onOpenReview, onOpenQuests, onOpenRewards }: { mathsSettings: ReactNode; householdName: string; householdId: string; currentUserId: string; dashboard: ParentDashboardSummary; pendingQuests: Quest[]; pendingRewards: RewardRedemption[]; runningTimers: Quest[]; onEnrollHero: () => void; onManageHero: (hero: ManagedHeroAccount) => void; onOpenReview: () => void; onOpenQuests: () => void; onOpenRewards: () => void }) {
+function ParentHome({ questSettings, householdName, householdId, currentUserId, dashboard, pendingQuests, pendingRewards, runningTimers, onEnrollHero, onManageHero, onOpenReview, onOpenQuests, onOpenRewards }: { questSettings: ReactNode; householdName: string; householdId: string; currentUserId: string; dashboard: ParentDashboardSummary; pendingQuests: Quest[]; pendingRewards: RewardRedemption[]; runningTimers: Quest[]; onEnrollHero: () => void; onManageHero: (hero: ManagedHeroAccount) => void; onOpenReview: () => void; onOpenQuests: () => void; onOpenRewards: () => void }) {
   const mobile = useWindowDimensions().width < 600;
   const [showHouseholdTools, setShowHouseholdTools] = useState(false);
   const pendingCount = pendingQuests.length + pendingRewards.length;
@@ -633,7 +686,7 @@ function ParentHome({ mathsSettings, householdName, householdId, currentUserId, 
       <DashboardAction icon="checkmark-done-outline" label="Review inbox" onPress={onOpenReview} badge={pendingCount} />
     </View>
 
-    {mathsSettings}
+    {questSettings}
     {mobile && <Pressable accessibilityRole="button" onPress={() => setShowHouseholdTools(value => !value)} style={styles.householdToolsButton}><Ionicons name="settings-outline" size={18} color={colors.navy} /><Text style={styles.householdToolsText}>Household access</Text><Ionicons name={showHouseholdTools ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted} /></Pressable>}
     {(!mobile || showHouseholdTools) && <>{dashboard.managedHeroes.length > 0 && <Panel><View style={styles.enrollmentCard}><View style={styles.enrollmentCopy}><Text style={styles.cardTitle}>Hero access</Text><Text style={styles.muted}>Manage the child-safe usernames and PINs your Heroes use to sign in.</Text></View></View><View style={styles.heroLoginList}>{dashboard.managedHeroes.map(hero => <View key={hero.userId} style={styles.heroLoginRow}><View style={styles.heroLoginIcon}><Ionicons name="person-outline" size={20} color={colors.navy} /></View><View style={styles.heroLoginCopy}><Text style={styles.heroLoginName}>{hero.displayName}</Text><Text style={styles.heroLoginUsername}>@{hero.username}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Manage ${hero.displayName}'s login`} onPress={() => onManageHero(hero)} style={styles.manageLoginButton}><Ionicons name="key-outline" size={16} color={colors.navy} />{!mobile && <Text style={styles.manageLoginText}>Manage login</Text>}</Pressable></View>)}</View></Panel>}<PartyLeaders householdId={householdId} currentUserId={currentUserId} /></>}
   </ScrollView>;

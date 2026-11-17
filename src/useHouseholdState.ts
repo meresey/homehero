@@ -1,3 +1,5 @@
+import type { QuestHours } from './questWindows';
+import { defaultQuestHours, questClock, questWindowState } from './questWindows';
 import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initialHouseholdState } from './householdData';
@@ -160,7 +162,7 @@ export function useHouseholdState(enabled = true) {
 
   useEffect(() => {
     if (!enabled || !hydrated) return;
-    const processDeadlines = () => setState(current => { const now = new Date(); return completeFinishedTimers(expireBedtimeQuests(rolloverDailyQuests(current, now), now), now); });
+    const processDeadlines = () => setState(current => { const now = new Date(); return completeFinishedTimers(rolloverDailyQuests(current, now), now); });
     processDeadlines();
     const interval = setInterval(processDeadlines, 1_000);
     return () => clearInterval(interval);
@@ -184,6 +186,7 @@ export function useHouseholdState(enabled = true) {
     summaries,
     questTemplates: state.questTemplates,
     setSelectedHero,
+    setQuestHours: (questHours: QuestHours) => setState(current => ({ ...current, household: { ...current.household, questHours } })),
     setSelectedHeroQuests,
     startTimerQuest,
     finishTimerQuest,
@@ -207,33 +210,8 @@ function localDate(value: string | Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-function cutoffFor(date: Date, label: string) {
-  const match = label.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-  if (!match) return null;
-  let hour = Number(match[1]);
-  const minute = Number(match[2]);
-  const meridiem = match[3]?.toUpperCase();
-  if (meridiem === 'PM' && hour < 12) hour += 12;
-  if (meridiem === 'AM' && hour === 12) hour = 0;
-  const cutoff = new Date(date);
-  cutoff.setHours(hour, minute, 0, 0);
-  return cutoff;
-}
-
-function expireBedtimeQuests(state: HouseholdState, now: Date) {
-  let changed = false;
-  const heroQuests = Object.fromEntries(Object.entries(state.heroQuests).map(([heroId, quests]) => [heroId, quests.map(quest => {
-    if (quest.kind !== 'bedtime' || !['available', 'in_progress'].includes(quest.status) || !quest.cutoffLabel) return quest;
-    const cutoff = cutoffFor(now, quest.cutoffLabel);
-    if (!cutoff || now < cutoff) return quest;
-    changed = true;
-    return { ...quest, status: 'expired' as const, expiredAt: now.toISOString(), timerEndsAt: undefined, timerCompletedAt: undefined };
-  })]));
-  return changed ? { ...state, heroQuests } : state;
-}
-
 function rolloverDailyQuests(state: HouseholdState, now: Date) {
-  const today = localDate(now);
+  const today = mathsDate(now, state.household.timezone);
   if (state.questDate === today) return state;
   const heroQuests = Object.fromEntries(Object.entries(state.heroQuests).map(([heroId, quests]) => [heroId, quests.map(quest => {
     if (quest.status === 'pending_approval' || (quest.cadence !== 'daily' && quest.kind !== 'bedtime')) return quest;
@@ -243,20 +221,19 @@ function rolloverDailyQuests(state: HouseholdState, now: Date) {
 }
 
 function completeFinishedTimers(state: HouseholdState, now: Date) {
-  let changed = false;
   let next = state;
   Object.entries(state.heroQuests).forEach(([heroId, quests]) => quests.forEach(quest => {
     if (quest.kind === 'timer' && !isReadingQuest(quest) && quest.status === 'in_progress' && quest.timerEndsAt && new Date(quest.timerEndsAt) <= now) {
       next = submitFinishedTimer(next, heroId, quest.id, now);
-      changed = true;
     }
   }));
-  return changed ? next : state;
+  return next;
 }
 
 function submitFinishedTimer(state: HouseholdState, heroId: string, questInstanceId: string, now: Date): HouseholdState {
   const quest = (state.heroQuests[heroId] ?? []).find(item => item.id === questInstanceId);
-  if (!quest || quest.kind !== 'timer' || quest.status === 'pending_approval' || quest.status === 'rewarded' || !quest.timerEndsAt || new Date(quest.timerEndsAt) > now) return state;
+  if (!quest || quest.kind !== 'timer' || quest.status !== 'in_progress' || !quest.timerEndsAt || new Date(quest.timerEndsAt) > now) return state;
+  if (questWindowState(quest, now, questClock(now, state.household.timezone), state.household.questHours ?? defaultQuestHours).kind !== 'open') return state;
   const questId = quest.templateId ?? quest.id;
   const alreadyPending = state.guildApprovals.some(item => item.heroId === heroId && item.questId === questId && item.status === 'pending');
   return {

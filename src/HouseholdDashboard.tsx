@@ -10,7 +10,7 @@ import { COIN_ICON } from './economy';
 
 type AttentionType = 'guild' | 'reward';
 
-export function HouseholdDashboard({ household, heroes, levels, guildApprovals, rewardRequests, onViewHero, onOpenAttention, mathsSettings }: { household: Household; heroes: HeroSummary[]; levels: HeroLevel[]; guildApprovals: GuildApproval[]; rewardRequests: RewardRequest[]; onViewHero: (heroId: string) => void; onOpenAttention: (heroId: string, type: AttentionType) => void; mathsSettings: ReactNode }) {
+export function HouseholdDashboard({ household, heroes, levels, guildApprovals, rewardRequests, onViewHero, onOpenAttention, questSettings }: { household: Household; heroes: HeroSummary[]; levels: HeroLevel[]; guildApprovals: GuildApproval[]; rewardRequests: RewardRequest[]; onViewHero: (heroId: string) => void; onOpenAttention: (heroId: string, type: AttentionType) => void; questSettings: ReactNode }) {
   const mobile = useWindowDimensions().width < 600;
   const completed = heroes.reduce((sum, hero) => sum + hero.completedToday, 0);
   const total = heroes.reduce((sum, hero) => sum + hero.totalToday, 0);
@@ -34,7 +34,7 @@ export function HouseholdDashboard({ household, heroes, levels, guildApprovals, 
 
     <PageHeading eyebrow="YOUR PARTY" title="Your Heroes" subtitle={mobile ? undefined : 'Choose a Hero to see their dashboard.'} />
     {heroes.length === 0 ? <EmptyState icon="people-outline" title="Your party is waiting" description="Enrol your first Hero to see their quests and progress here." /> : <View style={styles.heroGrid}>{heroes.map(hero => <HeroCard key={hero.heroId} hero={hero} levels={levels} mobile={mobile} onView={() => onViewHero(hero.heroId)} />)}</View>}
-    {mathsSettings}
+    {questSettings}
   </ScrollView>;
 }
 

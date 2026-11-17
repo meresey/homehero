@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useRef, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,7 @@ import { heroLoginEmail, isValidHeroPin, isValidHeroUsername, normalizeHeroUsern
 import { isStrongPassword, passwordRequirements } from './passwordPolicy';
 import { BrandWordmark } from './BrandWordmark';
 import { brand } from './brand';
+import { leavePasswordRecovery, resetRecoveredPassword } from './lib/passwordRecovery';
 
 type LoginRole = 'parent' | 'hero';
 type Message = { tone: 'success' | 'error'; text: string } | null;
@@ -122,6 +123,66 @@ export function AuthScreen() {
   </ScrollView></AppFrame></SafeAreaView>;
 }
 
+export function PasswordRecoveryScreen({ state }: { state: 'checking' | 'ready' | 'invalid' | 'complete' }) {
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [visible, setVisible] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const inFlight = useRef(false);
+
+  async function submit(action: () => Promise<void>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not complete the request. Try again.');
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  function save() {
+    if (!isStrongPassword(password)) return setError('Meet all five password requirements.');
+    if (password !== confirmation) return setError('The passwords do not match.');
+    void submit(() => resetRecoveredPassword(password));
+  }
+
+  return <SafeAreaView style={styles.safe}><AppFrame>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.recoveryPage}>
+      <View style={styles.recoveryPanel}>
+        <BrandWordmark />
+        <Text accessibilityRole="header" style={styles.authHeading}>Reset your password</Text>
+        {state === 'checking' ? <Text style={styles.authCopy}>Checking your reset link…</Text>
+          : state === 'complete' ? <Text accessibilityLiveRegion="polite" style={styles.authCopy}>Password updated. Sign in with your new password.</Text>
+          : state === 'invalid' ? <Text style={styles.authCopy}>This email link is no longer valid. Return to sign-in to request a new one.</Text>
+          : <>
+            <AuthField label="New password" icon="lock-closed-outline" trailing={<PasswordToggle visible={visible} onPress={() => setVisible(value => !value)} />}>
+              <TextInput accessibilityLabel="New password" autoComplete="new-password" autoCapitalize="none" autoCorrect={false} secureTextEntry={!visible}
+                value={password} editable={!busy} onChangeText={setPassword} style={styles.authInput} />
+            </AuthField>
+            <PasswordChecklist password={password} />
+            <AuthField label="Confirm new password" icon="shield-checkmark-outline">
+              <TextInput accessibilityLabel="Confirm new password" autoComplete="new-password" autoCapitalize="none" autoCorrect={false} secureTextEntry={!visible}
+                value={confirmation} editable={!busy} onChangeText={setConfirmation} onSubmitEditing={save} style={styles.authInput} />
+            </AuthField>
+            <Pressable accessibilityRole="button" disabled={busy} onPress={save} style={[styles.authPrimary, busy && styles.primaryDisabled]}>
+              <Text style={styles.authPrimaryText}>{busy ? 'Working…' : 'Save new password'}</Text>
+            </Pressable>
+          </>}
+        {error ? <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text> : null}
+        {state !== 'checking' && <Pressable accessibilityRole="button" disabled={busy} onPress={() => void submit(leavePasswordRecovery)} style={styles.forgotButton}>
+          <Text style={styles.forgotText}>Back to sign-in</Text>
+        </Pressable>}
+      </View>
+    </ScrollView>
+  </AppFrame></SafeAreaView>;
+}
+
 function AuthField({ label, icon, trailing, children, compact = false }: { label: string; icon: string; trailing?: ReactNode; children: ReactNode; compact?: boolean }) {
   return <View style={[styles.fieldGroup, compact && styles.fieldGroupCompact]}><Text style={styles.fieldLabel}>{label}</Text><View style={[styles.fieldFrame, compact && styles.fieldFrameCompact]}><Ionicons name={icon as never} size={compact ? 18 : 19} color={colors.muted} />{children}{trailing}</View></View>;
 }
@@ -202,6 +263,8 @@ function OnboardingStep({ number, title, detail, active = false }: { number: str
 }
 
 const styles = StyleSheet.create({
+  recoveryPage: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+  recoveryPanel: { width: '100%', maxWidth: 460, backgroundColor: colors.white, padding: 22, borderRadius: 20, gap: 14 },
   safe: { flex: 1, backgroundColor: colors.cream },
   authPage: { flexGrow: 1, padding: 22, alignItems: 'center', justifyContent: 'center' },
   authPageNarrow: { padding: 12 },

@@ -32,11 +32,11 @@ export function ProgressBar({ value, max, color = colors.green }: { value: numbe
   return <View style={styles.track}><View style={[styles.fill, { width: `${pct}%`, backgroundColor: color }]} /></View>;
 }
 
-export function QuestCard({ quest, onPress, actionLabel }: { quest: Quest; onPress: () => void; actionLabel?: string }) {
+export function QuestCard({ quest, onPress, actionLabel, timingLabel, locked = false }: { quest: Quest; onPress: () => void; actionLabel?: string; timingLabel?: string; locked?: boolean }) {
   const complete = quest.status === 'rewarded';
   const pending = quest.status === 'pending_approval';
   const continuing = quest.status === 'in_progress';
-  const actionable = quest.status === 'available' || continuing || (complete && Boolean(actionLabel));
+  const actionable = !locked && (quest.status === 'available' || continuing || (complete && Boolean(actionLabel)));
   const timerRemaining = useQuestTimerRemaining(quest);
   const action = actionLabel ?? (continuing ? 'Continue' : quest.kind === 'timer' ? 'Start' : 'Done');
   const status = complete ? 'Completed' : pending ? 'Waiting for approval' : undefined;
@@ -47,15 +47,16 @@ export function QuestCard({ quest, onPress, actionLabel }: { quest: Quest; onPre
   const timerLabel = timerRemaining === null ? undefined : timerRemaining > 0 ? `${formatTimer(timerRemaining)} left` : 'Timer finished';
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={[quest.title, status, actionable ? action : undefined, timerLabel].filter(Boolean).join(', ')}
+    <Pressable accessibilityRole="button" accessibilityLabel={[quest.title, status, actionable ? action : undefined, timingLabel, !locked ? timerLabel : undefined].filter(Boolean).join(', ')}
       accessibilityHint={actionable ? quest.description : undefined} accessibilityState={{ disabled: !actionable }} onPress={onPress} disabled={!actionable}
-      style={({ pressed }) => [styles.quest, pressed && styles.pressed, complete && styles.questDone, continuing && styles.questRunning]}>
+      style={({ pressed }) => [styles.quest, pressed && styles.pressed, complete && styles.questDone, continuing && !locked && styles.questRunning]}>
       <View style={styles.emoji}><Text style={styles.emojiText}>{quest.emoji}</Text></View>
       <View style={styles.questCopy}>
         <Text style={styles.questTitle}>{quest.title}</Text>
         {actionable && Boolean(quest.description) && <Text style={styles.questDescription}>{quest.description}</Text>}
         <View style={styles.rewardRow}>
-          {(timerLabel || quest.timerMinutes) && <Text style={[styles.meta, continuing && styles.timerActive]}>{timerLabel ?? `${quest.timerMinutes} min`}</Text>}
+          {!locked && (timerLabel || quest.timerMinutes) && <Text style={[styles.meta, continuing && styles.timerActive]}>{timerLabel ?? `${quest.timerMinutes} min`}</Text>}
+          {timingLabel ? <Text style={styles.meta}>{timingLabel}</Text> : null}
           {quest.cutoffLabel && actionable && <Text style={[styles.meta, { color: colors.coral }]}>Due {quest.cutoffLabel}</Text>}
           {rewards ? <Text style={styles.reward}>{rewards}</Text> : null}
         </View>
@@ -63,7 +64,7 @@ export function QuestCard({ quest, onPress, actionLabel }: { quest: Quest; onPre
       {actionable
         ? <Text style={styles.questAction}>{action}</Text>
         : <View style={[styles.check, complete && styles.checkDone]}>
-          <Ionicons name={complete ? 'checkmark' : 'hourglass-outline'} size={20} color={complete ? colors.white : colors.navy} />
+          <Ionicons name={complete ? 'checkmark' : locked ? 'lock-closed-outline' : 'hourglass-outline'} size={20} color={complete ? colors.white : colors.navy} />
         </View>}
     </Pressable>
   );

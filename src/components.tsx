@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, shadow } from './theme';
 import { Quest } from './types';
@@ -32,27 +32,39 @@ export function ProgressBar({ value, max, color = colors.green }: { value: numbe
   return <View style={styles.track}><View style={[styles.fill, { width: `${pct}%`, backgroundColor: color }]} /></View>;
 }
 
-export function QuestCard({ quest, onPress }: { quest: Quest; onPress: () => void }) {
-  const mobile = useWindowDimensions().width < 600;
+export function QuestCard({ quest, onPress, actionLabel }: { quest: Quest; onPress: () => void; actionLabel?: string }) {
   const complete = quest.status === 'rewarded';
   const pending = quest.status === 'pending_approval';
+  const continuing = quest.status === 'in_progress';
+  const actionable = quest.status === 'available' || continuing || (complete && Boolean(actionLabel));
   const timerRemaining = useQuestTimerRemaining(quest);
-  const timerRunning = quest.kind === 'timer' && quest.status === 'in_progress' && timerRemaining != null;
+  const action = actionLabel ?? (continuing ? 'Continue' : quest.kind === 'timer' ? 'Start' : 'Done');
+  const status = complete ? 'Completed' : pending ? 'Waiting for approval' : undefined;
+  const rewards = [
+    quest.stars > 0 ? `${COIN_ICON} ${quest.stars}` : '',
+    quest.xp > 0 ? `✦ ${quest.xp} XP` : '',
+  ].filter(Boolean).join('  ');
+  const timerLabel = timerRemaining === null ? undefined : timerRemaining > 0 ? `${formatTimer(timerRemaining)} left` : 'Timer finished';
+
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={timerRunning ? `${quest.title}, ${formatTimer(timerRemaining)} remaining` : quest.title} onPress={onPress} disabled={complete || pending} style={({ pressed }) => [styles.quest, pressed && styles.pressed, complete && styles.questDone, timerRunning && styles.questRunning]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={[quest.title, status, actionable ? action : undefined, timerLabel].filter(Boolean).join(', ')}
+      accessibilityHint={actionable ? quest.description : undefined} accessibilityState={{ disabled: !actionable }} onPress={onPress} disabled={!actionable}
+      style={({ pressed }) => [styles.quest, pressed && styles.pressed, complete && styles.questDone, continuing && styles.questRunning]}>
       <View style={styles.emoji}><Text style={styles.emojiText}>{quest.emoji}</Text></View>
       <View style={styles.questCopy}>
-        <View style={styles.row}><Text style={[styles.questTitle, complete && styles.doneText]}>{quest.title}</Text>{quest.kind === 'guild' && <Pill tone="purple">GUILD</Pill>}{timerRunning && <Pill tone="purple">RUNNING</Pill>}</View>
-        {(!mobile || pending) && <Text style={styles.questDescription}>{pending ? 'Waiting for Party Leader' : quest.description}</Text>}
+        <Text style={styles.questTitle}>{quest.title}</Text>
+        {actionable && Boolean(quest.description) && <Text style={styles.questDescription}>{quest.description}</Text>}
         <View style={styles.rewardRow}>
-          {quest.timerMinutes && <Text style={[styles.meta, timerRunning && styles.timerActive]}>◷ {timerRunning ? formatTimer(timerRemaining) : `${quest.timerMinutes} min`}</Text>}
-          {quest.cutoffLabel && <Text style={[styles.meta, { color: colors.coral }]}>Safe Zone · {quest.cutoffLabel}</Text>}
-          <Text style={styles.reward}>{COIN_ICON} {quest.stars}  ✦ {quest.xp} XP</Text>
+          {(timerLabel || quest.timerMinutes) && <Text style={[styles.meta, continuing && styles.timerActive]}>{timerLabel ?? `${quest.timerMinutes} min`}</Text>}
+          {quest.cutoffLabel && actionable && <Text style={[styles.meta, { color: colors.coral }]}>Due {quest.cutoffLabel}</Text>}
+          {rewards ? <Text style={styles.reward}>{rewards}</Text> : null}
         </View>
       </View>
-      <View style={[styles.check, complete && styles.checkDone]}>
-        <Ionicons name={complete ? 'checkmark' : pending ? 'hourglass-outline' : 'chevron-forward'} size={20} color={complete ? colors.white : colors.navy} />
-      </View>
+      {actionable
+        ? <Text style={styles.questAction}>{action}</Text>
+        : <View style={[styles.check, complete && styles.checkDone]}>
+          <Ionicons name={complete ? 'checkmark' : 'hourglass-outline'} size={20} color={complete ? colors.white : colors.navy} />
+        </View>}
     </Pressable>
   );
 }
@@ -95,21 +107,20 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 10, fontWeight: '900', letterSpacing: .8 },
   track: { height: 11, borderRadius: 99, backgroundColor: '#E8E4DA', overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 99 },
-  quest: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: colors.white, borderRadius: 18, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
+  quest: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: colors.white, borderRadius: 18, borderWidth: 1, borderColor: colors.border },
   questRunning: { borderColor: colors.purple, backgroundColor: '#FAF7FF' },
   pressed: { transform: [{ scale: .985 }], opacity: .9 },
   questDone: { backgroundColor: '#F0F6E9', borderColor: '#C9DEB0' },
   emoji: { width: 48, height: 48, borderRadius: 15, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   emojiText: { fontSize: 25 },
-  questCopy: { flex: 1, gap: 4 },
-  row: { flexDirection: 'row', gap: 7, alignItems: 'center', flexWrap: 'wrap' },
+  questCopy: { flex: 1, minWidth: 0, gap: 4 },
+  questAction: { minWidth: 48, textAlign: 'center', paddingHorizontal: 8, paddingVertical: 7, backgroundColor: colors.greenSoft, color: colors.green, borderRadius: 9, fontSize: 12, fontWeight: '800' },
   questTitle: { color: colors.ink, fontWeight: '800', fontSize: 15 },
-  doneText: { color: colors.green },
   questDescription: { color: colors.muted, fontSize: 12, lineHeight: 17 },
   rewardRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
   meta: { color: colors.purple, fontSize: 11, fontWeight: '700' },
   timerActive: { color: colors.purple, fontSize: 13, fontWeight: '900' },
-  reward: { color: '#886100', fontSize: 11, fontWeight: '800', marginLeft: 'auto' },
+  reward: { color: '#886100', fontSize: 11, fontWeight: '800' },
   check: { width: 31, height: 31, borderRadius: 16, borderWidth: 1.5, borderColor: '#CCD3DE', alignItems: 'center', justifyContent: 'center' },
   checkDone: { backgroundColor: colors.green, borderColor: colors.green },
 });

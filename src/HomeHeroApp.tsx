@@ -26,9 +26,9 @@ import { HeroCredentialsModal } from './HeroCredentials';
 import { COIN_ICON, coinFriendlyMessage, coinLabel } from './economy';
 import { rewardLifecycleLabel, sortRewardEntitlements } from './rewardLifecycle';
 import { BrandWordmark } from './BrandWordmark';
-import { MathsGradeSettings, MathsQuest, MathsTodayCard } from './DailyMaths';
-import { isMathsGrade, mathsComplete, mathsDate, MATHS_XP } from './maths';
-import type { MathsAttempt } from './maths';
+import { MathsGradeSettings, MathsQuest } from './DailyMaths';
+import { isMathsGrade, mathsComplete, mathsDate, MATHS_XP, QUESTIONS_PER_QUEST } from './maths';
+import type { MathsAttempt, MathsDay } from './maths';
 import { useDailyMaths } from './useDailyMaths';
 import { isReadingQuest, readingStoryById, selectReadingStory } from './reading';
 import { questSchoolSchedule, showScheduledQuest } from './schoolCalendar';
@@ -363,17 +363,18 @@ export function HomeHeroApp() {
 
       {activeRole === 'child' ? (
         <>
-          <HeroHeader name={heroName} level={currentHeroLevel} stars={stars} xp={xp} badges={earnedBadgeCount} compact={mobile} />
+          {childTab === 'today'
+            ? <TodayHeader name={heroName} level={currentHeroLevel.level} stars={stars} onProfile={() => setChildTab('hero')} />
+            : <HeroHeader name={heroName} level={currentHeroLevel} stars={stars} xp={xp} badges={earnedBadgeCount} compact={mobile} />}
           <View style={styles.screen}>
-            {childTab === 'today' && <ChildToday quests={quests} onQuest={complete} mobile={mobile} mathsAvailable={Boolean(maths.day && (maths.day.attempt || isMathsGrade(maths.day.grade)))} mathsDone={mathsComplete(maths.day?.attempt)} maths={<>
-              <MathsTodayCard day={maths.day} error={maths.error} onOpen={() => void startMaths()} onRetry={() => void maths.refresh()} />
-              {mathsStartError && <Text accessibilityRole="alert" style={styles.muted}>{mathsStartError}</Text>}
-            </>} />}
+            {childTab === 'today' && <ChildToday quests={quests} onQuest={complete} mathsDay={maths.day}
+              mathsError={mathsStartError ?? (!maths.day ? maths.error : null)}
+              onMaths={() => void startMaths()} onMathsRetry={() => void maths.refresh()} />}
             {childTab === 'week' && <WeeklyBoard history={data.backendEnabled ? data.completionHistory : householdData.state.completionHistory.filter(item => item.heroId === householdData.selectedHero.id)} quests={quests} streakAwards={data.backendEnabled ? data.streakAwards : householdData.state.streakAwards.filter(item => item.heroId === householdData.selectedHero.id)} />}
             {childTab === 'store' && <HeroShop rewards={data.backendEnabled ? data.rewards : activeLocalRewards} stars={stars} redemptions={data.backendEnabled ? data.rewardRedemptions : localRewardRedemptions} pendingRewardIds={data.backendEnabled ? data.pendingRewardIds : householdData.state.rewardRequests.filter(item => item.heroId === householdData.selectedHero.id && item.status === 'pending').map(item => item.rewardId)} onRedeem={redeem} onClaim={claimReward} onCancelClaim={cancelRewardClaim} />}
             {childTab === 'hero' && <HeroProfile xp={xp} levels={levelDefinitions} badges={badgeProgress} />}
           </View>
-          <BottomNav value={childTab} onChange={value => setChildTab(value as ChildTab)} items={[
+          <BottomNav showLabels value={childTab} onChange={value => setChildTab(value as ChildTab)} items={[
             ['today', 'map-outline', 'Today'], ['week', 'calendar-outline', 'Week'], ['store', 'storefront-outline', 'Shop'], ['hero', 'shield-outline', 'Hero'],
           ]} />
         </>
@@ -424,19 +425,86 @@ function HeroHeader({ name, level, stars, xp, badges, compact }: { name: string;
   </LinearGradient>;
 }
 
-function ChildToday({ quests, onQuest, mobile, maths, mathsAvailable, mathsDone }: { quests: Quest[]; onQuest: (q: Quest) => void; mobile: boolean; maths: ReactNode; mathsAvailable: boolean; mathsDone: boolean }) {
-  const earned = quests.filter(q => q.status === 'rewarded').length + Number(mathsDone);
-  const total = quests.length + Number(mathsAvailable);
-  return (
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Today's quests</Text><Text style={styles.muted}>{earned} of {total} complete</Text></View><Pill>{total ? Math.round(earned / total * 100) : 0}%</Pill></View>
-      {maths}
-      {quests.map(quest => <QuestCard key={quest.id}
-        quest={isReadingQuest(quest) ? { ...quest, description: 'Read a story and answer 3 questions' } : quest}
-        onPress={() => onQuest(quest)} />)}
-      {!mobile && <Panel style={{ backgroundColor: '#FFF7DE' }}><Text style={styles.tipTitle}>⚡ Perfect week in reach</Text><Text style={styles.muted}>Keep your daily quests going through Sunday to earn +5 bonus XP.</Text></Panel>}
-    </ScrollView>
-  );
+function TodayHeader({ name, level, stars, onProfile }: {
+  name: string; level: number; stars: number; onProfile: () => void;
+}) {
+  return <LinearGradient colors={[colors.navy, '#284A7D']} style={styles.todayHeader}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Open Hero profile for ${name}, level ${level}`}
+      onPress={onProfile} style={styles.todayIdentity}>
+      <View style={styles.todayLevel}><Ionicons name="shield-outline" size={20} color={colors.white} /></View>
+      <View style={styles.todayNameGroup}>
+        <Text style={styles.todayName} numberOfLines={1}>{name}</Text>
+        <Text style={styles.todayLevelLabel}>Level {level}</Text>
+      </View>
+    </Pressable>
+    <View style={styles.todayCoins}>
+      <Text style={styles.todayCoinText}>{COIN_ICON} {coinLabel(stars)}</Text>
+    </View>
+  </LinearGradient>;
+}
+
+function ChildToday({ quests, onQuest, mathsDay, mathsError, onMaths, onMathsRetry }: {
+  quests: Quest[]; onQuest: (quest: Quest) => void; mathsDay: MathsDay | null;
+  mathsError: string | null; onMaths: () => void; onMathsRetry: () => void;
+}) {
+  const [showCompleted, setShowCompleted] = useState(false);
+  const attempt = mathsDay?.attempt;
+  const grade = attempt?.grade ?? mathsDay?.grade ?? null;
+  const mathsQuest: Quest | null = isMathsGrade(grade) ? {
+    id: 'daily-maths', kind: 'daily', title: 'Daily Maths', emoji: '🔢',
+    description: `Grade ${grade} · ${attempt?.results.length ?? 0} of ${QUESTIONS_PER_QUEST} questions`,
+    status: mathsComplete(attempt) ? 'rewarded' : attempt ? 'in_progress' : 'available',
+    stars: 0, xp: MATHS_XP,
+  } : null;
+  const todayQuests = mathsQuest ? [...quests, mathsQuest] : quests;
+  const inProgress = todayQuests.filter(quest => quest.status === 'in_progress');
+  const ready = todayQuests.filter(quest => quest.status === 'available');
+  const waiting = todayQuests.filter(quest => quest.status === 'pending_approval');
+  const completed = todayQuests.filter(quest => quest.status === 'rewarded');
+  const earned = completed.length;
+  const total = inProgress.length + ready.length + waiting.length + earned;
+  const hasWork = inProgress.length > 0 || ready.length > 0;
+  const card = (quest: Quest) => {
+    const isMaths = quest === mathsQuest;
+    const actionLabel = isMaths && quest.status !== 'in_progress'
+      ? quest.status === 'rewarded' ? 'See results' : 'Start'
+      : undefined;
+    return <QuestCard key={quest.id} actionLabel={actionLabel}
+      quest={isReadingQuest(quest) ? { ...quest, description: 'Read a story and answer 3 questions' } : quest}
+      onPress={isMaths ? onMaths : () => onQuest(quest)} />;
+  };
+
+  return <ScrollView contentContainerStyle={styles.todayContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.todaySection}>
+      <View style={styles.sectionHeader}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>Today's quests</Text>
+        {total > 0 && <Text style={styles.todayCount}>{earned} of {total} complete</Text>}
+      </View>
+      {total > 0 && <ProgressBar value={earned} max={total} />}
+    </View>
+    {inProgress.map(card)}
+    {ready.map(card)}
+    {mathsError && (mathsDay ? <Text accessibilityRole="alert" style={styles.muted}>{mathsError}</Text>
+      : <QuestCard
+        quest={{ id: 'maths-error', title: 'Daily Maths', description: 'Could not load this quest.', emoji: '🔢', kind: 'daily', status: 'available', stars: 0, xp: 0 }}
+        actionLabel="Try again" onPress={onMathsRetry} />)}
+    {!hasWork && !mathsError && <Panel>
+      <Text style={styles.cardTitle}>{waiting.length ? 'You’re caught up' : earned ? 'All quests complete!' : 'No quests today'}</Text>
+      <Text style={styles.muted}>{waiting.length ? 'Your Party Leader will review what you sent.' : earned ? 'Check back tomorrow for more quests.' : 'Check back when your next quests are due.'}</Text>
+    </Panel>}
+    {waiting.length > 0 && <View style={styles.todaySection}>
+      <Text accessibilityRole="header" style={styles.cardTitle}>Waiting for approval</Text>
+      {waiting.map(card)}
+    </View>}
+    {earned > 0 && <View style={styles.todaySection}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showCompleted }}
+        style={styles.todayCompletedToggle} onPress={() => setShowCompleted(value => !value)}>
+        <Text style={styles.cardTitle}>Completed ({earned})</Text>
+        <Ionicons name={showCompleted ? 'chevron-up' : 'chevron-down'} size={18} color={colors.navy} />
+      </Pressable>
+      {showCompleted && completed.map(card)}
+    </View>}
+  </ScrollView>;
 }
 
 function WeeklyBoard({ history, quests, streakAwards }: { history: QuestCompletion[]; quests: Quest[]; streakAwards: StreakAward[] }) {
@@ -657,9 +725,9 @@ function formatCountdown(totalSeconds: number) { return `${Math.floor(totalSecon
 
 function questKindLabel(kind: Quest['kind']) { return kind === 'timer' ? 'TIMED QUEST' : kind === 'guild' ? 'GUILD QUEST' : kind === 'bedtime' ? 'BEDTIME QUEST' : 'DAILY QUEST'; }
 
-function BottomNav({ value, onChange, items }: { value: string; onChange: (v: string) => void; items: NavItem[] }) {
-  const iconOnly = useWindowDimensions().width < 340;
-  return <View style={styles.nav}>{items.map(([id, icon, label, badge = 0]) => <Pressable accessibilityRole="button" accessibilityLabel={badge > 0 ? `${label}, ${badge} awaiting review` : label} key={id} onPress={() => onChange(id)} style={styles.navItem}><View><Ionicons name={icon as never} size={23} color={value === id ? colors.green : colors.muted} />{badge > 0 && <View style={styles.navBadge}><Text style={styles.navBadgeText}>{badge > 99 ? '99+' : badge}</Text></View>}</View>{!iconOnly && <Text style={[styles.navText, value === id && styles.navActive]}>{label}</Text>}</Pressable>)}</View>;
+function BottomNav({ value, onChange, items, showLabels = false }: { value: string; onChange: (v: string) => void; items: NavItem[]; showLabels?: boolean }) {
+  const iconOnly = useWindowDimensions().width < 340 && !showLabels;
+  return <View style={styles.nav}>{items.map(([id, icon, label, badge = 0]) => <Pressable accessibilityRole="button" accessibilityState={{ selected: value === id }} accessibilityLabel={badge > 0 ? `${label}, ${badge} awaiting review` : label} key={id} onPress={() => onChange(id)} style={styles.navItem}><View><Ionicons name={icon as never} size={23} color={value === id ? colors.green : colors.muted} />{badge > 0 && <View style={styles.navBadge}><Text style={styles.navBadgeText}>{badge > 99 ? '99+' : badge}</Text></View>}</View>{!iconOnly && <Text style={[styles.navText, value === id && styles.navActive]}>{label}</Text>}</Pressable>)}</View>;
 }
 
 function TimerModal({ quest, onClose, onFinish }: { quest: Quest | null; onClose: () => void; onFinish: () => void }) {
@@ -711,7 +779,7 @@ const styles = StyleSheet.create({
   levelShieldCompact: { width: 48, height: 54, borderRadius: 14 },
   levelNumberCompact: { fontSize: 25, lineHeight: 28 },
   eyebrow: { color: '#CBD7EA', fontSize: 9, fontWeight: '900', letterSpacing: 1 }, eyebrowDark: { color: colors.purple, fontSize: 10, fontWeight: '900', letterSpacing: 1 }, greeting: { color: colors.white, fontSize: 21, fontWeight: '900' }, heroSub: { color: '#DCE5F2', fontSize: 10, lineHeight: 15 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }, cardTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' }, inviteCode: { color: colors.green, fontSize: 28, fontWeight: '900', letterSpacing: 4, marginVertical: 8 }, questTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' }, muted: { color: colors.muted, fontSize: 12, lineHeight: 18 }, sectionTitle: { fontSize: 21, color: colors.navy, fontWeight: '900' }, pageTitle: { fontSize: 27, color: colors.navy, fontWeight: '900' }, pageLead: { fontSize: 13, color: colors.muted, marginTop: -12 }, tipTitle: { color: '#7A5700', fontWeight: '900', marginBottom: 4 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }, cardTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' }, inviteCode: { color: colors.green, fontSize: 28, fontWeight: '900', letterSpacing: 4, marginVertical: 8 }, questTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' }, muted: { color: colors.muted, fontSize: 12, lineHeight: 18 }, sectionTitle: { fontSize: 21, color: colors.navy, fontWeight: '900' }, pageTitle: { fontSize: 27, color: colors.navy, fontWeight: '900' }, pageLead: { fontSize: 13, color: colors.muted, marginTop: -12 },
   parentWelcome: { borderRadius: 24, padding: 22, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 18 }, parentWelcomeCopy: { flex: 1, minWidth: 230, gap: 4 }, parentWelcomeEyebrow: { color: '#BFD0E8', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 }, parentWelcomeTitle: { color: colors.white, fontSize: 25, lineHeight: 31, fontWeight: '900' }, parentWelcomeLead: { color: '#DCE5F2', fontSize: 12, lineHeight: 18 }, parentWelcomeButton: { minHeight: 42, paddingHorizontal: 15, borderRadius: 13, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, parentWelcomeButtonText: { color: colors.navy, fontSize: 11, fontWeight: '900' },
   parentWelcomeMobile: { padding: 17, gap: 12 },
   dashboardSectionHeader: { marginTop: 5, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 }, dashboardClear: { flexDirection: 'row', alignItems: 'center', gap: 12 }, dashboardClearIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' }, dashboardClearTitle: { color: colors.ink, fontSize: 14, fontWeight: '900' }, attentionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, attentionCard: { flexGrow: 1, flexBasis: 250, minWidth: 230, padding: 16, borderRadius: 19, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'flex-start', gap: 12 }, attentionIcon: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, attentionLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: .8 }, attentionValue: { color: colors.navy, fontSize: 19, fontWeight: '900', marginTop: 2 }, attentionLink: { color: colors.purple, fontSize: 11, fontWeight: '900', marginTop: 7 }, safeZoneRemaining: { color: '#8A6300', fontSize: 11, fontWeight: '900', marginTop: 7 },
@@ -722,6 +790,18 @@ const styles = StyleSheet.create({
   heroLoginList: { marginTop: 14, borderTopWidth: 1, borderTopColor: colors.border }, heroLoginRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 13 }, heroLoginIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }, heroLoginCopy: { flex: 1 }, heroLoginName: { color: colors.ink, fontSize: 13, fontWeight: '900' }, heroLoginUsername: { color: colors.muted, fontSize: 11, marginTop: 2 }, manageLoginButton: { minHeight: 36, paddingHorizontal: 11, borderRadius: 11, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 5 }, manageLoginText: { color: colors.navy, fontSize: 10, fontWeight: '900' },
   householdToolsButton: { minHeight: 50, paddingHorizontal: 15, borderRadius: 15, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center', gap: 10 },
   householdToolsText: { flex: 1, color: colors.navy, fontSize: 12, fontWeight: '900' },
+  todayHeader: { marginHorizontal: 14, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  todayIdentity: { flex: 1, minHeight: 44, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  todayLevel: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.green, borderWidth: 2, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
+  todayNameGroup: { flex: 1, minWidth: 0, gap: 1 },
+  todayName: { color: colors.white, fontSize: 17, fontWeight: '900' },
+  todayLevelLabel: { color: '#DCE5F2', fontSize: 12 },
+  todayCoins: { backgroundColor: 'rgba(255,255,255,.13)', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 10 },
+  todayCoinText: { color: colors.white, fontSize: 12, fontWeight: '800' },
+  todayContent: { padding: 14, paddingBottom: 110, gap: 10 },
+  todaySection: { gap: 8 },
+  todayCount: { color: colors.muted, fontSize: 13, fontWeight: '800' },
+  todayCompletedToggle: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 12 },
   todayProgress: { width: '100%' }, todayEmpty: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 13, padding: 12, borderRadius: 14, backgroundColor: colors.cream }, todayEmptyIcon: { fontSize: 25, opacity: .6 }, todayHero: { paddingTop: 13 }, todayHeroDivider: { marginTop: 13, borderTopWidth: 1, borderTopColor: colors.border }, todayHeroHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }, todayHeroName: { color: colors.ink, fontSize: 14, fontWeight: '900' }, todayProgressBar: { marginTop: 9 }, todayQuestCount: { color: colors.green, fontSize: 11, fontWeight: '800', marginTop: 7 }, todayNoQuests: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 7 },
   bigStar: { fontSize: 36 }, encourage: { color: colors.green, fontWeight: '700', fontSize: 12, marginTop: 10 }, weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 }, day: { alignItems: 'center', gap: 7 }, dayLabel: { fontSize: 10, color: colors.muted, fontWeight: '800' }, dayDot: { width: 33, height: 33, borderRadius: 17, borderWidth: 2, borderColor: '#D9D4C8', justifyContent: 'center', alignItems: 'center' }, dayDone: { backgroundColor: colors.green, borderColor: colors.green }, dayToday: { borderColor: colors.gold }, dayValue: { color: colors.white, fontWeight: '900' }, dayStars: { color: '#836000', fontWeight: '800', fontSize: 10 },
   dashboardProgress: { marginTop: 10 }, weeklyEmpty: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 15, padding: 14, borderRadius: 15, backgroundColor: colors.cream }, weeklyEmptyIcon: { fontSize: 27, opacity: .55 }, weeklyHero: { paddingTop: 15 }, weeklyHeroDivider: { marginTop: 15, borderTopWidth: 1, borderTopColor: colors.border }, weeklyHeroHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }, weeklyHeroName: { color: colors.ink, fontSize: 14, fontWeight: '900' }, weeklyNoQuests: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 7 }, weeklyGoal: { color: colors.purple, fontSize: 11, fontWeight: '800', marginTop: 7 }, weeklyGoalMet: { color: colors.green }, statRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#EFECE5' }, statEmoji: { fontSize: 25 }, statName: { flex: 1, fontWeight: '800', color: colors.ink }, storeHeading: { flex: 1, gap: 3 }, storeLead: { color: colors.muted, fontSize: 13, lineHeight: 19 }, starBalance: { backgroundColor: '#FFF0B7', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99 }, starBalanceText: { color: '#755400', fontWeight: '900', fontSize: 17 }, rewardWalletSection: { gap: 12, paddingBottom: 4 }, rewardWalletCard: { gap: 13, borderColor: '#CFDDBD' }, rewardWalletRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, rewardWalletEmoji: { fontSize: 33 }, rewardStatus: { color: colors.purple, fontSize: 10, fontWeight: '900', marginTop: 4, textTransform: 'uppercase' }, rewardStatusReady: { color: colors.green }, useRewardButton: { minHeight: 43, borderRadius: 13, backgroundColor: colors.green, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, useRewardButtonText: { color: colors.white, fontWeight: '900' }, cancelClaimButton: { minHeight: 40, borderRadius: 13, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, cancelClaimText: { color: colors.navy, fontSize: 11, fontWeight: '800', textAlign: 'center' }, shopSectionHeader: { gap: 2, marginTop: 5 }, rewardHistoryRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingTop: 13, marginTop: 13, borderTopWidth: 1, borderTopColor: colors.border }, rewardHistoryEmoji: { fontSize: 25 }, rewardHistoryTitle: { color: colors.ink, fontSize: 13, fontWeight: '900' }, storeCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border }, storeCardMobile: { gap: 9, padding: 12, borderRadius: 17 }, storeEmoji: { fontSize: 34 }, storeEmojiMobile: { fontSize: 28 }, starsNeeded: { color: colors.coral, fontSize: 10, fontWeight: '800', marginTop: 4 }, pendingReward: { color: colors.purple, fontSize: 10, fontWeight: '900', marginTop: 4 }, buyButton: { backgroundColor: colors.navy, borderRadius: 99, paddingHorizontal: 13, paddingVertical: 10 }, buyButtonMobile: { paddingHorizontal: 10, paddingVertical: 9 }, buyButtonDisabled: { backgroundColor: '#E1DED5' }, buyButtonText: { color: colors.white, fontWeight: '900', fontSize: 12 }, buyButtonTextDisabled: { color: colors.muted }, footnote: { color: colors.muted, fontSize: 11, textAlign: 'center', lineHeight: 17, paddingHorizontal: 20 },

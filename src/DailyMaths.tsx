@@ -2,8 +2,8 @@ import { useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Panel, ProgressBar } from './components';
 import { colors } from './theme';
-import { isMathsGrade, MATHS_XP, mathsComplete, mathsSet, matchesMathsAnswer, QUESTIONS_PER_QUEST } from './maths';
-import type { MathsAttempt, MathsDay, MathsResult } from './maths';
+import { MATHS_XP, mathsComplete, mathsSet, matchesMathsAnswer, QUESTIONS_PER_QUEST } from './maths';
+import type { MathsAttempt, MathsResult } from './maths';
 import type { HeroProfile } from './types';
 
 function Action({ label, onPress, disabled = false, secondary = false }: {
@@ -13,30 +13,6 @@ function Action({ label, onPress, disabled = false, secondary = false }: {
     style={[styles.button, secondary && styles.secondary, disabled && styles.disabled]}>
     <Text style={[styles.buttonText, secondary && styles.secondaryText]}>{label}</Text>
   </Pressable>;
-}
-
-export function MathsTodayCard({ day, error, onOpen, onRetry }: {
-  day: MathsDay | null; error: string | null; onOpen: () => void; onRetry: () => void;
-}) {
-  if (!day && !error) return null;
-  if (error && !day) {
-    return <Panel style={styles.card}><Text style={styles.title}>Daily Maths</Text>
-      <Text style={styles.muted}>Daily Maths could not load.</Text>
-      <Action label="Try again" onPress={onRetry} secondary />
-    </Panel>;
-  }
-  if (!day || (!day.attempt && !isMathsGrade(day.grade))) return null;
-  const answered = day.attempt?.results.length ?? 0;
-  const done = mathsComplete(day.attempt);
-  return <Panel style={styles.card}>
-    <View style={styles.row}>
-      <View style={styles.flex}><Text style={styles.title}>Daily Maths</Text>
-        <Text style={styles.muted}>Grade {day.attempt?.grade ?? day.grade} · {answered} of 5 complete · {MATHS_XP} XP</Text>
-      </View>
-      <Action label={done ? 'See results' : answered ? 'Continue' : 'Start maths'} onPress={onOpen} />
-    </View>
-    <ProgressBar value={answered} max={QUESTIONS_PER_QUEST} />
-  </Panel>;
 }
 
 export function MathsQuest({ initial, onRecord, onClose, onCompleted }: {
